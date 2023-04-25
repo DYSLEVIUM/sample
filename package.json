@@ -11,9 +11,11 @@
     "require": "./dist/livekit-client.umd.js"
   },
   "files": [
-    "dist",
-    "src"
+    "/dist/**/*.map" 
   ],
+  "publishConfig": {
+    "registry": ""
+  },
   "types": "dist/src/index.d.ts",
   "typesVersions": {
     "<4.8": {
@@ -22,22 +24,14 @@
       ]
     }
   },
-  "repository": "git@github.com:livekit/client-sdk-js.git",
-  "author": "David Zhao <david@davidzhao.com>",
+  "repository": "",
+  "author": "",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "rollup --config --bundleConfigAsCjs && yarn downlevel-dts",
-    "build:watch": "rollup --watch --config rollup.config.js",
-    "build-docs": "typedoc",
+    "clean":"tsc --build --clean",
+    "build": "tsc --build tsconfig.json",
     "proto": "protoc --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=esModuleInterop=true --ts_proto_out=./src/proto --ts_proto_opt=outputClientImpl=false,useOptionals=messages,oneof=unions -I./protocol ./protocol/livekit_rtc.proto ./protocol/livekit_models.proto",
-    "sample": "vite serve example --port 8080 --open",
-    "lint": "eslint src",
-    "test": "jest",
-    "deploy": "gh-pages -d example/dist",
-    "format": "prettier --write src example/sample.ts",
-    "format:check": "prettier --check src",
-    "release": "yarn build && changeset publish",
-    "downlevel-dts": "downlevel-dts ./dist/ ./dist/ts4.2 --to=4.2"
+    "publish": "tsc --build tsconfig.json && npm publish"
   },
   "dependencies": {
     "async-await-queue": "^1.2.1",

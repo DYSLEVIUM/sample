@@ -1,3 +1,12 @@
+
+## Badges
+
+Add badges from somewhere like: [shields.io](https://shields.io/)
+
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+[![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://opensource.org/licenses/)
+[![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
+
 # JavaScript/TypeScript client SDK for LiveKit
 
 `livekit-client` is the official client SDK for [LiveKit](https://github.com/livekit/livekit-server). With it, you can add real time video and audio to your web apps.
@@ -286,3 +295,11 @@ You can have a look at the `"browerslist"` section of `package.json` for more de
 > Support for more modern features like adaptiveStream and dynacast can be checked for with `supportsAdaptiveStream()` and `supportsDynacast()`.
 
 If you are targeting legacy browsers, but still want adaptiveStream functionality you'll likely need to use polyfills for [ResizeObserver](https://www.npmjs.com/package/resize-observer-polyfill) and [IntersectionObserver](https://www.npmjs.com/package/intersection-observer).
+
+### SDK build and publish process for ECPRT
+
+ - update the .npmrc file with valid credentials.
+ - Update the `publishConfig.registry` selection of `package.json` with registory link where the final npm package need to push.
+ - Execute "npm run clean" command to clean the project.
+ - Execute "npm run build" command to build the project.
+ - Execute "npm run publish" command to publish the build to the provided registry.

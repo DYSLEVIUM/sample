@@ -24,7 +24,7 @@ import {
   VideoCodec,
   VideoPresets,
   VideoQuality,
-} from '../src/index';
+} from 'livekit-client';
 
 const $ = (id: string) => document.getElementById(id);
 
@@ -55,14 +55,20 @@ const appActions = {
   connectWithFormInput: async () => {
     const url = (<HTMLInputElement>$('url')).value;
     const token = (<HTMLInputElement>$('token')).value;
-    const simulcast = (<HTMLInputElement>$('simulcast')).checked;
-    const dynacast = (<HTMLInputElement>$('dynacast')).checked;
-    const forceTURN = (<HTMLInputElement>$('force-turn')).checked;
-    const adaptiveStream = (<HTMLInputElement>$('adaptive-stream')).checked;
-    const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
-    const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
-    const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
-
+    //const simulcast = (<HTMLInputElement>$('simulcast')).checked;
+    const simulcast = true;
+    //const dynacast = (<HTMLInputElement>$('dynacast')).checked;
+    const dynacast = true;
+    //const forceTURN = (<HTMLInputElement>$('force-turn')).checked;
+    const forceTURN = true;
+    //const adaptiveStream = (<HTMLInputElement>$('adaptive-stream')).checked;
+    const adaptiveStream = true;
+    //const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
+    const shouldPublish = true;
+    //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
+    const preferredCodec = 'VP8' as VideoCodec;
+    //const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
+    const autoSubscribe = true;
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token);
 
@@ -200,6 +206,7 @@ const appActions = {
     setButtonsForState(true);
 
     room.participants.forEach((participant) => {
+      console.log("hello in part");
       participantConnected(participant);
     });
     participantConnected(room.localParticipant);
@@ -296,6 +303,7 @@ const appActions = {
   handleScenario: (e: Event) => {
     const scenario = (<HTMLSelectElement>e.target).value;
     if (scenario === 'subscribe-all') {
+      console.log('hello');
       currentRoom?.participants.forEach((p) => {
         p.tracks.forEach((rp) => rp.setSubscribed(true));
       });
