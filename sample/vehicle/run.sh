@@ -36,6 +36,30 @@ export secret
 #browserify
 browserify index.js -t envify > bundle.js
 
+pkill -f pm2
+
 #live-server-start
-live-server .
+pm2 start liveserver.js
+
+while true; do
+while true; do
+    read -p "Do you wish to disconnect from the room(Y/N)? " yn
+    case $yn in
+        [Yy]* )pm2 stop liveserver.js; break;;
+        [Nn]* ) exit ;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
+while true; do
+    read -p "Do you wish to re-connect to the room(Y/N)? " yn
+    case $yn in
+        [Yy]*) pm2 start liveserver.js; break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+
+    esac
+done
+done
+
+
  
