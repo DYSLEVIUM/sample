@@ -423,6 +423,7 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
     this.client.onTokenRefresh = (token: string) => {
       this.token = token;
+      sessionStorage.setItem("token", this.token);
     };
 
     this.client.onClose = () => {

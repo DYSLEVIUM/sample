@@ -375,7 +375,9 @@ declare global {
     appActions: typeof appActions;
   }
 }
-
+window.onload = function() {
+  appActions.connectWithFormInput();
+}
 window.appActions = appActions;
 
 // --------------------------- event handlers ------------------------------- //
