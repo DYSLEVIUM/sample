@@ -60,7 +60,7 @@ const appActions = {
     //const dynacast = (<HTMLInputElement>$('dynacast')).checked;
     const dynacast = true;
     //const forceTURN = (<HTMLInputElement>$('force-turn')).checked;
-    const forceTURN = true;
+    const forceTURN = false;
     //const adaptiveStream = (<HTMLInputElement>$('adaptive-stream')).checked;
     const adaptiveStream = true;
     //const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
@@ -375,7 +375,9 @@ declare global {
     appActions: typeof appActions;
   }
 }
-
+window.onload = function() {
+  appActions.connectWithFormInput();
+}
 window.appActions = appActions;
 
 // --------------------------- event handlers ------------------------------- //
