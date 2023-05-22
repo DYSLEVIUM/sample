@@ -1,13 +1,11 @@
-#npm install
-npm install 
 
 helpFunction()
 {
-   echo "Usage: $0 -r room -d devkey -s apisecret"
-   echo -e "\t-r Which room to connect"
-   echo -e "\t-r Livekit host ip "
-   echo -e "\t-d Livit Server Devkey"
-   echo -e "\t-s LivekitServer API Secret Key"
+   echo "Usage: $0 -r room -h host -d devkey -s apisecret"
+   echo -e "\t-r room to connect"
+   echo -e "\t-r livekit server host ip "
+   echo -e "\t-d livit server devkey"
+   echo -e "\t-s livekit server apisecret key"
 }
 
 while getopts "r:h:d:s:" opt
@@ -34,32 +32,28 @@ export devkey
 export secret 
 
 #browserify
-browserify index.js -t envify > bundle.js
+npm run browserify
 
-pkill -f pm2
+npm run clean
 
-#live-server-start
-pm2 start liveserver.js
+#vehicle-server-start
+npm run vehicle
+
 
 while true; do
-while true; do
-    read -p "Do you wish to disconnect from the room(Y/N)? " yn
+    read -e -p "
+  Press d to disconnect from the room
+  Press r to re-join the room
+  Press q to quit
+  " yn
     case $yn in
-        [Yy]* )pm2 stop liveserver.js; break;;
-        [Nn]* ) exit ;;
-        * ) echo "Please answer yes or no.";;
+        [Dd]* )npm run stop;;
+        [Qq]* ) exit ;;
+        [Rr]* )npm run vehicle;;
+        * ) echo "Please press correct key";;
     esac
 done
-while true; do
-    read -p "Do you wish to re-connect to the room(Y/N)? " yn
-    case $yn in
-        [Yy]*) pm2 start liveserver.js; break;;
-        [Nn]* ) exit;;
-        * ) echo "Please answer yes or no.";;
 
-    esac
-done
-done
 
 
  
