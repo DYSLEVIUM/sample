@@ -140,6 +140,12 @@ let vehicleMediaStreams = [
     "device": null,
     "participantName": null,
   },
+  {
+    "position": "REAR",
+    "token": null,
+    "device": null,
+    "participantName": null,
+  }
 ];
 main()
 console.info("Ready");

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "vehicle":"pm2 start app.js",
-    "clean":"pkill -f pm2",
+    "clean":"pm2 kill",
     "stop":"pm2 stop app.js",
     "browserify":"browserify index.js -t envify > bundle.js"
   },
