@@ -47,13 +47,12 @@ while true; do
   Press q to quit
   " yn
     case $yn in
-        [Dd]* )npm run stop;;
-        [Qq]* ) exit ;;
-        [Rr]* )npm run vehicle;;
+        [Dd]* )node disconnect.js $room $livekithost $devkey $secret;npm run stop;;
+        [Qq]* )exit ;;
+        [Rr]* )node disconnect.js $room $livekithost $devkey $secret;npm run stop;npm run vehicle;;
         * ) echo "Please press correct key";;
     esac
 done
-
 
 
  

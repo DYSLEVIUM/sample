@@ -1,7 +1,7 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var livekit =require("livekit-client")
 module.exports = livekit;
-module.exports.room= "room12"
+module.exports.room= "room1"
 module.exports.devkey= "devkey"
 module.exports.apiSecret= "secret"
 module.exports.liveKitBaseUrl= `ws://`+"localhost"+`:7880`;
@@ -148,6 +148,12 @@ let vehicleMediaStreams = [
     "device": null,
     "participantName": null,
   },
+  {
+    "position": "REAR",
+    "token": null,
+    "device": null,
+    "participantName": null,
+  }
 ];
 main()
 console.info("Ready");

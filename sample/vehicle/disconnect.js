@@ -1,0 +1,40 @@
+const {RoomServiceClient}=require("livekit-server-sdk");
+//const { liveKitBaseUrl, devkey, apiSecret, room } = require("./constants");
+//require('dotenv').config()
+
+var room =process.argv[2]
+var liveKitBaseUrl="http://"+process.argv[3]+":7880"
+var devkey=process.argv[4]
+var secret=process.argv[5]
+
+ const svc = new RoomServiceClient(liveKitBaseUrl, devkey, secret);
+ 
+ 
+ 
+ 
+ //DeleteVehicleCamParticipants
+ 
+ svc.listParticipants(room)
+  .then(async (participants) => {
+
+    
+    for(var i in participants)
+    {
+        if(participants[i].identity=='-FRONT'||participants[i].identity=='-REAR'||
+        participants[i].identity=='-RIGHT'||participants[i].identity=='-LEFT')
+         {
+      
+            await svc.removeParticipant(room, participants[i].identity).then(() => {
+      
+        }).catch((error) => {
+        console.error(error);
+      });
+    }
+   }
+
+  })
+
+
+
+
+  
