@@ -9,7 +9,7 @@ async function getVehicleMediaStreams() {
   
     
   for (const device of devices) {
-    if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Camera")) || (device.label.includes("Integrated Webcam")|| (device.label.includes("FaceTime"))))) {
+    if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Camera")) || (device.label.includes("Integrated Webcam"))|| (device.label.includes("FaceTime")))) {
     const i = devices.indexOf(device);
     vehicleMediaStreams[i].device = device;
     let participantName = `${unitCallSign}-${vehicleMediaStreams[i].position}`;
