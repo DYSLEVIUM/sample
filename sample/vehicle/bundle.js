@@ -13,24 +13,42 @@ var livekit = require("livekit-client");
 const { devkey, apiSecret,liveKitBaseUrl,room } = require("./constants");
 async function getVehicleMediaStreams() {
   let devices = await livekit.Room.getLocalDevices('videoinput');
+  //let filteredDevices= await filter()
+  
+    
   for (const device of devices) {
+    if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Camera")) || (device.label.includes("Integrated Webcam")|| (device.label.includes("FaceTime"))))) {
     const i = devices.indexOf(device);
     vehicleMediaStreams[i].device = device;
     let participantName = `${unitCallSign}-${vehicleMediaStreams[i].position}`;
     vehicleMediaStreams[i].participantName = participantName
     vehicleMediaStreams[i].token = await getMediaToken(room, participantName);
-  }
+    }
+  }   
 
   return vehicleMediaStreams;
 }
 
-function wipeAll() {
-  for(const room of liveRooms) {
-    if(room != null) {
-      room.disconnect();
-    }
+function filter() {
+
+  if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+    // Enumerate the available media devices
+    navigator.mediaDevices.enumerateDevices()
+      .then(function(devices) {
+        // Filter out the front camera
+        var filteredDevices = devices.filter(function(device) {
+          return device.kind !== 'videoinput' || device.label.toLowerCase().indexOf('front') === -1;
+        });
+  
+        // Use the filtered devices for further processing
+        console.log(filteredDevices);
+      })
+      .catch(function(err) {
+        console.error('Error enumerating media devices:', err);
+      });
+  } else {
+    console.error('navigator.mediaDevices.enumerateDevices is not supported');
   }
-  liveRooms = []
 }
 
 async function getMediaToken(roomName, participantName) {
