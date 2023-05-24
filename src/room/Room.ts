@@ -419,6 +419,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
    * disconnects the room, emits [[RoomEvent.Disconnected]]
    */
   disconnect = async (stopTracks = true) => {
+    sessionStorage.removeItem('token');
     const unlock = await this.disconnectLock.lock();
     try {
       if (this.state === ConnectionState.Disconnected) {
@@ -558,7 +559,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   }
 
   private onPageLeave = async () => {
+    let token = sessionStorage.getItem('token') as string;
     await this.disconnect();
+    sessionStorage.setItem('token',token);
   };
 
   /**
