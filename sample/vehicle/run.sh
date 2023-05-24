@@ -1,13 +1,11 @@
-#npm install
-npm install 
 
 helpFunction()
 {
-   echo "Usage: $0 -r room -d devkey -s apisecret"
-   echo -e "\t-r Which room to connect"
-   echo -e "\t-r Livekit host ip "
-   echo -e "\t-d Livit Server Devkey"
-   echo -e "\t-s LivekitServer API Secret Key"
+   echo "Usage: $0 -r room -h host -d devkey -s apisecret"
+   echo -e "\t-r room to connect"
+   echo -e "\t-r livekit server host ip "
+   echo -e "\t-d livit server devkey"
+   echo -e "\t-s livekit server apisecret key"
 }
 
 while getopts "r:h:d:s:" opt
@@ -34,8 +32,27 @@ export devkey
 export secret 
 
 #browserify
-browserify index.js -t envify > bundle.js
+npm run browserify
 
-#live-server-start
-live-server .
+npm run clean
+
+#vehicle-server-start
+npm run vehicle
+
+
+while true; do
+    read -e -p "
+  Press d to disconnect from the room
+  Press r to re-join the room
+  Press q to quit
+  " yn
+    case $yn in
+        [Dd]* )node disconnect.js $room $livekithost $devkey $secret;npm run stop;;
+        [Qq]* )exit ;;
+        [Rr]* )node disconnect.js $room $livekithost $devkey $secret;npm run stop;npm run vehicle;;
+        * ) echo "Please press correct key";;
+    esac
+done
+
+
  
