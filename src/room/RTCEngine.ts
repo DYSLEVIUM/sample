@@ -431,6 +431,7 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     };
 
     this.client.onLeave = (leave?: LeaveRequest) => {
+      sessionStorage.removeItem('token');
       if (leave?.canReconnect) {
         this.fullReconnectOnNext = true;
         this.primaryPC = undefined;
