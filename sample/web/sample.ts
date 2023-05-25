@@ -41,9 +41,7 @@ let startTime: number;
 
 const searchParams = new URLSearchParams(window.location.search);
 const storedUrl = searchParams.get('url') ?? 'ws://localhost:7880';
-const storedToken = searchParams.get('token') ?? '';
 (<HTMLInputElement>$('url')).value = storedUrl;
-(<HTMLInputElement>$('token')).value = storedToken;
 
 function updateSearchParams(url: string, token: string) {
   const params = new URLSearchParams({ url, token });
@@ -293,6 +291,7 @@ const appActions = {
 
   disconnectRoom: () => {
     if (currentRoom) {
+      (<HTMLInputElement>$('token')).value = '';
       currentRoom.disconnect();
     }
     if (state.bitrateInterval) {
