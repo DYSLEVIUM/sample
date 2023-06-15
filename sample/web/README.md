@@ -17,6 +17,8 @@ npm install livekit-client --save
 
 ### Web Sample app build and running process for ECPRT
 
+ - Execute "npm run install" command to install required dependencies to node module of the project.
+ - Execute "npm install -g typescript" command to install tsc globally.
  - Execute "npm run clean" command to clean the project.
  - Execute "npm run build" command to build the project.
  - Execute "npm run sample" which will open the sample app web application in the browser which is running on port number 8080.
