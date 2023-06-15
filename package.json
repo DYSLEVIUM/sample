@@ -14,7 +14,7 @@
     "/dist/**/*.map" 
   ],
   "publishConfig": {
-    "registry": ""
+    "registry": "cgbu_ecprt-dev-generic-local"
   },
   "types": "dist/src/index.d.ts",
   "typesVersions": {
