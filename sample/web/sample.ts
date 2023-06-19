@@ -24,7 +24,7 @@ import {
   VideoCodec,
   VideoPresets,
   VideoQuality,
-} from 'livekit-client';
+} from '../../src/index';
 
 const $ = (id: string) => document.getElementById(id);
 
@@ -202,7 +202,7 @@ const appActions = {
     currentRoom = room;
     window.currentRoom = room;
     setButtonsForState(true);
-
+    updateButtonsForPublishState();
     room.participants.forEach((participant) => {
       console.log("hello in part");
       participantConnected(participant);
@@ -397,10 +397,12 @@ function participantConnected(participant: Participant) {
     .on(ParticipantEvent.TrackMuted, (pub: TrackPublication) => {
       appendLog('track was muted', pub.trackSid, participant.identity);
       renderParticipant(participant);
+      updateButtonsForPublishState();
     })
     .on(ParticipantEvent.TrackUnmuted, (pub: TrackPublication) => {
       appendLog('track was unmuted', pub.trackSid, participant.identity);
       renderParticipant(participant);
+      updateButtonsForPublishState();
     })
     .on(ParticipantEvent.IsSpeakingChanged, () => {
       renderParticipant(participant);

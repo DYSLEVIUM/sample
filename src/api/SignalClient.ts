@@ -364,7 +364,7 @@ export class SignalClient {
 
   // initial offer after joining
   sendOffer(offer: RTCSessionDescriptionInit) {
-    log.debug('sending offer', offer);
+    log.debug('sending offer req to server ', offer);
     this.sendRequest({
       $case: 'offer',
       offer: toProtoSessionDescription(offer),
@@ -373,7 +373,7 @@ export class SignalClient {
 
   // answer a server-initiated offer
   sendAnswer(answer: RTCSessionDescriptionInit) {
-    log.debug('sending answer');
+    log.debug('sending answer req to server', answer);
     this.sendRequest({
       $case: 'answer',
       answer: toProtoSessionDescription(answer),
@@ -381,7 +381,7 @@ export class SignalClient {
   }
 
   sendIceCandidate(candidate: RTCIceCandidateInit, target: SignalTarget) {
-    log.trace('sending ice candidate', candidate);
+    log.debug('sending ice candidate req to server', candidate);
     this.sendRequest({
       $case: 'trickle',
       trickle: {
@@ -392,6 +392,7 @@ export class SignalClient {
   }
 
   sendMuteTrack(trackSid: string, muted: boolean) {
+    log.debug('sending Mute Track req to server', {trackSid,muted});
     this.sendRequest({
       $case: 'mute',
       mute: {
@@ -402,6 +403,7 @@ export class SignalClient {
   }
 
   sendAddTrack(req: AddTrackRequest): void {
+    log.debug('sending Add Track req to server', req);
     this.sendRequest({
       $case: 'addTrack',
       addTrack: AddTrackRequest.fromPartial(req),
@@ -409,6 +411,7 @@ export class SignalClient {
   }
 
   sendUpdateTrackSettings(settings: UpdateTrackSettings) {
+    log.debug('sending Update Track setting req to server', settings);
     this.sendRequest({
       $case: 'trackSetting',
       trackSetting: settings,
@@ -416,6 +419,7 @@ export class SignalClient {
   }
 
   sendUpdateSubscription(sub: UpdateSubscription) {
+    log.debug('sending Update Subscription req to server', sub);
     this.sendRequest({
       $case: 'subscription',
       subscription: sub,
@@ -423,6 +427,7 @@ export class SignalClient {
   }
 
   sendSyncState(sync: SyncState) {
+    log.debug('sending sync state req to server', sync);
     this.sendRequest({
       $case: 'syncState',
       syncState: sync,
@@ -430,6 +435,7 @@ export class SignalClient {
   }
 
   sendUpdateVideoLayers(trackSid: string, layers: VideoLayer[]) {
+    log.debug('sending update video layer req to server', {trackSid,layers});
     this.sendRequest({
       $case: 'updateLayers',
       updateLayers: {
@@ -440,6 +446,7 @@ export class SignalClient {
   }
 
   sendUpdateSubscriptionPermissions(allParticipants: boolean, trackPermissions: TrackPermission[]) {
+    log.debug('sending update subscription permission req to server', {allParticipants,trackPermissions});
     this.sendRequest({
       $case: 'subscriptionPermission',
       subscriptionPermission: {
@@ -450,6 +457,7 @@ export class SignalClient {
   }
 
   sendSimulateScenario(scenario: SimulateScenario) {
+    log.debug('sending simulate scenario req to server', scenario);
     this.sendRequest({
       $case: 'simulate',
       simulate: scenario,
@@ -457,6 +465,7 @@ export class SignalClient {
   }
 
   sendPing() {
+    log.debug('sending ping req to server');
     /** send both of ping and pingReq for compatibility to old and new server */
     this.sendRequest({
       $case: 'ping',
@@ -472,6 +481,7 @@ export class SignalClient {
   }
 
   async sendLeave() {
+    log.debug('sending leave req to server');
     await this.sendRequest({
       $case: 'leave',
       leave: {
@@ -484,6 +494,7 @@ export class SignalClient {
   async sendRequest(message: SignalMessage, fromQueue: boolean = false) {
     // capture all requests while reconnecting and put them in a queue
     // unless the request originates from the queue, then don't enqueue again
+    log.debug('sending request  to server ', message);
     const canQueue = !fromQueue && !canPassThroughQueue(message);
     if (canQueue && this.isReconnecting) {
       this.queuedRequests.push(async () => {
@@ -524,71 +535,88 @@ export class SignalClient {
       return;
     }
     if (msg.$case === 'answer') {
+      log.debug(`the answer response from server is: `, {res});
       const sd = fromProtoSessionDescription(msg.answer);
       if (this.onAnswer) {
         this.onAnswer(sd);
       }
     } else if (msg.$case === 'offer') {
+      log.debug(`the offer response from server is: `, {res});
       const sd = fromProtoSessionDescription(msg.offer);
       if (this.onOffer) {
         this.onOffer(sd);
       }
     } else if (msg.$case === 'trickle') {
+      log.debug(`the trickle response from server is: `, {res});
       const candidate: RTCIceCandidateInit = JSON.parse(msg.trickle.candidateInit!);
       if (this.onTrickle) {
         this.onTrickle(candidate, msg.trickle.target);
       }
     } else if (msg.$case === 'update') {
+      log.debug(`the update response from server is: `, {res});
       if (this.onParticipantUpdate) {
         this.onParticipantUpdate(msg.update.participants ?? []);
       }
     } else if (msg.$case === 'trackPublished') {
+      log.debug(`the trackPublished response from server is: `, {res});
       if (this.onLocalTrackPublished) {
         this.onLocalTrackPublished(msg.trackPublished);
       }
     } else if (msg.$case === 'speakersChanged') {
+      log.debug(`the speakersChanged response from server is: `, {res});
       if (this.onSpeakersChanged) {
         this.onSpeakersChanged(msg.speakersChanged.speakers ?? []);
       }
     } else if (msg.$case === 'leave') {
+      log.debug(`the leave response from server is: `, {res});
       if (this.onLeave) {
         this.onLeave(msg.leave);
       }
     } else if (msg.$case === 'mute') {
+      log.debug(`the mute response from server is: `, {res});
       if (this.onRemoteMuteChanged) {
         this.onRemoteMuteChanged(msg.mute.sid, msg.mute.muted);
       }
     } else if (msg.$case === 'roomUpdate') {
+      log.debug(`the roomUpdate response from server is: `, {res});
       if (this.onRoomUpdate && msg.roomUpdate.room) {
         this.onRoomUpdate(msg.roomUpdate.room);
       }
     } else if (msg.$case === 'connectionQuality') {
+      log.debug(`the connectionQuality response from server is: `, {res});
       if (this.onConnectionQuality) {
         this.onConnectionQuality(msg.connectionQuality);
       }
     } else if (msg.$case === 'streamStateUpdate') {
+      log.debug(`the streamStateUpdate response from server is: `, {res});
       if (this.onStreamStateUpdate) {
         this.onStreamStateUpdate(msg.streamStateUpdate);
       }
     } else if (msg.$case === 'subscribedQualityUpdate') {
+      log.debug(`the subscribedQualityUpdate response from server is: `, {res});
       if (this.onSubscribedQualityUpdate) {
         this.onSubscribedQualityUpdate(msg.subscribedQualityUpdate);
       }
     } else if (msg.$case === 'subscriptionPermissionUpdate') {
+      log.debug(`the subscriptionPermissionUpdate response from server is: `, {res});
       if (this.onSubscriptionPermissionUpdate) {
         this.onSubscriptionPermissionUpdate(msg.subscriptionPermissionUpdate);
       }
     } else if (msg.$case === 'refreshToken') {
+      log.debug(`the refreshToken response from server is: `, {res});
       if (this.onTokenRefresh) {
         this.onTokenRefresh(msg.refreshToken);
       }
     } else if (msg.$case === 'trackUnpublished') {
+      log.debug(`the trackUnpublished response from server is: `, {res});
       if (this.onLocalTrackUnpublished) {
         this.onLocalTrackUnpublished(msg.trackUnpublished);
       }
     } else if (msg.$case === 'pong') {
+      log.debug(`the pong response from server is: `, {res});
       this.resetPingTimeout();
     } else if (msg.$case === 'pongResp') {
+      log.debug(`the pongResp response from server is: `, {res});
       this.rtt = Date.now() - msg.pongResp.lastPingTimestamp;
       this.resetPingTimeout();
     } else {
