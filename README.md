@@ -303,3 +303,17 @@ If you are targeting legacy browsers, but still want adaptiveStream functionalit
  - Execute "npm run clean" command to clean the project.
  - Execute "npm run build" command to build the project.
  - Execute "npm run publish" command to publish the build to the provided registry.
+
+## Build Service
+
+### npm_build
+
+This step will build the node js and genrate a folder named dist which contains multiple JS files.
+
+### package-files
+
+This step will tar only the `*.map` files from dist folder.
+
+### publish-files
+
+Tar file from the previous step will be published to [cgbu_ecprt-dev-generic-local](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-dev-generic-local/ecprt-livekit-client-sdk-js/)
