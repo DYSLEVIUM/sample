@@ -1,0 +1,2 @@
+callscript:
+	./package.sh
