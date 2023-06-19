@@ -24,7 +24,7 @@ import {
   VideoCodec,
   VideoPresets,
   VideoQuality,
-} from '../../src/index';
+} from 'livekit-client';
 
 const $ = (id: string) => document.getElementById(id);
 
