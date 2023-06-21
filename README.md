@@ -297,7 +297,8 @@ You can have a look at the `"browerslist"` section of `package.json` for more de
 If you are targeting legacy browsers, but still want adaptiveStream functionality you'll likely need to use polyfills for [ResizeObserver](https://www.npmjs.com/package/resize-observer-polyfill) and [IntersectionObserver](https://www.npmjs.com/package/intersection-observer).
 
 ### SDK build and publish process for ECPRT
-
+ - Execute "npm run install" command to install required dependencies to node module of the project.
+ - Execute "npm install -g typescript" command to install tsc globally.
  - update the .npmrc file with valid credentials.
  - Update the `publishConfig.registry` selection of `package.json` with registory link where the final npm package need to push.
  - Execute "npm run clean" command to clean the project.
