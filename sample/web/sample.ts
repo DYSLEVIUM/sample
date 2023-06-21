@@ -24,7 +24,7 @@ import {
   VideoCodec,
   VideoPresets,
   VideoQuality,
-} from 'livekit-client';
+} from 'ecprt-client-sdk';
 
 const $ = (id: string) => document.getElementById(id);
 
@@ -53,20 +53,20 @@ const appActions = {
   connectWithFormInput: async () => {
     const url = (<HTMLInputElement>$('url')).value;
     const token = (<HTMLInputElement>$('token')).value;
-    //const simulcast = (<HTMLInputElement>$('simulcast')).checked;
-    const simulcast = true;
-    //const dynacast = (<HTMLInputElement>$('dynacast')).checked;
-    const dynacast = true;
-    //const forceTURN = (<HTMLInputElement>$('force-turn')).checked;
-    const forceTURN = false;
-    //const adaptiveStream = (<HTMLInputElement>$('adaptive-stream')).checked;
-    const adaptiveStream = true;
-    //const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
-    const shouldPublish = true;
+    const simulcast = (<HTMLInputElement>$('simulcast')).checked;
+    //const simulcast = true;
+    const dynacast = (<HTMLInputElement>$('dynacast')).checked;
+    //const dynacast = true;
+    const forceTURN = (<HTMLInputElement>$('force-turn')).checked;
+    //const forceTURN = false;
+    const adaptiveStream = (<HTMLInputElement>$('adaptive-stream')).checked;
+    //const adaptiveStream = true;
+    const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
+    //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
     const preferredCodec = 'VP8' as VideoCodec;
-    //const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
-    const autoSubscribe = true;
+    const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
+    //const autoSubscribe = true;
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token);
 

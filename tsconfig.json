@@ -13,8 +13,8 @@
     "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "importsNotUsedAsValues": "error"
+    "resolveJsonModule": true
+    //"importsNotUsedAsValues": "error"
   },
   "exclude": ["dist", "**/*.test.ts"],
   "include": ["src/**/*"],

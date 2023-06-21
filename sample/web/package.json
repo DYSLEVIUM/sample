@@ -5,20 +5,20 @@
   "description": "",
   "devDependencies": {
     "typescript": "4.9.5",
-    "vite": "4.1.4"
+    "vite": "^4.3.9"
   },
   "scripts": {
     "bootstrap": "npm install",
-    "clean":"tsc --build --clean",
+    "clean": "tsc --build --clean",
     "build": "tsc --build",
     "sample": "vite serve --port 8080 --open"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ecprt-client-sdk": "file:../../../../Downloads/ecprt-client-sdk-0.0.1.tgz",
     "livekit-client": "1.7.1",
-    "typescript": "4.9.5",
-    "vite": "4.1.4"
+    "typescript": "4.9.5"
   },
   "workspaces": {
     "packages": [
