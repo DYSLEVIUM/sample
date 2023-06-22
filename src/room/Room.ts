@@ -560,7 +560,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   private onPageLeave = async () => {
     let token = sessionStorage.getItem('token') as string;
-    await this.disconnect();
+    this.disconnect();
     sessionStorage.setItem('token',token);
   };
 
