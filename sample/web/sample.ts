@@ -434,8 +434,8 @@ function handleRoomDisconnect(reason?: DisconnectReason) {
   }
 
   // clear the chat area on disconnect
-  const chat = <HTMLTextAreaElement>$('chat');
-  chat.value = '';
+  //const chat = <HTMLTextAreaElement>$('chat');
+  //chat.value = '';
 
   currentRoom = undefined;
   window.currentRoom = undefined;
@@ -760,9 +760,11 @@ function populateSelect(
   devices: MediaDeviceInfo[],
   selectedDeviceId?: string,
 ) {
+  /*if(element != null)
+  {
   // clear all elements
   element.innerHTML = '';
-
+  }*/
   for (const device of devices) {
     const option = document.createElement('option');
     option.text = device.label;
@@ -770,7 +772,7 @@ function populateSelect(
     if (device.deviceId === selectedDeviceId) {
       option.selected = true;
     }
-    element.appendChild(option);
+    //element.appendChild(option);
   }
 }
 
