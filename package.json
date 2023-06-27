@@ -34,15 +34,18 @@
     "proto": "protoc --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=esModuleInterop=true --ts_proto_out=./src/proto --ts_proto_opt=outputClientImpl=false,useOptionals=messages,oneof=unions -I./protocol ./protocol/livekit_rtc.proto ./protocol/livekit_models.proto"
   },
   "dependencies": {
+    "async-await-queue": "^2.1.4",
     "eventemitter3": "^5.0.1",
     "loglevel": "^1.8.0",
     "protobufjs": "^7.0.0",
     "sdp-transform": "^2.14.1",
     "ts-debounce": "^4.0.0",
+    "typed-emitter": "^2.1.0",
     "webrtc-adapter": "^8.1.1"
   },
   "devDependencies": {
     "@babel/core": "7.22.1",
+    "@babel/plugin-proposal-object-rest-spread": "7.20.7",
     "@babel/preset-env": "7.22.4",
     "@changesets/cli": "2.26.1",
     "@livekit/changesets-changelog-github": "^0.0.4",
@@ -72,10 +75,9 @@
     "prettier": "^2.8.8",
     "rollup": "3.23.1",
     "rollup-plugin-delete": "^2.0.0",
+    "rollup-plugin-filesize": "10.0.0",
     "rollup-plugin-re": "1.0.7",
     "rollup-plugin-typescript2": "0.34.1",
-    "rollup-plugin-filesize": "10.0.0",
-    "@babel/plugin-proposal-object-rest-spread":"7.20.7",
     "size-limit": "^8.2.4",
     "ts-jest": "29.1.0",
     "ts-proto": "1.148.2",
