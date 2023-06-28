@@ -1,2 +1,2 @@
 callscript:
-	./package.sh
+	./rename_pack.sh
