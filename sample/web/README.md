@@ -1,24 +1,26 @@
-# Sample app of Livekit
- livekit-sample app is build on top of JavaScript/TypeScript client SDK for LiveKit. which uses npm package of client SDK JS (livekit-client).
- 
- ## Installation
+# Prerequisite
+Before proceeding with the installation, make sure you have downloaded the _**latest**_ version of the tgz file from the following link: **[Download Link](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-dev-generic-local/ecprt-livekit-client-sdk-js/)**.
 
-### Yarn
+# Installing Dependencies
+To install and set up the web sample app, follow the steps below:
 
-```shell
-yarn add livekit-client
-```
-
-### NPM
+## Step 1: Clean
+In the root directory of the web sample app, open a terminal or command prompt and run the following commands to clean the project dependencies and build artifacts:
 
 ```shell
-npm install livekit-client --save
+npm cache clean --force # Clear the npm cache forcefully
+npm install # make sure VPN is off
+npm run clean # Clean the build artifacts
 ```
 
-### Web Sample app build and running process for ECPRT
+## Step 2: Install and Build
+After cleaning the project, continue with the installation and build process by executing the following commands:
 
- - Execute "npm run install" command to install required dependencies to node module of the project.
- - Execute "npm install -g typescript" command to install tsc globally.
- - Execute "npm run clean" command to clean the project.
- - Execute "npm run build" command to build the project.
- - Execute "npm run sample" which will open the sample app web application in the browser which is running on port number 8080.
+```shell
+npm install [filename] # Provide the path to the latest downloaded tgz file
+npm run build # Build the web sample app
+npm run sample # Run the sample application
+```
+
+***
+Remember to replace _**[filename]**_ with the actual filename of the downloaded tgz file.
