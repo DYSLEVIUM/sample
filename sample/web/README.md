@@ -1,5 +1,5 @@
 # Prerequisite
-Before proceeding with the installation, make sure you have downloaded the _**latest**_ version of the tgz file from the following link: **[Download Link](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-dev-generic-local/ecprt-livekit-client-sdk-js/)**.
+Before proceeding with the installation, make sure you have downloaded the _**latest**_ version of the _**tgz**_ file of the _**develop**_ branch (e.g., ecprt-client-sdk-0.0.1-develop.9.tgz) from the following link: **[Download Link](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-dev-generic-local/ecprt-livekit-client-sdk-js/)**.
 
 # Installing Dependencies
 To install and set up the web sample app, follow the steps below:
