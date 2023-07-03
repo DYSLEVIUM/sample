@@ -1,5 +1,5 @@
-var livekit =require("livekit-client")
-module.exports = livekit;
+//var livekit =require("livekit-client")
+//module.exports = livekit;
 module.exports.room= process.env.room
 module.exports.devkey= process.env.devkey
 module.exports.apiSecret= process.env.secret
