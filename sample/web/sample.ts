@@ -409,6 +409,14 @@ function participantConnected(participant: Participant) {
     })
     .on(ParticipantEvent.ConnectionQualityChanged, () => {
       renderParticipant(participant);
+    })
+    .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions) =>{
+      /*  
+        In order to get the new permissions use participant.permission
+        And prevPermissions variable to get the old permission
+        This is a listener to event when the permisison of the participants are changed from server side
+        The UI developer can refer to this accordingly
+      */
     });
 }
 
