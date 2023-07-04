@@ -1,20 +1,25 @@
 //const { AccessToken } = require("livekit-server-sdk");
 
 const { AccessToken } = require("livekit-server-sdk");
-var livekit = require("livekit-client");
+var livekit = require("ecprt-client-sdk");
 const { devkey, apiSecret,liveKitBaseUrl,room } = require("./constants");
 async function getVehicleMediaStreams() {
   let devices = await livekit.Room.getLocalDevices('videoinput');
-  //let filteredDevices= await filter()
-  
-    
+  console.log("Un Filtered devices are:")
+  console.log(devices)
+  console.log("Add filtered devices:")
+  var i=0;
   for (const device of devices) {
-    if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Camera")) || (device.label.includes("Integrated Webcam"))|| (device.label.includes("FaceTime")))) {
-    const i = devices.indexOf(device);
+   if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Webcam"))||(device.label.includes("FaceTime")))) {
+     // if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Camera")) || (device.label.includes("Integrated Webcam")))) {
+     console.log(device.label);   
+    //const i = devices.indexOf(device);
     vehicleMediaStreams[i].device = device;
     let participantName = `${unitCallSign}-${vehicleMediaStreams[i].position}`;
     vehicleMediaStreams[i].participantName = participantName
+    console.log(participantName)
     vehicleMediaStreams[i].token = await getMediaToken(room, participantName);
+    i++;
     }
   }   
 
@@ -62,12 +67,17 @@ return token;
   }
 }
 
-
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function main() {
   // get connected video devices
   let deviceMediaStreams = await getVehicleMediaStreams();
-   console.log("Hi")
+
+
+  console.log("getVehicleMediaStreams")
+  console.log(deviceMediaStreams)
   // loop through the devices and create new joining instances to livekit server if they don't exist already
   for (const stream of deviceMediaStreams) {
     if(stream.token != null) {
@@ -95,11 +105,14 @@ async function main() {
             resolution: livekit.VideoPresets.h720.resolution,
           }
         })
-
+    //    if(stream.device.label.includes("Integrated Webcam")||stream.device.label.includes("FaceTime"))
+    //    continue;
         // connect to room
         await room.connect(liveKitBaseUrl, stream.token)
+   //     await sleep(2000)
         await room.localParticipant.setCameraEnabled(true)
         await room.switchActiveDevice('videoinput', stream.device.deviceId)
+        console.log("Device id"+stream.device.deviceId+"Device"+stream.device.label)
         liveRooms.push(room)
       }
     }
