@@ -395,6 +395,16 @@ function participantConnected(participant: Participant) {
       renderParticipant(participant);
       updateButtonsForPublishState();
     })
+    .on(ParticipantEvent.TrackMuted, (pub: TrackPublication) => {
+      appendLog('track was muted', pub.trackSid, participant.identity);
+      renderParticipant(participant);
+      updateButtonsForPublishState();
+    })
+    .on(ParticipantEvent.TrackUnmuted, (pub: TrackPublication) => {
+      appendLog('track was unmuted', pub.trackSid, participant.identity);
+      renderParticipant(participant);
+      updateButtonsForPublishState();
+    })
     .on(ParticipantEvent.IsSpeakingChanged, () => {
       renderParticipant(participant);
     })
