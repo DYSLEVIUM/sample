@@ -415,16 +415,6 @@ export enum ParticipantEvent {
    * args: (prevPermissions: [[ParticipantPermission]])
    */
   ParticipantPermissionsChanged = 'participantPermissionsChanged',
-  /**
-   * Local participants Track has changed to Mute status.
-   * args:(trackSid : trackSid)
-   */
-  LocalParticipantTrackMuted ='localParticipantTrackMuted',
-  /**
-   * Local participants Track has changed to Unmute status.
-   * args:(trackSid : trackSid)
-   */
-  LocalParticipantTrackUnMuted ='localParticipantTrackUnMuted',
 }
 
 /** @internal */

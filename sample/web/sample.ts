@@ -385,16 +385,6 @@ function handleData(msg: Uint8Array, participant?: RemoteParticipant) {
 function participantConnected(participant: Participant) {
   appendLog('participant', participant.identity, 'connected', participant.metadata);
   participant
-    .on(ParticipantEvent.LocalParticipantTrackMuted, (trackSid: String) => {
-      appendLog('track was muted', trackSid, participant.identity);
-      renderParticipant(participant);
-      updateButtonsForPublishState();
-    })
-    .on(ParticipantEvent.LocalParticipantTrackUnMuted, (trackSid: String) => {
-      appendLog('track was unmuted', trackSid, participant.identity);
-      renderParticipant(participant);
-      updateButtonsForPublishState();
-    })
     .on(ParticipantEvent.TrackMuted, (pub: TrackPublication) => {
       appendLog('track was muted', pub.trackSid, participant.identity);
       renderParticipant(participant);

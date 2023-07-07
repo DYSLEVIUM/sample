@@ -116,6 +116,14 @@ export default class LocalParticipant extends Participant {
         return;
       }
       if (muted) {
+        if(pub.kind == 'audio')
+        {
+          this.audioMuted = true;
+        }
+        else
+        {
+          this.videoMuted = true;
+        }
         pub.mute();
       } else {
         pub.unmute();
@@ -986,6 +994,7 @@ export default class LocalParticipant extends Participant {
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
     // the server's copy
+    console.log('the audioMute value'+this.audioMuted+'the video muted value'+this.videoMuted);
     info.tracks.forEach((ti) => {
       console.log(this.tracks);
       const pub = this.tracks.get(ti.sid);
@@ -998,14 +1007,14 @@ export default class LocalParticipant extends Participant {
         {
           if(ti.muted)
           {
-            if(this.audioMuted)
-            {
+            //if(this.audioMuted)
+            //{
               if(localTrack instanceof LocalAudioTrack) { 
                 localTrack.mute().then(() => {
-                this.emit(ParticipantEvent.LocalParticipantTrackMuted, ti.sid);
+                this.emit(ParticipantEvent.TrackMuted, pub);
               });
             }
-            }
+           // }
           }
           else
           {
@@ -1013,7 +1022,7 @@ export default class LocalParticipant extends Participant {
             {
               if(localTrack instanceof LocalAudioTrack) { 
                 localTrack.unmute().then(() => {
-                  this.emit(ParticipantEvent.LocalParticipantTrackUnMuted, ti.sid);
+                  this.emit(ParticipantEvent.TrackUnmuted, pub);
                 }); 
               }
             }
@@ -1024,14 +1033,14 @@ export default class LocalParticipant extends Participant {
         {
           if(ti.muted)
           {
-            if(this.videoMuted)
-            {
+            //if(this.videoMuted)
+            //{
               if(localTrack instanceof LocalVideoTrack) { 
                 localTrack.mute().then(() => {
-                  this.emit(ParticipantEvent.LocalParticipantTrackMuted, ti.sid);
+                  this.emit(ParticipantEvent.TrackMuted, pub);
                 }); 
               }
-            }
+           // }
           }
           else
           {
@@ -1039,7 +1048,7 @@ export default class LocalParticipant extends Participant {
             {
               if(localTrack instanceof LocalVideoTrack) { 
                 localTrack.unmute().then(() => {
-                  this.emit(ParticipantEvent.LocalParticipantTrackUnMuted, ti.sid);
+                  this.emit(ParticipantEvent.TrackUnmuted, pub);
                 }); 
               }
             }
