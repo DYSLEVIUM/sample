@@ -401,7 +401,21 @@ function participantConnected(participant: Participant) {
     .on(ParticipantEvent.ConnectionQualityChanged, () => {
       renderParticipant(participant);
     })
-    .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions) =>{
+    .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions,currPermissions) =>{
+      if(!currPermissions?.canPublish)
+      {
+        alert('The Admin disabled your audio and video permissions.');
+        setButtonDisabled('toggle-audio-button', true);
+        setButtonDisabled('toggle-video-button', true);
+      }
+      else
+      {
+        alert('The Admin would like you to enable audio and video.');
+        setButtonDisabled('toggle-audio-button', false);
+        setButtonDisabled('toggle-video-button', false);
+      }
+      console.log(prevPermissions);
+      console.log(currPermissions);
       /*  
         In order to get the new permissions use participant.permission
         And prevPermissions variable to get the old permission
