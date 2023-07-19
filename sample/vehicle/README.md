@@ -12,7 +12,14 @@ In the root directory of the vehicle app, open a terminal or command prompt and 
 go inside the working directory
 brew install node/ yum install nodejs(install node on machine)
 npm cache clean --force 
-npm install PATH_OF_DOWNLOADED_ecprt-client-sdk ( Note: It can take a while to install all dependencies )
+npm install PATH_OF_DOWNLOADED_ecprt-client-sdk ( Note: It can take a while to install all dependencies , disconnect VPN)
 npm install -g browserify envify pm2
-bash run.sh -r room_name -h livekit_server_host -d devkey -s secret
+bash run.sh -r room_name -h livekit_url -d devkey -s secret
+
+
+example command:
+
+bash run.sh -r room_name -h ws://localhost:7880 -d devkey -s secret
+
+
 
