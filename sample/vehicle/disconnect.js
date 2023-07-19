@@ -3,7 +3,7 @@ const {RoomServiceClient}=require("livekit-server-sdk");
 //require('dotenv').config()
 
 var room =process.argv[2]
-var liveKitBaseUrl="http://"+process.argv[3]+":7880"
+var liveKitBaseUrl=process.argv[3]
 var devkey=process.argv[4]
 var secret=process.argv[5]
 
