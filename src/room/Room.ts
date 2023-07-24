@@ -242,9 +242,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   connect = async (url: string, token: string, opts?: RoomConnectOptions): Promise<void> => {
     let refreshedToken = sessionStorage.getItem('token') as string;
-    if(refreshedToken != null)
+    if((!token || token.trim().length === 0) && refreshedToken != null)
     {
-      log.info('session refresh using latest token to refresh: '+refreshedToken);
+      log.info('Reload Performed, using latest token to refresh: '+refreshedToken);
       token = refreshedToken;
     }
     // In case a disconnect called happened right before the connect call, make sure the disconnect is completed first by awaiting its lock

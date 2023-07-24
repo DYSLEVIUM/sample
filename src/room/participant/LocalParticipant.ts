@@ -994,27 +994,23 @@ export default class LocalParticipant extends Participant {
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
     // the server's copy
-    console.log('the audioMute value'+this.audioMuted+'the video muted value'+this.videoMuted);
+    console.log('AudioMute Flage is: '+this.audioMuted+'VideoMute Flage is: '+this.videoMuted);
     info.tracks.forEach((ti) => {
-      console.log(this.tracks);
       const pub = this.tracks.get(ti.sid);
       if (pub) {
-        console.log('the pub upstream'+pub.track?.isUpstreamPaused);
         const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
-        console.log('sid is'+ti.sid+'its mute value is '+ti.muted);
+        console.log('mutedOnServer flage is: '+mutedOnServer)
+        console.log('Track type is: '+pub.kind+'its Sid is: '+ti.sid+'its Mute value is: '+ti.muted);
         const localTrack = pub.track;
         if(pub.kind == Track.Kind.Audio)
         {
           if(ti.muted)
           {
-            //if(this.audioMuted)
-            //{
               if(localTrack instanceof LocalAudioTrack) { 
                 localTrack.mute().then(() => {
                 this.emit(ParticipantEvent.TrackMuted, pub);
               });
             }
-           // }
           }
           else
           {
@@ -1033,14 +1029,11 @@ export default class LocalParticipant extends Participant {
         {
           if(ti.muted)
           {
-            //if(this.videoMuted)
-            //{
               if(localTrack instanceof LocalVideoTrack) { 
                 localTrack.mute().then(() => {
                   this.emit(ParticipantEvent.TrackMuted, pub);
                 }); 
               }
-           // }
           }
           else
           {
@@ -1055,8 +1048,6 @@ export default class LocalParticipant extends Participant {
             this.videoMuted = false;
           }
         }
-        console.log('the mutedOnServer'+mutedOnServer);
-        console.log('pub.isMuted is is'+pub.isMuted);
       }
     });
   }
