@@ -204,7 +204,6 @@ const appActions = {
     setButtonsForState(true);
     updateButtonsForPublishState();
     room.participants.forEach((participant) => {
-      console.log("hello in part");
       participantConnected(participant);
     });
     participantConnected(room.localParticipant);
@@ -222,8 +221,6 @@ const appActions = {
       appendLog('enabling audio');
     }
     await currentRoom.localParticipant.setMicrophoneEnabled(!enabled);
-    setButtonDisabled('toggle-audio-button', false);
-    updateButtonsForPublishState();
   },
 
   toggleVideo: async () => {
@@ -236,11 +233,6 @@ const appActions = {
       appendLog('enabling video');
     }
     await currentRoom.localParticipant.setCameraEnabled(!enabled);
-    setButtonDisabled('toggle-video-button', false);
-    renderParticipant(currentRoom.localParticipant);
-
-    // update display
-    updateButtonsForPublishState();
   },
 
   flipVideo: () => {
@@ -302,7 +294,6 @@ const appActions = {
   handleScenario: (e: Event) => {
     const scenario = (<HTMLSelectElement>e.target).value;
     if (scenario === 'subscribe-all') {
-      console.log('hello');
       currentRoom?.participants.forEach((p) => {
         p.tracks.forEach((rp) => rp.setSubscribed(true));
       });
@@ -410,7 +401,21 @@ function participantConnected(participant: Participant) {
     .on(ParticipantEvent.ConnectionQualityChanged, () => {
       renderParticipant(participant);
     })
-    .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions) =>{
+    .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions,currPermissions) =>{
+      if(!currPermissions?.canPublish)
+      {
+        alert('The Admin disabled your audio and video permissions.');
+        setButtonDisabled('toggle-audio-button', true);
+        setButtonDisabled('toggle-video-button', true);
+      }
+      else
+      {
+        alert('The Admin would like you to enable audio and video.');
+        setButtonDisabled('toggle-audio-button', false);
+        setButtonDisabled('toggle-video-button', false);
+      }
+      console.log(prevPermissions);
+      console.log(currPermissions);
       /*  
         In order to get the new permissions use participant.permission
         And prevPermissions variable to get the old permission
@@ -789,7 +794,6 @@ function updateButtonsForPublishState() {
     return;
   }
   const lp = currentRoom.localParticipant;
-
   // video
   setButtonState(
     'toggle-video-button',
@@ -810,6 +814,8 @@ function updateButtonsForPublishState() {
     lp.isScreenShareEnabled ? 'Stop Screen Share' : 'Share Screen',
     lp.isScreenShareEnabled,
   );
+  setButtonDisabled('toggle-audio-button', false);
+  setButtonDisabled('toggle-video-button', false);
 }
 
 async function acquireDeviceList() {

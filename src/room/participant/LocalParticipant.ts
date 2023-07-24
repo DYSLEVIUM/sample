@@ -68,6 +68,10 @@ export default class LocalParticipant extends Participant {
 
   private reconnectFuture?: Future<void>;
 
+  private audioMuted: boolean = false;
+
+  private videoMuted: boolean = false;
+
   /** @internal */
   constructor(sid: string, identity: string, engine: RTCEngine, options: InternalRoomOptions) {
     super(sid, identity);
@@ -112,6 +116,14 @@ export default class LocalParticipant extends Participant {
         return;
       }
       if (muted) {
+        if(pub.kind == 'audio')
+        {
+          this.audioMuted = true;
+        }
+        else
+        {
+          this.videoMuted = true;
+        }
         pub.mute();
       } else {
         pub.unmute();
@@ -220,8 +232,9 @@ export default class LocalParticipant extends Participant {
     log.debug('setTrackEnabled', { source, enabled });
     let track = this.getTrack(source);
     if (enabled) {
-      if (track) {
-        await track.unmute();
+      if (track && track.track) {
+        //await track.unmute();
+       this.onTrackMuted(track.track,false);
       } else {
         let localTracks: Array<LocalTrack> | undefined;
         if (this.pendingPublishing.has(source)) {
@@ -278,7 +291,16 @@ export default class LocalParticipant extends Participant {
           this.unpublishTrack(screenAudioTrack.track);
         }
       } else {
-        await track.mute();
+        if(track.source =='microphone')
+        {
+          this.audioMuted = true;
+        }
+        if(track.source == 'camera')
+        {
+          this.videoMuted = true;
+        }
+        //await track.mute();
+        this.onTrackMuted(track.track,true);
       }
     }
     return track;
@@ -972,18 +994,69 @@ export default class LocalParticipant extends Participant {
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
     // the server's copy
+    console.log('the audioMute value'+this.audioMuted+'the video muted value'+this.videoMuted);
     info.tracks.forEach((ti) => {
+      console.log(this.tracks);
       const pub = this.tracks.get(ti.sid);
-
       if (pub) {
+        console.log('the pub upstream'+pub.track?.isUpstreamPaused);
         const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
-        if (mutedOnServer !== ti.muted) {
-          log.debug('updating server mute state after reconcile', {
-            sid: ti.sid,
-            muted: mutedOnServer,
-          });
-          this.engine.client.sendMuteTrack(ti.sid, mutedOnServer);
+        console.log('sid is'+ti.sid+'its mute value is '+ti.muted);
+        const localTrack = pub.track;
+        if(pub.kind == Track.Kind.Audio)
+        {
+          if(ti.muted)
+          {
+            //if(this.audioMuted)
+            //{
+              if(localTrack instanceof LocalAudioTrack) { 
+                localTrack.mute().then(() => {
+                this.emit(ParticipantEvent.TrackMuted, pub);
+              });
+            }
+           // }
+          }
+          else
+          {
+            if(this.audioMuted)
+            {
+              if(localTrack instanceof LocalAudioTrack) { 
+                localTrack.unmute().then(() => {
+                  this.emit(ParticipantEvent.TrackUnmuted, pub);
+                }); 
+              }
+            }
+            this.audioMuted = false;
+          }
         }
+        else
+        {
+          if(ti.muted)
+          {
+            //if(this.videoMuted)
+            //{
+              if(localTrack instanceof LocalVideoTrack) { 
+                localTrack.mute().then(() => {
+                  this.emit(ParticipantEvent.TrackMuted, pub);
+                }); 
+              }
+           // }
+          }
+          else
+          {
+            if(this.videoMuted)
+            {
+              if(localTrack instanceof LocalVideoTrack) { 
+                localTrack.unmute().then(() => {
+                  this.emit(ParticipantEvent.TrackUnmuted, pub);
+                }); 
+              }
+            }
+            this.videoMuted = false;
+          }
+        }
+        console.log('the mutedOnServer'+mutedOnServer);
+        console.log('pub.isMuted is is'+pub.isMuted);
       }
     });
   }

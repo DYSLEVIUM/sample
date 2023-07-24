@@ -184,7 +184,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     this.permissions = permissions;
 
     if (changed) {
-      this.emit(ParticipantEvent.ParticipantPermissionsChanged, prevPermissions);
+      this.emit(ParticipantEvent.ParticipantPermissionsChanged, prevPermissions,permissions);
     }
     return changed;
   }
@@ -262,7 +262,7 @@ export type ParticipantEventCallbacks = {
     status: TrackPublication.PermissionStatus,
   ) => void;
   mediaDevicesError: (error: Error) => void;
-  participantPermissionsChanged: (prevPermissions?: ParticipantPermission) => void;
+  participantPermissionsChanged: (prevPermissions?: ParticipantPermission,currPermissions?: ParticipantPermission) => void;
   trackSubscriptionStatusChanged: (
     publication: RemoteTrackPublication,
     status: TrackPublication.SubscriptionStatus,

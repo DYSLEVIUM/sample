@@ -214,7 +214,7 @@ export default abstract class LocalTrack extends Track {
 
     this.isMuted = muted;
     this._mediaStreamTrack.enabled = !muted;
-    this.emit(muted ? TrackEvent.Muted : TrackEvent.Unmuted, this);
+   // this.emit(muted ? TrackEvent.Muted : TrackEvent.Unmuted, this);
   }
 
   protected get needsReAcquisition(): boolean {
