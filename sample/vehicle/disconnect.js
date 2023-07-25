@@ -3,14 +3,20 @@ const {RoomServiceClient}=require("livekit-server-sdk");
 //require('dotenv').config()
 
 var room =process.argv[2]
-var liveKitBaseUrl="http://"+process.argv[3]+":7880"
+var liveKitBaseUrl=process.argv[3]
 var devkey=process.argv[4]
 var secret=process.argv[5]
 
- const svc = new RoomServiceClient(liveKitBaseUrl, devkey, secret);
  
  
+ if (liveKitBaseUrl.startsWith("wss://")) {
+  liveKitBaseUrl = liveKitBaseUrl.replace("wss://", "https://"); // or "http://" if appropriate
+}
+if (liveKitBaseUrl.startsWith("ws://")) {
+  liveKitBaseUrl = liveKitBaseUrl.replace("ws://", "http://"); // or "http://" if appropriate
+}
  
+const svc = new RoomServiceClient(liveKitBaseUrl, devkey, secret);
  
  //DeleteVehicleCamParticipants
  
