@@ -237,7 +237,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
    * @experimental
    */
   async prepareConnection(url: string) {
-    await fetch(`http${url.substring(2)}`, { method: 'HEAD' });
+   // await fetch(`http${url.substring(2)}`, { method: 'HEAD' });
   }
 
   connect = async (url: string, token: string, opts?: RoomConnectOptions): Promise<void> => {
