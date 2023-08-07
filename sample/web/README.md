@@ -18,7 +18,6 @@ After cleaning the project, continue with the installation and build process by 
 
 ```shell
 npm install [filename] # Provide the path to the latest downloaded tgz file
-npm run build # Build the web sample app
 npm run sample # Run the sample application
 ```
 
