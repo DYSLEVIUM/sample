@@ -989,7 +989,8 @@ export default class LocalParticipant extends Participant {
       // the sid for local participant is only explicitly set on join and full reconnect
       return;
     }
-    super.updateInfo(info);
+    var isLocalParticipant = true;
+    super.updateInfo(info,isLocalParticipant);
 
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
