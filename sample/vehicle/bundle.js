@@ -4,38 +4,70 @@
 module.exports.room= "room1"
 module.exports.liveKitBaseUrl= "ws://localhost:7880";
 module.exports.front_token="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmcm9udCIsIm1ldGFkYXRhIjoiZGF0YTEiLCJuYmYiOjE2OTE0NjAzMzQsImlzcyI6ImVjcHJ0IiwidmlkZW8iOnsiY2FuU3Vic2NyaWJlIjp0cnVlLCJyb29tSm9pbiI6dHJ1ZSwiaGlkZGVuIjpmYWxzZSwiY2FuUHVibGlzaERhdGEiOnRydWUsImNhblB1Ymxpc2giOnRydWUsImNhblVwZGF0ZU93bk1ldGFkYXRhIjp0cnVlLCJyb29tIjoicm9vbTEifSwiZXhwIjoxNjkxNTQ2NzM0fQ.Cl86YIiesmKZMsx3id7str_BOep2y9OVDpt2I2e7ZcV9mwwOzjh4EA89EXHds68upaY_lAMp2QNM-6GojkXbMlpjkgX8VgIRxXyfBFsSA91vrkUYGJ5zBSKE3LMVHjvdAO-AySInA6EZJXIeyoSFxB9XUT88QBFYSh-PPpW45Kg7YkgmHzvzoG2ikZee1Idh9Yhj3Vm4Fp_-br4HzetvnIlksIoeUw51YZCplILDjiP2JM14clhdLVDrSt7LyN4fTL37WMkxR6euh2Zn6Vew4diFl_m96r15V2TKoSkrKYEFAwiYjFShOEpQqRdR8_ha-1To7MrIoBN0VVGtDiZ3NA";
-module.exports.rear_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyZWFyIiwibWV0YWRhdGEiOiJkYXRhMSIsIm5iZiI6MTY5MTQ2MDc1MSwiaXNzIjoiZWNwcnQiLCJ2aWRlbyI6eyJjYW5TdWJzY3JpYmUiOnRydWUsInJvb21Kb2luIjp0cnVlLCJoaWRkZW4iOmZhbHNlLCJjYW5QdWJsaXNoRGF0YSI6dHJ1ZSwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuVXBkYXRlT3duTWV0YWRhdGEiOnRydWUsInJvb20iOiJyb29tMSJ9LCJleHAiOjE2OTE1NDcxNTF9.edUIjwcV-qAi-b1LFs6LwMPh8KSU4LMOPy5HDflMgoVTAkd54Zqgux-dYoOHpqLjJPMTd1HTW041XXf0AS3acVVAGWmz_4WTtmuTbA21X9pNcdbaKIN-0tetxF3Qaj85GmbTqu7h2SZedxGLQBN_rXjR4x2I017_bEiKPhz0GuLr1O7JqlwdAE4chZlYipRSbVh-5ai0i4-FuRmTitSj8PLeTS2hfOLztqMMGi03dcWORbt-I5Rm8ZsUOR4L8iII1EnYnmtahbd3aEavwS45o6G33EBRLdBX-lyTQTcyslirQYdoKWsMAUbgw4VwEu4Vhd1bNQf_UIvWwWE6or9MCQ";
-module.exports.left_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJsZWZ0IiwibWV0YWRhdGEiOiJkYXRhMSIsIm5iZiI6MTY5MTQ2MDc3OCwiaXNzIjoiZWNwcnQiLCJ2aWRlbyI6eyJjYW5TdWJzY3JpYmUiOnRydWUsInJvb21Kb2luIjp0cnVlLCJoaWRkZW4iOmZhbHNlLCJjYW5QdWJsaXNoRGF0YSI6dHJ1ZSwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuVXBkYXRlT3duTWV0YWRhdGEiOnRydWUsInJvb20iOiJyb29tMSJ9LCJleHAiOjE2OTE1NDcxNzh9.gNcwb33oo8FwIngxt6oZPmOh7KG2WHrw8nZv2RqbS9KGsKVUx96Yb1ksawbrrDi5Uqada_D-R5U0tlFAhoK8JreOgQHGIghe_lBmk0hM-xuP0sqd5f_amsJsZLdri4SY3P9cBGz4CHwvEKAx59QQn444Xq2cbEo5AwxXL-1oxZ31yNaLiiirUwYaLzYyU3if8be9-U6DXIwPcAxeASf55DIy0pAyF68vgINEozPUzimKjVLvZs_CzhdeB2TdZsDLlGNG-WyXtpbdrEjSeoEB5wAAeII8H-LELUFHNlIOlYG_HsXIQkChd41QOlGIQeyPoZq_JkLI8jJR9sMVs0V3ag";
-module.exports.right_token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyaWdodCIsIm1ldGFkYXRhIjoiZGF0YTEiLCJuYmYiOjE2OTE0NjA4MDAsImlzcyI6ImVjcHJ0IiwidmlkZW8iOnsiY2FuU3Vic2NyaWJlIjp0cnVlLCJyb29tSm9pbiI6dHJ1ZSwiaGlkZGVuIjpmYWxzZSwiY2FuUHVibGlzaERhdGEiOnRydWUsImNhblB1Ymxpc2giOnRydWUsImNhblVwZGF0ZU93bk1ldGFkYXRhIjp0cnVlLCJyb29tIjoicm9vbTEifSwiZXhwIjoxNjkxNTQ3MjAwfQ.gjk6T_0Su7whb-v-L_5xtEp8DoPcWpxVMYdijuWFdGJxtEEs1AL8jdk9yHwK8Y6SgfqI3Mk5u-3v7dCUl53ahPTSnLAH8-Bh4r9od9WqW1WpvqoQXgM-yA-NT0rnQYKqBK-FRV8pMZk8YtsUIZHeQDeOjJlNCvyzAjdUOSmpWM-kwVYWxmMicphZTJLCnb1pqtJC-CZLpWwLsdN-Kb3Wh55XHllZymtDGr9hHLL0maZCxnnMXp6OpBE2R-N3GY4UZ85bTD2Lbwh2gWoyjq7ePRPfYxSM5htiWx34SsjMOhT1NPO76wOMpWkVz9k1nAXYA70ZDgK2ciodcnqqh6psqQ";
+module.exports.rear_token = "DEFAULT_REAR_TOKEN";
+module.exports.left_token = "DEFAULT_LEFT_TOKEN";
+module.exports.right_token = "DEFAULT_RIGHT_TOKEN";
 
 },{}],2:[function(require,module,exports){
 
 var livekit = require("ecprt-client-sdk");
+const jwt = require('jsonwebtoken');
 const { liveKitBaseUrl,front_token,rear_token,left_token,right_token } = require("./constants");
-const { decodeToken } = require("./token");
+
 async function getVehicleMediaStreams() {
   let devices = await livekit.Room.getLocalDevices('videoinput');
   console.log("Un Filtered devices are:")
   console.log(devices)
   console.log("Add filtered devices:")
-  var tokenSet=[front_token,rear_token,left_token,right_token]
+  
+  var tokenSet = [];
+  if (!front_token.startsWith("DEFAULT")) tokenSet.push(front_token);
+  if (!rear_token.startsWith("DEFAULT")) tokenSet.push(rear_token);
+  if (!left_token.startsWith("DEFAULT")) tokenSet.push(left_token);
+  if (!right_token.startsWith("DEFAULT")) tokenSet.push(right_token);
   var i=0;
+  var tok=0;
   for (const device of devices) {
-   if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Webcam"))||(device.label.includes("PaceTime")))) {
-     console.log(device.label);   
+   if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Webcam"))||(device.label.includes("FaceTime")))) {
 
+     console.log(device.label);   
+     console.log("token set",tokenSet)
     vehicleMediaStreams[i].device = device;
-    let participantName = decodeToken(tokenSet[i])
+    
+    let participantName = await decodeToken(tokenSet[tok])
     vehicleMediaStreams[i].participantName = participantName
     console.log(participantName)
     vehicleMediaStreams[i].token = tokenSet[i]
     i++;
+    tok++;
     }
   }   
 
   return vehicleMediaStreams;
 }
+async function decodeToken(token) {
+  console.log("received token",token)
+try {
+  const decodedToken = jwt.decode(token, { complete: true });
+  console.log(decodedToken)
+  if (!decodedToken) {
+    throw new Error('Invalid token format');
+  }
 
+  const { payload } = decodedToken;
+
+  if (payload.sub && payload.name) {
+    return payload.name
+  
+  } else if (payload.sub) {
+    return payload.sub ;
+  } else {
+    throw new Error('Invalid token format');
+  }
+} catch (error) {
+  throw new Error('Error decoding token: ' + error.message);
+}
+}
 
 
 
@@ -120,7 +152,7 @@ let vehicleMediaStreams = [
 ];
 main()
 console.info("Ready");
-},{"./constants":1,"./token":281,"ecprt-client-sdk":91}],3:[function(require,module,exports){
+},{"./constants":1,"ecprt-client-sdk":91,"jsonwebtoken":157}],3:[function(require,module,exports){
 'use strict';
 
 const asn1 = exports;
@@ -50456,32 +50488,4 @@ module.exports = function whichTypedArray(value) {
 };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"available-typed-arrays":18,"call-bind":69,"call-bind/callBound":68,"for-each":111,"gopd":115,"has-tostringtag/shams":119}],281:[function(require,module,exports){
-const jwt = require('jsonwebtoken');
-
-function decodeToken(token) {
-  try {
-    const decodedToken = jwt.decode(token, { complete: true });
-
-    if (!decodedToken) {
-      throw new Error('Invalid token format');
-    }
-
-    const { payload } = decodedToken;
-
-    if (payload.sub && payload.name) {
-      return payload.name
-    
-    } else if (payload.sub) {
-      return payload.sub ;
-    } else {
-      throw new Error('Invalid token format');
-    }
-  } catch (error) {
-    throw new Error('Error decoding token: ' + error.message);
-  }
-}
-module.exports.decodeToken=decodeToken
-
-
-},{"jsonwebtoken":157}]},{},[2]);
+},{"available-typed-arrays":18,"call-bind":69,"call-bind/callBound":68,"for-each":111,"gopd":115,"has-tostringtag/shams":119}]},{},[2]);

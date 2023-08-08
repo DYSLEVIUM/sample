@@ -1,30 +1,62 @@
 
 var livekit = require("ecprt-client-sdk");
+const jwt = require('jsonwebtoken');
 const { liveKitBaseUrl,front_token,rear_token,left_token,right_token } = require("./constants");
-const { decodeToken } = require("./token");
+
 async function getVehicleMediaStreams() {
   let devices = await livekit.Room.getLocalDevices('videoinput');
   console.log("Un Filtered devices are:")
   console.log(devices)
   console.log("Add filtered devices:")
-  var tokenSet=[front_token,rear_token,left_token,right_token]
+  
+  var tokenSet = [];
+  if (!front_token.startsWith("DEFAULT")) tokenSet.push(front_token);
+  if (!rear_token.startsWith("DEFAULT")) tokenSet.push(rear_token);
+  if (!left_token.startsWith("DEFAULT")) tokenSet.push(left_token);
+  if (!right_token.startsWith("DEFAULT")) tokenSet.push(right_token);
   var i=0;
+  var tok=0;
   for (const device of devices) {
    if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Webcam"))||(device.label.includes("FaceTime")))) {
-     console.log(device.label);   
 
+     console.log(device.label);   
+     console.log("token set",tokenSet)
     vehicleMediaStreams[i].device = device;
-    let participantName = decodeToken(tokenSet[i])
+    
+    let participantName = await decodeToken(tokenSet[tok])
     vehicleMediaStreams[i].participantName = participantName
     console.log(participantName)
     vehicleMediaStreams[i].token = tokenSet[i]
     i++;
+    tok++;
     }
   }   
 
   return vehicleMediaStreams;
 }
+async function decodeToken(token) {
+  console.log("received token",token)
+try {
+  const decodedToken = jwt.decode(token, { complete: true });
+  console.log(decodedToken)
+  if (!decodedToken) {
+    throw new Error('Invalid token format');
+  }
 
+  const { payload } = decodedToken;
+
+  if (payload.sub && payload.name) {
+    return payload.name
+  
+  } else if (payload.sub) {
+    return payload.sub ;
+  } else {
+    throw new Error('Invalid token format');
+  }
+} catch (error) {
+  throw new Error('Error decoding token: ' + error.message);
+}
+}
 
 
 

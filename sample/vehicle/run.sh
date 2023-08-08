@@ -76,6 +76,8 @@ npm run clean
 # vehicle-server-start
 npm run vehicle
 
+wait
+
 while true; do
     read -e -p "
   Press d to disconnect from the room

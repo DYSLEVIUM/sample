@@ -1,15 +1,18 @@
 const jwt = require('jsonwebtoken');
 
-function decodeToken(token) {
+function decodeTokenLocal(token) {
+    if(token.startsWith("DEFAULT"))
+    return false;
+    console.log("received token",token)
   try {
     const decodedToken = jwt.decode(token, { complete: true });
-
+    console.log(decodedToken)
     if (!decodedToken) {
       throw new Error('Invalid token format');
     }
-
+  
     const { payload } = decodedToken;
-
+  
     if (payload.sub && payload.name) {
       return payload.name
     
@@ -21,6 +24,7 @@ function decodeToken(token) {
   } catch (error) {
     throw new Error('Error decoding token: ' + error.message);
   }
-}
-module.exports.decodeToken=decodeToken
+  }
+
+module.exports.decodeTokenLocal=decodeTokenLocal
 

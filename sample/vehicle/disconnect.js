@@ -1,5 +1,5 @@
 const {RoomServiceClient}=require("livekit-server-sdk");
-const { decodeToken } = require("./token");
+const { decodeTokenLocal } = require("./token");
 const { front_token, rear_token, left_token, right_token } = require("./constants");
 
 
@@ -24,8 +24,8 @@ const svc = new RoomServiceClient(liveKitBaseUrl,"devkey", "secret");
     
     for(var i in participants)
     {
-        if(participants[i].identity.includes(decodeToken(front_token))||participants[i].identity.includes(decodeToken(rear_token))||
-        participants[i].identity.includes(decodeToken(left_token))||participants[i].identity.includes(decodeToken(right_token)))
+        if(participants[i].identity.includes(decodeTokenLocal(front_token))||participants[i].identity.includes(decodeTokenLocal(rear_token))||
+        participants[i].identity.includes(decodeTokenLocal(left_token))||participants[i].identity.includes(decodeTokenLocal(right_token)))
          {
       
             await svc.removeParticipant(room, participants[i].identity).then(() => {
