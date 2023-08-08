@@ -66,6 +66,8 @@ if [ -z "$right_token" ]; then
     right_token="DEFAULT_RIGHT_TOKEN"
 fi
 
+
+
 # Now you can use $front_token, $rear_token, $left_token, $right_token as needed in the script.
 
 # browserify
