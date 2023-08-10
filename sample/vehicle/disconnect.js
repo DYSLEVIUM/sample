@@ -1,44 +1,64 @@
-const {RoomServiceClient}=require("livekit-server-sdk");
+const axios = require("axios");
 const { decodeTokenLocal } = require("./token");
-const { front_token, rear_token, left_token, right_token } = require("./constants");
+const { front_token, rear_token, left_token, right_token, idcs_token } = require("./constants");
 
-
-var room =process.argv[2]
-var liveKitBaseUrl=process.argv[3]
-
- 
- if (liveKitBaseUrl.startsWith("wss://")) {
-  liveKitBaseUrl = liveKitBaseUrl.replace("wss://", "https://"); // or "http://" if appropriate
+const liveKitBaseUrl = process.argv[3];
+const room = process.argv[2];
+console.log("room",room)
+if (liveKitBaseUrl.startsWith("wss://")) {
+  liveKitBaseUrl = liveKitBaseUrl.replace("wss://", "https://");
 }
 if (liveKitBaseUrl.startsWith("ws://")) {
-  liveKitBaseUrl = liveKitBaseUrl.replace("ws://", "http://"); // or "http://" if appropriate
+  liveKitBaseUrl = liveKitBaseUrl.replace("ws://", "http://");
 }
- 
-const svc = new RoomServiceClient(liveKitBaseUrl,"devkey", "secret");
- 
- //DeleteVehicleCamParticipants
- 
- svc.listParticipants(room)
-  .then(async (participants) => {
+console.log("livekit base", liveKitBaseUrl)
 
-    
-    for(var i in participants)
-    {
-        if(participants[i].identity.includes(decodeTokenLocal(front_token))||participants[i].identity.includes(decodeTokenLocal(rear_token))||
-        participants[i].identity.includes(decodeTokenLocal(left_token))||participants[i].identity.includes(decodeTokenLocal(right_token)))
-         {
-      
-            await svc.removeParticipant(room, participants[i].identity).then(() => {
-      
-        }).catch((error) => {
-        console.error(error);
-      });
+const listParticipantsUrl = `${liveKitBaseUrl}/twirp/livekit.RoomService/ListParticipants`;
+console.log("List part url", listParticipantsUrl)
+//console.log("idcstoken",idcs_token)
+console.log("Going into list part");
+axios.post(listParticipantsUrl, {
+  room: room,
+}, {
+  headers: {
+    Authorization: "Bearer " + `${idcs_token}`,
+  },
+})
+  .then(async (response) => {
+    console.log("Response received",response.data);
+    const participants = response.data.participants;
+
+    for (const participant of participants) {
+      console.log("Checking participant:", participant.identity);
+      if (
+        participant.identity.includes(decodeTokenLocal(front_token)) ||
+        participant.identity.includes(decodeTokenLocal(rear_token)) ||
+        participant.identity.includes(decodeTokenLocal(left_token)) ||
+        participant.identity.includes(decodeTokenLocal(right_token))
+      ) {
+        console.log("Removing participant:", participant.identity);
+        const removeParticipantUrl = `${liveKitBaseUrl}/twirp/livekit.RoomService/RemoveParticipant`;
+        const removeParticipantData = {
+          room: room,
+          identity: participant.identity,
+        };
+
+        try {
+          console.log("Removing participant with identity:", participant.identity);
+          await axios.post(removeParticipantUrl, removeParticipantData, {
+            headers: {
+              Authorization: `Bearer ${idcs_token}`,
+            },
+          });
+          console.log("Participant removed:", participant.identity);
+        } catch (error) {
+          console.error(error);
+          console.log(error.response.status);
+        }
+      }
     }
-   }
-
   })
-
-
-
-
-  
+  .catch((error) => {
+    console.error(error);
+    console.log(error.response.status);
+  });

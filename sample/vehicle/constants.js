@@ -6,3 +6,4 @@ module.exports.front_token=process.env.front_token;
 module.exports.rear_token = process.env.rear_token;
 module.exports.left_token = process.env.left_token;
 module.exports.right_token = process.env.right_token;
+module.exports.idcs_token = process.env.idcs_token
