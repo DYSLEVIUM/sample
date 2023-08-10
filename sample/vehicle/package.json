@@ -14,11 +14,9 @@
   "license": "ISC",
   "dependencies": {
     "browserify": "^17.0.0",
-    "ecprt-client-sdk": "file:ecprt-client-sdk-0.0.1-develop.17.tgz",
     "envify": "^4.1.0",
     "jsonwebtoken": "^9.0.1",
     "live-server": "^1.2.2",
-    "livekit-server-sdk": "=1.1.4",
     "pm2": "^5.3.0"
   },
   "devDependencies": {
