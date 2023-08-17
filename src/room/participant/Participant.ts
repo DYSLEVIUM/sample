@@ -144,13 +144,13 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo) {
+  updateInfo(info: ParticipantInfo, isLocalParticipant : boolean) {
     this.identity = info.identity;
     this.sid = info.sid;
     this.name = info.name;
     this.setMetadata(info.metadata);
     if (info.permission) {
-      this.setPermissions(info.permission);
+      this.setPermissions(info.permission,isLocalParticipant);
     }
     // set this last so setMetadata can detect changes
     this.participantInfo = info;
@@ -169,7 +169,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   }
 
   /** @internal */
-  setPermissions(permissions: ParticipantPermission): boolean {
+  setPermissions(permissions: ParticipantPermission, isLocalParticipant: boolean): boolean {
     const prevPermissions = this.permissions;
     const changed =
       permissions.canPublish !== this.permissions?.canPublish ||
@@ -183,7 +183,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
       );
     this.permissions = permissions;
 
-    if (changed) {
+    if (prevPermissions && changed && isLocalParticipant) {
       this.emit(ParticipantEvent.ParticipantPermissionsChanged, prevPermissions,permissions);
     }
     return changed;
