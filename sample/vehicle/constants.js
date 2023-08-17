@@ -1,6 +1,9 @@
 //var livekit =require("livekit-client")
 //module.exports = livekit;
 module.exports.room= process.env.room
-module.exports.devkey= process.env.devkey
-module.exports.apiSecret= process.env.secret
-module.exports.liveKitBaseUrl= process.env.livekithost;
+module.exports.liveKitBaseUrl= process.env.livekit_url;
+module.exports.front_token=process.env.front_token;
+module.exports.rear_token = process.env.rear_token;
+module.exports.left_token = process.env.left_token;
+module.exports.right_token = process.env.right_token;
+module.exports.idcs_token = process.env.idcs_token

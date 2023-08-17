@@ -1,75 +1,64 @@
-//const { AccessToken } = require("livekit-server-sdk");
 
-const { AccessToken } = require("livekit-server-sdk");
 var livekit = require("ecprt-client-sdk");
-const { devkey, apiSecret,liveKitBaseUrl,room } = require("./constants");
+const jwt = require('jsonwebtoken');
+const { liveKitBaseUrl,front_token,rear_token,left_token,right_token } = require("./constants");
+
 async function getVehicleMediaStreams() {
   let devices = await livekit.Room.getLocalDevices('videoinput');
   console.log("Un Filtered devices are:")
   console.log(devices)
   console.log("Add filtered devices:")
+  
+  var tokenSet = [];
+  if (!front_token.startsWith("DEFAULT")) tokenSet.push(front_token);
+  if (!rear_token.startsWith("DEFAULT")) tokenSet.push(rear_token);
+  if (!left_token.startsWith("DEFAULT")) tokenSet.push(left_token);
+  if (!right_token.startsWith("DEFAULT")) tokenSet.push(right_token);
   var i=0;
+  var tok=0;
   for (const device of devices) {
    if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Webcam"))||(device.label.includes("FaceTime")))) {
-     // if (device.kind.includes("videoinput") && !((device.label.includes("Integrated Camera")) || (device.label.includes("Integrated Webcam")))) {
+
      console.log(device.label);   
-    //const i = devices.indexOf(device);
+     console.log("token set",tokenSet)
     vehicleMediaStreams[i].device = device;
-    let participantName = `${unitCallSign}-${vehicleMediaStreams[i].position}`;
+    
+    let participantName = await decodeToken(tokenSet[tok])
     vehicleMediaStreams[i].participantName = participantName
     console.log(participantName)
-    vehicleMediaStreams[i].token = await getMediaToken(room, participantName);
+    vehicleMediaStreams[i].token = tokenSet[i]
     i++;
+    tok++;
     }
   }   
 
   return vehicleMediaStreams;
 }
+async function decodeToken(token) {
+  console.log("received token",token)
+try {
+  const decodedToken = jwt.decode(token, { complete: true });
+  console.log(decodedToken)
+  if (!decodedToken) {
+    throw new Error('Invalid token format');
+  }
 
-function filter() {
+  const { payload } = decodedToken;
 
-  if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
-    // Enumerate the available media devices
-    navigator.mediaDevices.enumerateDevices()
-      .then(function(devices) {
-        // Filter out the front camera
-        var filteredDevices = devices.filter(function(device) {
-          return device.kind !== 'videoinput' || device.label.toLowerCase().indexOf('front') === -1;
-        });
+  if (payload.sub && payload.name) {
+    return payload.name
   
-        // Use the filtered devices for further processing
-        console.log(filteredDevices);
-      })
-      .catch(function(err) {
-        console.error('Error enumerating media devices:', err);
-      });
+  } else if (payload.sub) {
+    return payload.sub ;
   } else {
-    console.error('navigator.mediaDevices.enumerateDevices is not supported');
+    throw new Error('Invalid token format');
   }
+} catch (error) {
+  throw new Error('Error decoding token: ' + error.message);
+}
 }
 
-async function getMediaToken(roomName, participantName) {
-  try {
-    const at = new AccessToken(devkey, apiSecret, {
-    identity: participantName,
-    ttl: '24h' // setting it for 24h by default
-});
-at.addGrant({ roomJoin: true, room: roomName,  canPublish: true ,canSubscribe: false }); 
 
-
-const token = at.toJwt();
-console.log('access token', token);
-return token;
-   
-  } catch (e) {
-    let errorMessage = `Failed get Media Token: ${e}`
-    console.error(errorMessage);
-  }
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 async function main() {
   // get connected video devices
@@ -105,11 +94,8 @@ async function main() {
             resolution: livekit.VideoPresets.h720.resolution,
           }
         })
-    //    if(stream.device.label.includes("Integrated Webcam")||stream.device.label.includes("FaceTime"))
-    //    continue;
-        // connect to room
+    
         await room.connect(liveKitBaseUrl, stream.token)
-   //     await sleep(2000)
         await room.localParticipant.setCameraEnabled(true)
         await room.switchActiveDevice('videoinput', stream.device.deviceId)
         console.log("Device id"+stream.device.deviceId+"Device"+stream.device.label)
@@ -117,31 +103,6 @@ async function main() {
       }
     }
   }
-}
-
-async function startFeeds(token, unitNum, unitName, incidentNum, agencyId, macAddress, unitStatus) {
-  authToken = token;
-  unitNumber = unitNum;
-  unitCallSign = unitName;
-  incidentNumber = incidentNum;
-  unitAgencyId = agencyId;
-  deviceId = macAddress;
-  metadata.user = "vehicleService"
-  metadata.callSign = unitCallSign
-  metadata.status = unitStatus
-  metadata.deviceType = "VEHICLE"
-  metadata.incidentId = incidentNumber
-  await main();
-}
-
-async function stopFeeds(token, unitNum, unitName, agencyId, macAddress) {
-  authToken = token;
-  unitNumber = unitNum;
-  unitCallSign = unitName;
-  incidentNumber = "";
-  unitAgencyId = agencyId;
-  deviceId = macAddress;
-  wipeAll();
 }
 
 let authToken = "";
@@ -154,25 +115,25 @@ let liveRooms = []
 let metadata = {"user": "", "callSign": "", "status": "", "deviceType": "", "incidentId": ""};
 let vehicleMediaStreams = [
   {
-    "position": "FRONT",
+    "position": "null",
     "token": null,
     "device": null,
     "participantName": null,
   },
   {
-    "position": "RIGHT",
+    "position": "null",
     "token": null,
     "device": null,
     "participantName": null,
   },
   {
-    "position": "LEFT",
+    "position": "null",
     "token": null,
     "device": null,
     "participantName": null,
   },
   {
-    "position": "REAR",
+    "position": "null",
     "token": null,
     "device": null,
     "participantName": null,
