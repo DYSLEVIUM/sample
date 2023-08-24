@@ -64,7 +64,7 @@ const appActions = {
     const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
-    const preferredCodec = 'VP8' as VideoCodec;
+    const preferredCodec = 'vp8' as VideoCodec;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
     setLogLevel(LogLevel.debug);
