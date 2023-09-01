@@ -13,7 +13,7 @@ if (liveKitBaseUrl.startsWith("ws://")) {
 }
 console.log("livekit base", liveKitBaseUrl)
 
-const listParticipantsUrl = `${liveKitBaseUrl}/twirp/livekit.RoomService/ListParticipants`;
+const listParticipantsUrl = `${liveKitBaseUrl}/twirp/ecprt.RoomService/ListParticipants`;
 console.log("List part url", listParticipantsUrl)
 //console.log("idcstoken",idcs_token)
 console.log("Going into list part");
@@ -37,7 +37,7 @@ axios.post(listParticipantsUrl, {
         participant.identity.includes(decodeTokenLocal(right_token))
       ) {
         console.log("Removing participant:", participant.identity);
-        const removeParticipantUrl = `${liveKitBaseUrl}/twirp/livekit.RoomService/RemoveParticipant`;
+        const removeParticipantUrl = `${liveKitBaseUrl}/twirp/ecprt.RoomService/RemoveParticipant`;
         const removeParticipantData = {
           room: room,
           identity: participant.identity,
