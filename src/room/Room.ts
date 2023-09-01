@@ -420,6 +420,8 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
    */
   disconnect = async (stopTracks = true) => {
     sessionStorage.removeItem('token');
+    sessionStorage.removeItem('isAudioMuted');
+    sessionStorage.removeItem('isVideoMuted');
     const unlock = await this.disconnectLock.lock();
     try {
       if (this.state === ConnectionState.Disconnected) {
@@ -560,8 +562,13 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   private onPageLeave = async () => {
     let token = sessionStorage.getItem('token') as string;
+    let isAudioMuted = sessionStorage.getItem('isAudioMuted') as string;
+    let isVideoMuted = sessionStorage.getItem('isVideoMuted') as string;
     this.disconnect();
     sessionStorage.setItem('token',token);
+    sessionStorage.setItem('isAudioMuted',isAudioMuted);
+    sessionStorage.setItem('isVideoMuted',isVideoMuted);
+
   };
 
   /**
