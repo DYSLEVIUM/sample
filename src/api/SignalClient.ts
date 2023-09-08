@@ -374,7 +374,7 @@ export class SignalClient {
   // answer a server-initiated offer
   sendAnswer(answer: RTCSessionDescriptionInit) {
     log.debug('sending answer req to server', answer);
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'answer',
       answer: toProtoSessionDescription(answer),
     });
@@ -382,7 +382,7 @@ export class SignalClient {
 
   sendIceCandidate(candidate: RTCIceCandidateInit, target: SignalTarget) {
     log.debug('sending ice candidate req to server', candidate);
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'trickle',
       trickle: {
         candidateInit: JSON.stringify(candidate),
@@ -393,7 +393,7 @@ export class SignalClient {
 
   sendMuteTrack(trackSid: string, muted: boolean) {
     log.debug('sending Mute Track req to server', { trackSid, muted });
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'mute',
       mute: {
         sid: trackSid,
@@ -402,16 +402,16 @@ export class SignalClient {
     });
   }
 
-  sendAddTrack(req: AddTrackRequest) {
+  sendAddTrack(req: AddTrackRequest): void{
     log.debug('sending Add Track req to server', req);
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'addTrack',
       addTrack: AddTrackRequest.fromPartial(req),
     });
   }
 
 sendUpdateLocalMetadata(metadata: string, name: string) {
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'updateMetadata',
       updateMetadata: {
         metadata,
@@ -430,7 +430,7 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
 
   sendUpdateSubscription(sub: UpdateSubscription) {
     log.debug('sending Update Subscription req to server', sub);
-    return this.sendRequest({
+     this.sendRequest({
       $case: 'subscription',
       subscription: sub,
     });
@@ -438,7 +438,7 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
 
   sendSyncState(sync: SyncState) {
     log.debug('sending sync state req to server', sync);
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'syncState',
       syncState: sync,
     });
@@ -446,7 +446,7 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
 
   sendUpdateVideoLayers(trackSid: string, layers: VideoLayer[]) {
     log.debug('sending update video layer req to server', { trackSid, layers });
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'updateLayers',
       updateLayers: {
         trackSid,
@@ -460,7 +460,7 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
       allParticipants,
       trackPermissions,
     });
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'subscriptionPermission',
       subscriptionPermission: {
         allParticipants,
@@ -471,7 +471,7 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
 
   sendSimulateScenario(scenario: SimulateScenario) {
     log.debug('sending simulate scenario req to server', scenario);
-    return this.sendRequest({
+      this.sendRequest({
       $case: 'simulate',
       simulate: scenario,
     });
