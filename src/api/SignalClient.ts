@@ -374,7 +374,7 @@ export class SignalClient {
   // answer a server-initiated offer
   sendAnswer(answer: RTCSessionDescriptionInit) {
     log.debug('sending answer req to server', answer);
-    this.sendRequest({
+      this.sendRequest({
       $case: 'answer',
       answer: toProtoSessionDescription(answer),
     });
@@ -382,7 +382,7 @@ export class SignalClient {
 
   sendIceCandidate(candidate: RTCIceCandidateInit, target: SignalTarget) {
     log.debug('sending ice candidate req to server', candidate);
-    this.sendRequest({
+      this.sendRequest({
       $case: 'trickle',
       trickle: {
         candidateInit: JSON.stringify(candidate),
@@ -393,7 +393,7 @@ export class SignalClient {
 
   sendMuteTrack(trackSid: string, muted: boolean) {
     log.debug('sending Mute Track req to server', { trackSid, muted });
-    this.sendRequest({
+      this.sendRequest({
       $case: 'mute',
       mute: {
         sid: trackSid,
@@ -402,17 +402,27 @@ export class SignalClient {
     });
   }
 
-  sendAddTrack(req: AddTrackRequest): void {
+  sendAddTrack(req: AddTrackRequest): void{
     log.debug('sending Add Track req to server', req);
-    this.sendRequest({
+      this.sendRequest({
       $case: 'addTrack',
       addTrack: AddTrackRequest.fromPartial(req),
     });
   }
 
+sendUpdateLocalMetadata(metadata: string, name: string) {
+      this.sendRequest({
+      $case: 'updateMetadata',
+      updateMetadata: {
+        metadata,
+        name,
+        
+      },
+    });
+  }
   sendUpdateTrackSettings(settings: UpdateTrackSettings) {
     log.debug('sending Update Track setting req to server', settings);
-    this.sendRequest({
+    return this.sendRequest({
       $case: 'trackSetting',
       trackSetting: settings,
     });
@@ -420,7 +430,7 @@ export class SignalClient {
 
   sendUpdateSubscription(sub: UpdateSubscription) {
     log.debug('sending Update Subscription req to server', sub);
-    this.sendRequest({
+     this.sendRequest({
       $case: 'subscription',
       subscription: sub,
     });
@@ -428,7 +438,7 @@ export class SignalClient {
 
   sendSyncState(sync: SyncState) {
     log.debug('sending sync state req to server', sync);
-    this.sendRequest({
+      this.sendRequest({
       $case: 'syncState',
       syncState: sync,
     });
@@ -436,7 +446,7 @@ export class SignalClient {
 
   sendUpdateVideoLayers(trackSid: string, layers: VideoLayer[]) {
     log.debug('sending update video layer req to server', { trackSid, layers });
-    this.sendRequest({
+      this.sendRequest({
       $case: 'updateLayers',
       updateLayers: {
         trackSid,
@@ -450,7 +460,7 @@ export class SignalClient {
       allParticipants,
       trackPermissions,
     });
-    this.sendRequest({
+      this.sendRequest({
       $case: 'subscriptionPermission',
       subscriptionPermission: {
         allParticipants,
@@ -461,7 +471,7 @@ export class SignalClient {
 
   sendSimulateScenario(scenario: SimulateScenario) {
     log.debug('sending simulate scenario req to server', scenario);
-    this.sendRequest({
+      this.sendRequest({
       $case: 'simulate',
       simulate: scenario,
     });
