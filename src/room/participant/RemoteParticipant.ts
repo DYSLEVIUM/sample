@@ -216,8 +216,7 @@ export default class RemoteParticipant extends Participant {
 
   /** @internal */
   updateInfo(info: ParticipantInfo) {
-    var isLocalParticipant = false;
-    super.updateInfo(info,isLocalParticipant);
+    super.updateInfo(info);
 
     // we are getting a list of all available tracks, reconcile in here
     // and send out events for changes
