@@ -404,13 +404,11 @@ function participantConnected(participant: Participant) {
     .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions,currPermissions) =>{
       if(!currPermissions?.canPublish)
       {
-        alert('The Admin disabled your audio and video permissions.');
         setButtonDisabled('toggle-audio-button', true);
         setButtonDisabled('toggle-video-button', true);
       }
       else
       {
-        alert('The Admin would like you to enable audio and video.');
         setButtonDisabled('toggle-audio-button', false);
         setButtonDisabled('toggle-video-button', false);
       }
