@@ -144,13 +144,13 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo, isLocalParticipant : boolean) {
+  updateInfo(info: ParticipantInfo) {
     this.identity = info.identity;
     this.sid = info.sid;
-    this.name = info.name;
+    this.setName(info.name);
     this.setMetadata(info.metadata);
     if (info.permission) {
-      this.setPermissions(info.permission,isLocalParticipant);
+      this.setPermissions(info.permission);
     }
     // set this last so setMetadata can detect changes
     this.participantInfo = info;
@@ -158,7 +158,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   }
 
   /** @internal */
-  setMetadata(md: string) {
+  protected setMetadata(md: string) {
     const changed = this.metadata !== md;
     const prevMetadata = this.metadata;
     this.metadata = md;
@@ -168,8 +168,17 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     }
   }
 
+  protected setName(name: string) {
+    const changed = this.name !== name;
+    this.name = name;
+
+    if (changed) {
+      this.emit(ParticipantEvent.ParticipantNameChanged, name);
+    }
+  }
+
   /** @internal */
-  setPermissions(permissions: ParticipantPermission, isLocalParticipant: boolean): boolean {
+  setPermissions(permissions: ParticipantPermission): boolean {
     const prevPermissions = this.permissions;
     const changed =
       permissions.canPublish !== this.permissions?.canPublish ||
@@ -183,7 +192,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
       );
     this.permissions = permissions;
 
-    if (prevPermissions && changed && isLocalParticipant) {
+    if (changed) {
       this.emit(ParticipantEvent.ParticipantPermissionsChanged, prevPermissions,permissions);
     }
     return changed;
@@ -250,6 +259,7 @@ export type ParticipantEventCallbacks = {
   localTrackPublished: (publication: LocalTrackPublication) => void;
   localTrackUnpublished: (publication: LocalTrackPublication) => void;
   participantMetadataChanged: (prevMetadata: string | undefined, participant?: any) => void;
+  participantNameChanged: (name: string) => void;
   dataReceived: (payload: Uint8Array, kind: DataPacket_Kind) => void;
   isSpeakingChanged: (speaking: boolean) => void;
   connectionQualityChanged: (connectionQuality: ConnectionQuality) => void;

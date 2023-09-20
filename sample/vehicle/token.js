@@ -14,7 +14,7 @@ function decodeTokenLocal(token) {
     const { payload } = decodedToken;
   
     if (payload.sub && payload.name) {
-      return payload.name
+      return payload.sub
     
     } else if (payload.sub) {
       return payload.sub ;

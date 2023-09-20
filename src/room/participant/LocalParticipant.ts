@@ -119,13 +119,23 @@ export default class LocalParticipant extends Participant {
         if(pub.kind == 'audio')
         {
           this.audioMuted = true;
+          sessionStorage.setItem("isAudioMuted","true");
         }
         else
         {
           this.videoMuted = true;
+          sessionStorage.setItem("isVideoMuted","true");
         }
         pub.mute();
       } else {
+        if(pub.kind == 'audio')
+        {
+          sessionStorage.setItem("isAudioMuted","false");
+        }
+        else
+        {
+          sessionStorage.setItem("isVideoMuted","false");
+        }
         pub.unmute();
       }
     };
@@ -159,6 +169,26 @@ export default class LocalParticipant extends Participant {
     this.reconnectFuture?.reject?.('Got disconnected during publishing attempt');
     this.reconnectFuture = undefined;
   };
+
+  /**
+   * Sets and updates the metadata of the local participant.
+   * Note: this requires `canUpdateOwnMetadata` permission encoded in the token.
+   * @param metadata
+   */
+  setMetadata(metadata: string): void {
+   super.setMetadata(metadata);
+    this.engine.client.sendUpdateLocalMetadata(metadata, this.name ?? '');
+  }
+
+  /**
+   * Sets and updates the name of the local participant.
+   * Note: this requires `canUpdateOwnMetadata` permission encoded in the token.
+   * @param metadata
+   */
+  setName(name: string): void {
+    super.setName(name);
+    this.engine.client.sendUpdateLocalMetadata(this.metadata ?? '', name);
+  }
 
   /**
    * Enable or disable a participant's camera track.
@@ -989,8 +1019,7 @@ export default class LocalParticipant extends Participant {
       // the sid for local participant is only explicitly set on join and full reconnect
       return;
     }
-    var isLocalParticipant = true;
-    super.updateInfo(info,isLocalParticipant);
+    super.updateInfo(info);
 
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
@@ -1005,6 +1034,16 @@ export default class LocalParticipant extends Participant {
         const localTrack = pub.track;
         if(pub.kind == Track.Kind.Audio)
         {
+          if(sessionStorage.getItem("isAudioMuted") && sessionStorage.getItem("isAudioMuted")==="true")
+          {
+            log.debug('updating server audio mute state after reloading', {
+              sid: ti.sid,
+              muted: true,
+            });
+            this.engine.client.sendMuteTrack(ti.sid, true);
+            this.audioMuted = true;
+          }
+
           if(ti.muted)
           {
               if(localTrack instanceof LocalAudioTrack) { 
@@ -1028,6 +1067,15 @@ export default class LocalParticipant extends Participant {
         }
         else
         {
+          if(sessionStorage.getItem("isVideoMuted") && sessionStorage.getItem("isVideoMuted")==="true")
+          {
+            log.debug('updating server video mute state after reloading', {
+              sid: ti.sid,
+              muted: true,
+            });
+            this.engine.client.sendMuteTrack(ti.sid, true);
+            this.videoMuted = true;
+          }
           if(ti.muted)
           {
               if(localTrack instanceof LocalVideoTrack) { 
@@ -1080,7 +1128,28 @@ export default class LocalParticipant extends Participant {
       log.error('could not update mute status for unpublished track', track);
       return;
     }
-
+    if(track.kind == Track.Kind.Audio)
+    {
+      if(muted)
+      {
+        sessionStorage.setItem("isAudioMuted","true");
+      }
+      else
+      {
+        sessionStorage.setItem("isAudioMuted","false");
+      }
+    }
+    else
+    {
+      if(muted)
+      {
+        sessionStorage.setItem("isVideoMuted","true");
+      }
+      else
+      {
+        sessionStorage.setItem("isVideoMuted","false");
+      }
+    }
     this.engine.updateMuteStatus(track.sid, muted);
   };
 

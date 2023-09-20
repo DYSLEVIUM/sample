@@ -310,6 +310,7 @@ export interface UpdateVideoLayers {
 
 export interface UpdateParticipantMetadata {
   metadata: string;
+  name: string;
 }
 
 export interface ICEServer {
@@ -2329,13 +2330,16 @@ export const UpdateVideoLayers = {
 };
 
 function createBaseUpdateParticipantMetadata(): UpdateParticipantMetadata {
-  return { metadata: "" };
+  return { metadata: "", name: ""};
 }
 
 export const UpdateParticipantMetadata = {
   encode(message: UpdateParticipantMetadata, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
     if (message.metadata !== "") {
       writer.uint32(10).string(message.metadata);
+    }
+    if (message.name !== "") {
+      writer.uint32(18).string(message.name);
     }
     return writer;
   },
@@ -2348,23 +2352,39 @@ export const UpdateParticipantMetadata = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1:
+          if (tag !== 10) {
+            break;
+          }
+
           message.metadata = reader.string();
-          break;
-        default:
-          reader.skipType(tag & 7);
-          break;
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.name = reader.string();
+          continue;
       }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
     }
     return message;
   },
 
   fromJSON(object: any): UpdateParticipantMetadata {
-    return { metadata: isSet(object.metadata) ? String(object.metadata) : "" };
+    return { 
+      metadata: isSet(object.metadata) ? String(object.metadata) : "",
+      name: isSet(object.name) ? String(object.name) : "",
+    };
   },
 
   toJSON(message: UpdateParticipantMetadata): unknown {
     const obj: any = {};
     message.metadata !== undefined && (obj.metadata = message.metadata);
+    message.name !== undefined && (obj.name = message.name);
     return obj;
   },
 
@@ -2375,6 +2395,7 @@ export const UpdateParticipantMetadata = {
   fromPartial<I extends Exact<DeepPartial<UpdateParticipantMetadata>, I>>(object: I): UpdateParticipantMetadata {
     const message = createBaseUpdateParticipantMetadata();
     message.metadata = object.metadata ?? "";
+    message.name = object.name ?? "";
     return message;
   },
 };
