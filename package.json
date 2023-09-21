@@ -26,8 +26,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "clean": "tsc --build --clean",
-    "build": "rollup --config --bundleConfigAsCjs",
-    "publish": "tsc --build tsconfig.json && npm publish",
+    "build": "rollup --config --bundleConfigAsCjs && tsc --build tsconfig.json",
     "proto": "protoc --plugin=node_modules/ts-proto/protoc-gen-ts_proto --ts_proto_opt=esModuleInterop=true --ts_proto_out=./src/proto --ts_proto_opt=outputClientImpl=false,useOptionals=messages,oneof=unions -I./protocol ./protocol/livekit_rtc.proto ./protocol/livekit_models.proto"
   },
   "dependencies": {
