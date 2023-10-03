@@ -317,4 +317,4 @@ This step will tar only the `*.map` files from dist folder.
 
 ### publish-files
 
-Tar file from the previous step will be published to [cgbu_ecprt-dev-generic-local](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-dev-generic-local/ecprt-livekit-client-sdk-js/)
+Tar file from the previous step will be published to [cgbu_ecprt-release-generic-local](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-release-generic-local/ecprt-livekit-client-sdk-js/)
