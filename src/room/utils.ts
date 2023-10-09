@@ -1,5 +1,5 @@
 import UAParser from 'ua-parser-js';
-import { ClientInfo, ClientInfo_SDK } from '../proto/livekit_models';
+import { ClientInfo, ClientInfo_SDK } from '../proto/livekit_models_pb';
 import { protocolVersion, version } from '../version';
 import type LocalAudioTrack from './track/LocalAudioTrack';
 import type RemoteAudioTrack from './track/RemoteAudioTrack';
@@ -169,7 +169,8 @@ export interface ObservableMediaElement extends HTMLMediaElement {
 }
 
 export function getClientInfo(): ClientInfo {
-  const info = ClientInfo.fromPartial({
+  
+    const info = new ClientInfo({
     sdk: ClientInfo_SDK.JS,
     protocol: protocolVersion,
     version,

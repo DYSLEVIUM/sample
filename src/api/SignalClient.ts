@@ -1,3 +1,4 @@
+import { protoInt64 } from '@bufbuild/protobuf';
 import log from '../logger';
 import {
   ClientInfo,
@@ -7,12 +8,14 @@ import {
   Room,
   SpeakerInfo,
   VideoLayer,
-} from '../proto/livekit_models';
+} from '../proto/livekit_models_pb';
 import {
   AddTrackRequest,
   ConnectionQualityUpdate,
   JoinResponse,
   LeaveRequest,
+  MuteTrackRequest,
+  Ping,
   ReconnectResponse,
   SessionDescription,
   SignalRequest,
@@ -21,18 +24,24 @@ import {
   SimulateScenario,
   StreamStateUpdate,
   SubscribedQualityUpdate,
+  SubscriptionPermission,
   SubscriptionPermissionUpdate,
+  
   SyncState,
   TrackPermission,
   TrackPublishedResponse,
   TrackUnpublishedResponse,
+  TrickleRequest,
+  UpdateParticipantMetadata,
   UpdateSubscription,
   UpdateTrackSettings,
-} from '../proto/livekit_rtc';
+  UpdateVideoLayers,
+} from '../proto/livekit_rtc_pb';
 import { ConnectionError, ConnectionErrorReason } from '../room/errors';
 import CriticalTimers from '../room/timers';
 import { Mutex, getClientInfo, sleep } from '../room/utils';
-import { Queue as AsyncAwaitQueue } from 'async-await-queue';
+// import { Queue as AsyncAwaitQueue } from 'async-await-queue';
+import { AsyncQueue } from '../utils/AsyncQueue';
 import 'webrtc-adapter';
 
 // internal options
@@ -64,7 +73,7 @@ export interface SignalOptions {
 
 type SignalMessage = SignalRequest['message'];
 
-type SignalKind = NonNullable<SignalMessage>['$case'];
+type SignalKind = NonNullable<SignalMessage>['case'];
 
 const passThroughQueueSignals: Array<SignalKind> = [
   'syncState',
@@ -76,7 +85,7 @@ const passThroughQueueSignals: Array<SignalKind> = [
 ];
 
 function canPassThroughQueue(req: SignalMessage): boolean {
-  const canPass = passThroughQueueSignals.includes(req!.$case);
+  const canPass = passThroughQueueSignals.indexOf(req!.case) >= 0;
   log.trace('request allowed to bypass queue:', { canPass, req });
   return canPass;
 }
@@ -87,7 +96,7 @@ export class SignalClient {
 
   isReconnecting: boolean;
 
-  requestQueue: AsyncAwaitQueue;
+  requestQueue: AsyncQueue;
 
   queuedRequests: Array<() => Promise<void>>;
 
@@ -154,7 +163,7 @@ export class SignalClient {
     this.isConnected = false;
     this.isReconnecting = false;
     this.useJSON = useJSON;
-    this.requestQueue = new AsyncAwaitQueue();
+    this.requestQueue = new AsyncQueue();
     this.queuedRequests = [];
     this.closingLock = new Mutex();
   }
@@ -265,9 +274,9 @@ export class SignalClient {
         let resp: SignalResponse;
         if (typeof ev.data === 'string') {
           const json = JSON.parse(ev.data);
-          resp = SignalResponse.fromJSON(json);
+          resp = SignalResponse.fromJson(json);
         } else if (ev.data instanceof ArrayBuffer) {
-          resp = SignalResponse.decode(new Uint8Array(ev.data));
+          resp = SignalResponse.fromBinary(new Uint8Array(ev.data));
         } else {
           log.error(`could not decode websocket message: ${typeof ev.data}`);
           return;
@@ -276,11 +285,11 @@ export class SignalClient {
         if (!this.isConnected) {
           let shouldProcessMessage = false;
           // handle join message only
-          if (resp.message?.$case === 'join') {
+          if (resp.message?.case === 'join') {
             this.isConnected = true;
             abortSignal?.removeEventListener('abort', abortHandler);
-            this.pingTimeoutDuration = resp.message.join.pingTimeout;
-            this.pingIntervalDuration = resp.message.join.pingInterval;
+            this.pingTimeoutDuration = resp.message.value.pingTimeout;
+            this.pingIntervalDuration = resp.message.value.pingInterval;
 
             if (this.pingTimeoutDuration && this.pingTimeoutDuration > 0) {
               log.debug('ping config', {
@@ -289,14 +298,14 @@ export class SignalClient {
               });
               this.startPingInterval();
             }
-            resolve(resp.message.join);
+            resolve(resp.message.value);
           } else if (opts.reconnect) {
             // in reconnecting, any message received means signal reconnected
             this.isConnected = true;
             abortSignal?.removeEventListener('abort', abortHandler);
             this.startPingInterval();
-            if (resp.message?.$case === 'reconnect') {
-              resolve(resp.message?.reconnect);
+            if (resp.message?.case === 'reconnect') {
+              resolve(resp.message?.value);
             } else {
               resolve();
               shouldProcessMessage = true;
@@ -305,7 +314,7 @@ export class SignalClient {
             // non-reconnect case, should receive join response first
             reject(
               new ConnectionError(
-                `did not receive join response, got ${resp.message?.$case} instead`,
+                `did not receive join response, got ${resp.message?.case} instead`,
               ),
             );
           }
@@ -366,8 +375,8 @@ export class SignalClient {
   sendOffer(offer: RTCSessionDescriptionInit) {
     log.debug('sending offer req to server ', offer);
     this.sendRequest({
-      $case: 'offer',
-      offer: toProtoSessionDescription(offer),
+      case: 'offer',
+      value: toProtoSessionDescription(offer),
     });
   }
 
@@ -375,83 +384,82 @@ export class SignalClient {
   sendAnswer(answer: RTCSessionDescriptionInit) {
     log.debug('sending answer req to server', answer);
       this.sendRequest({
-      $case: 'answer',
-      answer: toProtoSessionDescription(answer),
+      case: 'answer',
+      value: toProtoSessionDescription(answer),
     });
   }
 
   sendIceCandidate(candidate: RTCIceCandidateInit, target: SignalTarget) {
     log.debug('sending ice candidate req to server', candidate);
       this.sendRequest({
-      $case: 'trickle',
-      trickle: {
+      case: 'trickle',
+      value: new TrickleRequest({
         candidateInit: JSON.stringify(candidate),
         target,
-      },
+      }),
     });
   }
 
   sendMuteTrack(trackSid: string, muted: boolean) {
     log.debug('sending Mute Track req to server', { trackSid, muted });
       this.sendRequest({
-      $case: 'mute',
-      mute: {
+      case: 'mute',
+      value: new MuteTrackRequest({
         sid: trackSid,
         muted,
-      },
+      }),
     });
   }
 
   sendAddTrack(req: AddTrackRequest): void{
     log.debug('sending Add Track req to server', req);
       this.sendRequest({
-      $case: 'addTrack',
-      addTrack: AddTrackRequest.fromPartial(req),
+      case: 'addTrack',
+      value: req,
     });
   }
 
 sendUpdateLocalMetadata(metadata: string, name: string) {
       this.sendRequest({
-      $case: 'updateMetadata',
-      updateMetadata: {
+      case: 'updateMetadata',
+      value: new UpdateParticipantMetadata({
         metadata,
         name,
-        
-      },
+      }),
     });
   }
   sendUpdateTrackSettings(settings: UpdateTrackSettings) {
     log.debug('sending Update Track setting req to server', settings);
     return this.sendRequest({
-      $case: 'trackSetting',
-      trackSetting: settings,
+      case: 'trackSetting',
+      value: settings,
     });
   }
 
   sendUpdateSubscription(sub: UpdateSubscription) {
     log.debug('sending Update Subscription req to server', sub);
      this.sendRequest({
-      $case: 'subscription',
-      subscription: sub,
+      case: 'subscription',
+      value: sub,
     });
   }
 
   sendSyncState(sync: SyncState) {
     log.debug('sending sync state req to server', sync);
       this.sendRequest({
-      $case: 'syncState',
-      syncState: sync,
+      case: 'syncState',
+      value: sync,
     });
   }
 
   sendUpdateVideoLayers(trackSid: string, layers: VideoLayer[]) {
     log.debug('sending update video layer req to server', { trackSid, layers });
       this.sendRequest({
-      $case: 'updateLayers',
-      updateLayers: {
+      case: 'updateLayers',
+      value: new UpdateVideoLayers({
         trackSid,
         layers,
-      },
+      }),
     });
   }
 
@@ -461,46 +469,48 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
       trackPermissions,
     });
       this.sendRequest({
-      $case: 'subscriptionPermission',
-      subscriptionPermission: {
+      case: 'subscriptionPermission',
+      value: new SubscriptionPermission({
         allParticipants,
         trackPermissions,
-      },
+      }),
     });
   }
 
   sendSimulateScenario(scenario: SimulateScenario) {
     log.debug('sending simulate scenario req to server', scenario);
       this.sendRequest({
-      $case: 'simulate',
-      simulate: scenario,
+      case: 'simulate',
+      value: scenario,
     });
   }
 
   sendPing() {
     log.debug('sending ping req to server');
     /** send both of ping and pingReq for compatibility to old and new server */
-    this.sendRequest({
-      $case: 'ping',
-      ping: Date.now(),
-    });
-    this.sendRequest({
-      $case: 'pingReq',
-      pingReq: {
-        timestamp: Date.now(),
-        rtt: this.rtt,
-      },
-    });
+    return Promise.all([
+      this.sendRequest({
+        case: 'ping',
+        value: protoInt64.parse(Date.now()),
+      }),
+      this.sendRequest({
+        case: 'pingReq',
+        value: new Ping({
+          timestamp: protoInt64.parse(Date.now()),
+          rtt: protoInt64.parse(this.rtt),
+        }),
+      }),
+    ]);
   }
 
   async sendLeave() {
     log.debug('sending leave req to server');
     await this.sendRequest({
-      $case: 'leave',
-      leave: {
+      case: 'leave',
+      value: new LeaveRequest({
         canReconnect: false,
         reason: DisconnectReason.CLIENT_INITIATED,
-      },
+      }),
     });
   }
 
@@ -523,18 +533,16 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
       await sleep(this.signalLatency);
     }
     if (!this.ws || this.ws.readyState !== this.ws.OPEN) {
-      log.error(`cannot send signal request before connected, type: ${message?.$case}`);
+      log.error(`cannot send signal request before connected, type: ${message?.case}`);
       return;
     }
+    const req = new SignalRequest({ message });
 
-    const req = {
-      message,
-    };
     try {
       if (this.useJSON) {
-        this.ws.send(JSON.stringify(SignalRequest.toJSON(req)));
+        this.ws.send(req.toJsonString());
       } else {
-        this.ws.send(SignalRequest.encode(req).finish());
+        this.ws.send(req.toBinary());
       }
     } catch (e) {
       log.error('error sending signal message', { error: e });
@@ -547,88 +555,88 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
       log.debug('received unsupported message');
       return;
     }
-    if (msg.$case === 'answer') {
+    if (msg.case === 'answer') {
       log.debug(`the answer response from server is: `, { res });
-      const sd = fromProtoSessionDescription(msg.answer);
+      const sd = fromProtoSessionDescription(msg.value);
       if (this.onAnswer) {
         this.onAnswer(sd);
       }
-    } else if (msg.$case === 'offer') {
+    } else if (msg.case === 'offer') {
       log.debug(`the offer response from server is: `, { res });
-      const sd = fromProtoSessionDescription(msg.offer);
+      const sd = fromProtoSessionDescription(msg.value);
       if (this.onOffer) {
         this.onOffer(sd);
       }
-    } else if (msg.$case === 'trickle') {
+    } else if (msg.case === 'trickle') {
       log.debug(`the trickle response from server is: `, { res });
-      const candidate: RTCIceCandidateInit = JSON.parse(msg.trickle.candidateInit!);
+      const candidate: RTCIceCandidateInit = JSON.parse(msg.value.candidateInit!);
       if (this.onTrickle) {
-        this.onTrickle(candidate, msg.trickle.target);
+        this.onTrickle(candidate, msg.value.target);
       }
-    } else if (msg.$case === 'update') {
+    } else if (msg.case === 'update') {
       log.debug(`the update response from server is: `, { res });
       if (this.onParticipantUpdate) {
-        this.onParticipantUpdate(msg.update.participants ?? []);
+        this.onParticipantUpdate(msg.value.participants ?? []);
       }
-    } else if (msg.$case === 'trackPublished') {
+    } else if (msg.case === 'trackPublished') {
       log.debug(`the trackPublished response from server is: `, { res });
       if (this.onLocalTrackPublished) {
-        this.onLocalTrackPublished(msg.trackPublished);
+        this.onLocalTrackPublished(msg.value);
       }
-    } else if (msg.$case === 'speakersChanged') {
+    } else if (msg.case === 'speakersChanged') {
       log.debug(`the speakersChanged response from server is: `, { res });
       if (this.onSpeakersChanged) {
-        this.onSpeakersChanged(msg.speakersChanged.speakers ?? []);
+        this.onSpeakersChanged(msg.value.speakers ?? []);
       }
-    } else if (msg.$case === 'leave') {
+    } else if (msg.case === 'leave') {
       log.debug(`the leave response from server is: `, { res });
       if (this.onLeave) {
-        this.onLeave(msg.leave);
+        this.onLeave(msg.value);
       }
-    } else if (msg.$case === 'mute') {
+    } else if (msg.case === 'mute') {
       log.debug(`the mute response from server is: `, { res });
       if (this.onRemoteMuteChanged) {
-        this.onRemoteMuteChanged(msg.mute.sid, msg.mute.muted);
+        this.onRemoteMuteChanged(msg.value.sid, msg.value.muted);
       }
-    } else if (msg.$case === 'roomUpdate') {
+    } else if (msg.case === 'roomUpdate') {
       log.debug(`the roomUpdate response from server is: `, { res });
-      if (this.onRoomUpdate && msg.roomUpdate.room) {
-        this.onRoomUpdate(msg.roomUpdate.room);
+      if (this.onRoomUpdate && msg.value.room) {
+        this.onRoomUpdate(msg.value.room);
       }
-    } else if (msg.$case === 'connectionQuality') {
+    } else if (msg.case === 'connectionQuality') {
       log.debug(`the connectionQuality response from server is: `, { res });
       if (this.onConnectionQuality) {
-        this.onConnectionQuality(msg.connectionQuality);
+        this.onConnectionQuality(msg.value);
       }
-    } else if (msg.$case === 'streamStateUpdate') {
+    } else if (msg.case === 'streamStateUpdate') {
       log.debug(`the streamStateUpdate response from server is: `, { res });
       if (this.onStreamStateUpdate) {
-        this.onStreamStateUpdate(msg.streamStateUpdate);
+        this.onStreamStateUpdate(msg.value);
       }
-    } else if (msg.$case === 'subscribedQualityUpdate') {
+    } else if (msg.case === 'subscribedQualityUpdate') {
       log.debug(`the subscribedQualityUpdate response from server is: `, { res });
       if (this.onSubscribedQualityUpdate) {
-        this.onSubscribedQualityUpdate(msg.subscribedQualityUpdate);
+        this.onSubscribedQualityUpdate(msg.value);
       }
-    } else if (msg.$case === 'subscriptionPermissionUpdate') {
+    } else if (msg.case === 'subscriptionPermissionUpdate') {
       log.debug(`the subscriptionPermissionUpdate response from server is: `, { res });
       if (this.onSubscriptionPermissionUpdate) {
-        this.onSubscriptionPermissionUpdate(msg.subscriptionPermissionUpdate);
+        this.onSubscriptionPermissionUpdate(msg.value);
       }
-    } else if (msg.$case === 'refreshToken') {
+    } else if (msg.case === 'refreshToken') {
       log.debug(`the refreshToken response from server is: `, { res });
       if (this.onTokenRefresh) {
-        this.onTokenRefresh(msg.refreshToken);
+        this.onTokenRefresh(msg.value);
       }
-    } else if (msg.$case === 'trackUnpublished') {
+    } else if (msg.case === 'trackUnpublished') {
       log.debug(`the trackUnpublished response from server is: `, { res });
       if (this.onLocalTrackUnpublished) {
-        this.onLocalTrackUnpublished(msg.trackUnpublished);
+        this.onLocalTrackUnpublished(msg.value);
       }
-    } else if (msg.$case === 'pong') {
+    } else if (msg.case === 'pong') {
       this.resetPingTimeout();
-    } else if (msg.$case === 'pongResp') {
-      this.rtt = Date.now() - msg.pongResp.lastPingTimestamp;
+    } else if (msg.case === 'pongResp') {
+      this.rtt = Date.now() - Number.parseInt(msg.value.lastPingTimestamp.toString());
       this.resetPingTimeout();
     } else {
       log.debug('unsupported message', msg);
@@ -723,10 +731,10 @@ function fromProtoSessionDescription(sd: SessionDescription): RTCSessionDescript
 export function toProtoSessionDescription(
   rsd: RTCSessionDescription | RTCSessionDescriptionInit,
 ): SessionDescription {
-  const sd: SessionDescription = {
+  const sd = new SessionDescription({
     sdp: rsd.sdp!,
     type: rsd.type!,
-  };
+  });
   return sd;
 }
 

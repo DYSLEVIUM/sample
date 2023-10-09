@@ -1,3 +1,4 @@
+import { protoInt64 } from '@bufbuild/protobuf';
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import { toProtoSessionDescription } from '../api/SignalClient';
@@ -21,14 +22,17 @@ import {
   TrackSource,
   TrackType,
   UserPacket,
-} from '../proto/livekit_models';
+} from '../proto/livekit_models_pb';
 import {
   ConnectionQualityUpdate,
   JoinResponse,
+  LeaveRequest,
   SimulateScenario,
   StreamStateUpdate,
   SubscriptionPermissionUpdate,
-} from '../proto/livekit_rtc';
+  SyncState,
+  UpdateSubscription,
+} from '../proto/livekit_rtc_pb';
 import {
   audioDefaults,
   publishDefaults,
@@ -496,34 +500,34 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }
         break;
       case 'speaker':
-        req = SimulateScenario.fromPartial({
+        req = new SimulateScenario({
           scenario: {
-            $case: 'speakerUpdate',
-            speakerUpdate: 3,
+            case: 'speakerUpdate',
+            value: 3,
           },
         });
         break;
       case 'node-failure':
-        req = SimulateScenario.fromPartial({
+        req = new SimulateScenario({
           scenario: {
-            $case: 'nodeFailure',
-            nodeFailure: true,
+            case: 'nodeFailure',
+            value: true,
           },
         });
         break;
       case 'server-leave':
-        req = SimulateScenario.fromPartial({
+        req = new SimulateScenario({
           scenario: {
-            $case: 'serverLeave',
-            serverLeave: true,
+            case: 'serverLeave',
+            value: true,
           },
         });
         break;
       case 'migration':
-        req = SimulateScenario.fromPartial({
+        req = new SimulateScenario({
           scenario: {
-            $case: 'migration',
-            migration: true,
+            case: 'migration',
+            value: true,
           },
         });
         break;
@@ -536,19 +540,21 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         break;
       case 'force-tcp':
       case 'force-tls':
-        req = SimulateScenario.fromPartial({
+        req = new SimulateScenario({
           scenario: {
-            $case: 'switchCandidateProtocol',
-            switchCandidateProtocol: scenario === 'force-tls' ? 2 : 1,
+            case: 'switchCandidateProtocol',
+            value: scenario === 'force-tls' ? 2 : 1,
           },
         });
         postAction = async () => {
           const onLeave = this.engine.client.onLeave;
           if (onLeave) {
-            onLeave({
-              reason: DisconnectReason.CLIENT_INITIATED,
-              canReconnect: true,
-            });
+            onLeave(
+              new LeaveRequest({
+                reason: DisconnectReason.CLIENT_INITIATED,
+                canReconnect: true,
+              }),
+            );
           }
         };
         break;
@@ -1232,25 +1238,27 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       });
     });
 
-    this.engine.client.sendSyncState({
-      answer: toProtoSessionDescription({
-        sdp: previousAnswer.sdp,
-        type: previousAnswer.type,
+    this.engine.client.sendSyncState(
+      new SyncState({
+        answer: toProtoSessionDescription({
+          sdp: previousAnswer.sdp,
+          type: previousAnswer.type,
+        }),
+        offer: previousOffer
+          ? toProtoSessionDescription({
+              sdp: previousOffer.sdp,
+              type: previousOffer.type,
+            })
+          : undefined,
+        subscription: new UpdateSubscription({
+          trackSids,
+          subscribe: !autoSubscribe,
+          participantTracks: [],
+        }),
+        publishTracks: this.localParticipant.publishedTracksInfo(),
+        dataChannels: this.localParticipant.dataChannelsInfo(),
       }),
-      offer: previousOffer
-        ? toProtoSessionDescription({
-            sdp: previousOffer.sdp,
-            type: previousOffer.type,
-          })
-        : undefined,
-      subscription: {
-        trackSids,
-        subscribe: !autoSubscribe,
-        participantTracks: [],
-      },
-      publishTracks: this.localParticipant.publishedTracksInfo(),
-      dataChannels: this.localParticipant.dataChannelsInfo(),
-    });
+    );
   }
 
   /**
@@ -1352,7 +1360,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     this.name = 'simulated-room';
 
     this.localParticipant.updateInfo(
-      ParticipantInfo.fromPartial({
+      new ParticipantInfo({
         identity: 'simulated-local',
         name: 'local-name',
       }),
@@ -1364,7 +1372,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     if (publishOptions.video) {
       const camPub = new LocalTrackPublication(
         Track.Kind.Video,
-        TrackInfo.fromPartial({
+        new TrackInfo({
           source: TrackSource.CAMERA,
           sid: Math.floor(Math.random() * 10_000).toString(),
           type: TrackType.AUDIO,
@@ -1388,7 +1396,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     if (publishOptions.audio) {
       const audioPub = new LocalTrackPublication(
         Track.Kind.Audio,
-        TrackInfo.fromPartial({
+        new TrackInfo({
           source: TrackSource.MICROPHONE,
           sid: Math.floor(Math.random() * 10_000).toString(),
           type: TrackType.AUDIO,
@@ -1405,12 +1413,12 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
 
     for (let i = 0; i < participantOptions.count - 1; i += 1) {
-      let info: ParticipantInfo = ParticipantInfo.fromPartial({
+      let info: ParticipantInfo = new ParticipantInfo({
         sid: Math.floor(Math.random() * 10_000).toString(),
         identity: `simulated-${i}`,
         state: ParticipantInfo_State.ACTIVE,
         tracks: [],
-        joinedAt: Date.now(),
+        joinedAt: protoInt64.parse(Date.now()),
       });
       const p = this.getOrCreateParticipant(info.identity, info);
       if (participantOptions.video) {
@@ -1420,7 +1428,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           false,
           true,
         );
-        const videoTrack = TrackInfo.fromPartial({
+        const videoTrack = new TrackInfo({
           source: TrackSource.CAMERA,
           sid: Math.floor(Math.random() * 10_000).toString(),
           type: TrackType.AUDIO,
@@ -1430,7 +1438,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       }
       if (participantOptions.audio) {
         const dummyTrack = getEmptyAudioStreamTrack();
-        const audioTrack = TrackInfo.fromPartial({
+        const audioTrack = new TrackInfo({
           source: TrackSource.MICROPHONE,
           sid: Math.floor(Math.random() * 10_000).toString(),
           type: TrackType.AUDIO,

@@ -1,6 +1,10 @@
 import log from '../../logger';
-import { TrackInfo, VideoQuality } from '../../proto/livekit_models';
-import { UpdateSubscription, UpdateTrackSettings } from '../../proto/livekit_rtc';
+import {
+  ParticipantTracks,
+  TrackInfo,
+  VideoQuality,
+} from '../../proto/livekit_models_pb';
+import { UpdateSubscription, UpdateTrackSettings } from '../../proto/livekit_rtc_pb';
 import { TrackEvent } from '../events';
 import type RemoteTrack from './RemoteTrack';
 import RemoteVideoTrack from './RemoteVideoTrack';
@@ -44,18 +48,19 @@ export default class RemoteTrackPublication extends TrackPublication {
       this.allowed = true;
     }
 
-    const sub: UpdateSubscription = {
+    const sub = new UpdateSubscription({
       trackSids: [this.trackSid],
       subscribe: this.subscribed,
       participantTracks: [
-        {
+        
           // sending an empty participant id since TrackPublication doesn't keep it
           // this is filled in by the participant that receives this message
-          participantSid: '',
-          trackSids: [this.trackSid],
-        },
+           new ParticipantTracks({
+            participantSid: '',
+            trackSids: [this.trackSid],
+          }),
       ],
-    };
+    });
     this.emit(TrackEvent.UpdateSubscription, sub);
     this.emitSubscriptionUpdateIfChanged(prevStatus);
     this.emitPermissionUpdateIfChanged(prevPermission);
@@ -278,7 +283,7 @@ export default class RemoteTrackPublication extends TrackPublication {
 
   /* @internal */
   emitTrackUpdate() {
-    const settings: UpdateTrackSettings = UpdateTrackSettings.fromPartial({
+    const settings: UpdateTrackSettings = new UpdateTrackSettings({
       trackSids: [this.trackSid],
       disabled: this.disabled,
       fps: this.fps,
