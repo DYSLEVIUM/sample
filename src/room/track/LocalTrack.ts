@@ -5,7 +5,8 @@ import { TrackEvent } from '../events';
 import { getEmptyAudioStreamTrack, getEmptyVideoStreamTrack, isMobile, sleep } from '../utils';
 import { Track, attachToElement, detachTrack } from './Track';
 import type { VideoCodec } from './options';
-import { Queue as AsyncAwaitQueue } from 'async-await-queue';
+//import { Queue as AsyncAwaitQueue } from 'async-await-queue';
+import { AsyncQueue } from '../../utils/AsyncQueue';
 
 const defaultDimensionsTimeout = 2 * 1000;
 
@@ -22,7 +23,7 @@ export default abstract class LocalTrack extends Track {
 
   protected providedByUser: boolean;
 
-  protected muteQueue: AsyncAwaitQueue;
+  protected muteQueue: AsyncQueue;
 
   /**
    *
@@ -42,7 +43,7 @@ export default abstract class LocalTrack extends Track {
     this.constraints = constraints ?? mediaTrack.getConstraints();
     this.reacquireTrack = false;
     this.providedByUser = userProvidedTrack;
-    this.muteQueue = new AsyncAwaitQueue();
+    this.muteQueue = new AsyncQueue();
   }
 
   get id(): string {
