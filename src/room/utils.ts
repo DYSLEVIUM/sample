@@ -122,6 +122,9 @@ export function isWeb(): boolean {
   return typeof document !== 'undefined';
 }
 
+export function isCloud(serverUrl: URL) {
+  return serverUrl.hostname.endsWith('.livekit.cloud');
+}
 export function compareVersions(v1: string, v2: string): number {
   const parts1 = v1.split('.');
   const parts2 = v2.split('.');

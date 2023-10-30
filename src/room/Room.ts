@@ -41,14 +41,13 @@ import {
   videoDefaults,
 } from './defaults';
 import DeviceManager from './DeviceManager';
-import { ConnectionError, UnsupportedServer } from './errors';
+import { ConnectionError, ConnectionErrorReason, UnsupportedServer } from './errors';
 import { EngineEvent, ParticipantEvent, RoomEvent, TrackEvent } from './events';
 import LocalParticipant from './participant/LocalParticipant';
 import type Participant from './participant/Participant';
 import type { ConnectionQuality } from './participant/Participant';
 import RemoteParticipant from './participant/RemoteParticipant';
 import RTCEngine from './RTCEngine';
-import CriticalTimers from './timers';
 import LocalAudioTrack from './track/LocalAudioTrack';
 import LocalTrackPublication from './track/LocalTrackPublication';
 import LocalVideoTrack from './track/LocalVideoTrack';
@@ -63,11 +62,13 @@ import {
   createDummyVideoStreamTrack,
   Future,
   getEmptyAudioStreamTrack,
+  isCloud,
   isWeb,
   Mutex,
   supportsSetSinkId,
   unpackStreamId,
 } from './utils';
+import { RegionUrlProvider } from './RegionUrlProvider';
 
 export enum ConnectionState {
   Disconnected = 'disconnected',
@@ -268,46 +269,81 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
     this.setAndEmitConnectionState(ConnectionState.Connecting);
 
-    const connectFn = async (resolve: () => void, reject: (reason: any) => void) => {
-      if (!this.abortController || this.abortController.signal.aborted) {
-        this.abortController = new AbortController();
+    const urlProvider = new RegionUrlProvider(url, token);
+
+    const connectFn = async (
+      resolve: () => void,
+      reject: (reason: any) => void,
+      regionUrl?: string,
+    ) => {
+      if (this.abortController) {
+        this.abortController.abort();
       }
+      this.abortController = new AbortController();
+
       // at this point the intention to connect has been signalled so we can allow cancelling of the connection via disconnect() again
-      unlockDisconnect();
-
-      if (this.state === ConnectionState.Reconnecting) {
-        log.info('Reconnection attempt replaced by new connection attempt');
-        // make sure we close and recreate the existing engine in order to get rid of any potentially ongoing reconnection attempts
-        this.recreateEngine();
-      } else {
-        // create engine if previously disconnected
-        this.maybeCreateEngine();
-      }
-
-      this.acquireAudioContext();
-
-      this.connOptions = { ...roomConnectOptionDefaults, ...opts } as InternalRoomConnectOptions;
-
-      if (this.connOptions.rtcConfig) {
-        this.engine.rtcConfig = this.connOptions.rtcConfig;
-      }
-      if (this.connOptions.peerConnectionTimeout) {
-        this.engine.peerConnectionTimeout = this.connOptions.peerConnectionTimeout;
-      }
+      unlockDisconnect?.();
 
       try {
-        const joinResponse = await this.engine.join(
-          url,
-          token,
-          {
-            autoSubscribe: this.connOptions.autoSubscribe,
-            publishOnly: this.connOptions.publishOnly,
-            adaptiveStream:
-              typeof this.options.adaptiveStream === 'object' ? true : this.options.adaptiveStream,
-            maxRetries: this.connOptions.maxRetries,
-          },
-          this.abortController.signal,
-        );
+        await this.attemptConnection(regionUrl ?? url, token, opts, this.abortController);
+        this.abortController = undefined;
+        resolve();
+      } catch (e) {
+        if (
+          isCloud(new URL(url)) &&
+          e instanceof ConnectionError &&
+          e.reason !== ConnectionErrorReason.Cancelled
+        ) {
+          let nextUrl: string | null = null;
+          try {
+            nextUrl = await urlProvider.getNextBestRegionUrl(this.abortController?.signal);
+          } catch (error) {
+            if (
+              error instanceof ConnectionError &&
+              (error.status === 401 || error.reason === ConnectionErrorReason.Cancelled)
+            ) {
+              reject(error);
+              return;
+            }
+          }
+          if (nextUrl) {
+            log.debug('initial connection failed, retrying with another region');
+            await connectFn(resolve, reject, nextUrl);
+          } else {
+            reject(e);
+          }
+        } else {
+          reject(e);
+        }
+      }
+    };
+    this.connectFuture = new Future(connectFn, () => {
+      this.clearConnectionFutures();
+    });
+
+    return this.connectFuture.promise;
+  };
+
+  private connectSignal = async (
+    url: string,
+    token: string,
+    engine: RTCEngine,
+    connectOptions: InternalRoomConnectOptions,
+    roomOptions: InternalRoomOptions,
+    abortController: AbortController,
+  ): Promise<JoinResponse> => {
+    const joinResponse = await engine.join(
+      url,
+      token,
+      {
+        autoSubscribe: connectOptions.autoSubscribe,
+        publishOnly: connectOptions.publishOnly,
+        adaptiveStream:
+          typeof roomOptions.adaptiveStream === 'object' ? true : roomOptions.adaptiveStream,
+        maxRetries: connectOptions.maxRetries,
+      },
+      abortController.signal,
+    );
 
         let serverInfo: Partial<ServerInfo> | undefined = joinResponse.serverInfo;
         if (!serverInfo) {
@@ -354,48 +390,84 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           }
         });
 
-        this.name = joinResponse.room!.name;
-        this.sid = joinResponse.room!.sid;
-        this.metadata = joinResponse.room!.metadata;
-        if (this._isRecording !== joinResponse.room!.activeRecording) {
-          this._isRecording = joinResponse.room!.activeRecording;
-          this.emit(RoomEvent.RecordingStatusChanged, joinResponse.room!.activeRecording);
-        }
-        this.emit(RoomEvent.SignalConnected);
-      } catch (err) {
-        this.recreateEngine();
-        this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
-        const resultingError = new ConnectionError(`could not establish signal connection`);
-        if (err instanceof Error) {
-          resultingError.message = `${resultingError.message}: ${err.message}`;
-        }
-        if (err instanceof ConnectionError) {
-          resultingError.reason = err.reason;
-          resultingError.status = err.status;
-        }
-        log.debug(`error trying to establish signal connection`, { error: err });
-        reject(resultingError);
-        return;
-      }
+    this.name = joinResponse.room!.name;
+    this.sid = joinResponse.room!.sid;
+    this.metadata = joinResponse.room!.metadata;
+    if (this._isRecording !== joinResponse.room!.activeRecording) {
+      this._isRecording = joinResponse.room!.activeRecording;
+      this.emit(RoomEvent.RecordingStatusChanged, joinResponse.room!.activeRecording);
+    }
+  };
 
-      // don't return until ICE connected
-      const connectTimeout = CriticalTimers.setTimeout(() => {
-        // timeout
-        this.recreateEngine();
-        this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
-        reject(new ConnectionError('could not connect PeerConnection after timeout'));
-      }, this.connOptions.peerConnectionTimeout);
-      const abortHandler = () => {
-        log.warn('closing engine');
-        CriticalTimers.clearTimeout(connectTimeout);
-        this.recreateEngine();
-        this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
-        reject(new ConnectionError('room connection has been cancelled'));
-      };
-      if (this.abortController?.signal.aborted) {
-        abortHandler();
+  private attemptConnection = async (
+    url: string,
+    token: string,
+    opts: RoomConnectOptions | undefined,
+    abortController: AbortController,
+  ) => {
+    if (this.state === ConnectionState.Reconnecting) {
+      log.info('Reconnection attempt replaced by new connection attempt');
+      // make sure we close and recreate the existing engine in order to get rid of any potentially ongoing reconnection attempts
+      this.recreateEngine();
+    } else {
+      // create engine if previously disconnected
+      this.maybeCreateEngine();
+    }
+
+    this.acquireAudioContext();
+
+    this.connOptions = { ...roomConnectOptionDefaults, ...opts } as InternalRoomConnectOptions;
+
+    if (this.connOptions.rtcConfig) {
+      this.engine.rtcConfig = this.connOptions.rtcConfig;
+    }
+    if (this.connOptions.peerConnectionTimeout) {
+      this.engine.peerConnectionTimeout = this.connOptions.peerConnectionTimeout;
+    }
+
+    try {
+      const joinResponse = await this.connectSignal(
+        url,
+        token,
+        this.engine,
+        this.connOptions,
+        this.options,
+        abortController,
+      );
+
+      this.applyJoinResponse(joinResponse);
+      this.emit(RoomEvent.SignalConnected);
+    } catch (err) {
+      this.recreateEngine();
+      this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
+      const resultingError = new ConnectionError(`could not establish signal connection`);
+      if (err instanceof Error) {
+        resultingError.message = `${resultingError.message}: ${err.message}`;
       }
-      this.abortController?.signal.addEventListener('abort', abortHandler);
+      if (err instanceof ConnectionError) {
+        resultingError.reason = err.reason;
+        resultingError.status = err.status;
+      }
+      log.debug(`error trying to establish signal connection`, { error: err });
+      throw resultingError;
+    }
+
+    if (abortController.signal.aborted) {
+      this.recreateEngine();
+      this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
+      throw new ConnectionError(`Connection attempt aborted`);
+    }
+
+    try {
+      await this.engine.waitForPCInitialConnection(
+        this.connOptions.peerConnectionTimeout,
+        abortController,
+      );
+    } catch (e) {
+      this.recreateEngine();
+      this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
+      throw e;
+    }
 
       this.engine.once(EngineEvent.Connected, () => {
         CriticalTimers.clearTimeout(connectTimeout);
