@@ -360,13 +360,17 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           throw new UnsupportedServer('unknown server version');
         }
 
-        if (joinResponse.serverVersion === '0.15.1' && this.options.dynacast) {
-          log.debug('disabling dynacast due to server version');
-          // dynacast has a bug in 0.15.1, so we cannot use it then
-          this.options.dynacast = false;
-        }
+    if (joinResponse.serverVersion === '0.15.1' && this.options.dynacast) {
+      log.debug('disabling dynacast due to server version');
+      // dynacast has a bug in 0.15.1, so we cannot use it then
+      roomOptions.dynacast = false;
+    }
 
-        const pi = joinResponse.participant!;
+    return joinResponse;
+  };
+
+  private applyJoinResponse = (joinResponse: JoinResponse) => {
+    const pi = joinResponse.participant!;
 
         this.localParticipant.sid = pi.sid;
         this.localParticipant.identity = pi.identity;
@@ -469,9 +473,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       throw e;
     }
 
-      this.engine.once(EngineEvent.Connected, () => {
-        CriticalTimers.clearTimeout(connectTimeout);
-        this.abortController?.signal.removeEventListener('abort', abortHandler);
+       
         // also hook unload event
         if (isWeb() && this.options.disconnectOnPageLeave) {
           // capturing both 'pagehide' and 'beforeunload' to capture broadest set of browser behaviors
@@ -481,14 +483,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }
         this.setAndEmitConnectionState(ConnectionState.Connected);
         this.emit(RoomEvent.Connected);
-        resolve();
-      });
-    };
-    this.connectFuture = new Future(connectFn, () => {
-      this.clearConnectionFutures();
-    });
-
-    return this.connectFuture.promise;
+      
   };
 
   /**
