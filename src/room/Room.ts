@@ -49,6 +49,7 @@ import LocalParticipant from './participant/LocalParticipant';
 import type Participant from './participant/Participant';
 import type { ConnectionQuality } from './participant/Participant';
 import RemoteParticipant from './participant/RemoteParticipant';
+import CriticalTimers from './timers';
 import LocalAudioTrack from './track/LocalAudioTrack';
 import LocalTrackPublication from './track/LocalTrackPublication';
 import LocalVideoTrack from './track/LocalVideoTrack';
@@ -76,6 +77,8 @@ export enum ConnectionState {
   Connected = 'connected',
   Reconnecting = 'reconnecting',
 }
+
+const connectionReconcileFrequency = 2 * 1000;
 
 /** @deprecated RoomState has been renamed to [[ConnectionState]] */
 export const RoomState = ConnectionState;
@@ -129,6 +132,8 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   private disconnectLock: Mutex;
 
   private cachedParticipantSids: Array<string>;
+
+  private connectionReconcileInterval?: ReturnType<typeof setInterval>;
 
   /**
    * Creates a new Room, the primary construct for a LiveKit session.
@@ -193,7 +198,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   }
 
   private maybeCreateEngine() {
-    if (this.engine) {
+    if (this.engine && !this.engine.isClosed) {
       return;
     }
 
@@ -219,6 +224,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       .on(EngineEvent.ActiveSpeakersUpdate, this.handleActiveSpeakersUpdate)
       .on(EngineEvent.DataPacketReceived, this.handleDataPacket)
       .on(EngineEvent.Resuming, () => {
+        this.clearConnectionReconcile();
         if (this.setAndEmitConnectionState(ConnectionState.Reconnecting)) {
           this.emit(RoomEvent.Reconnecting);
         }
@@ -227,6 +233,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       .on(EngineEvent.Resumed, () => {
         this.setAndEmitConnectionState(ConnectionState.Connected);
         this.emit(RoomEvent.Reconnected);
+        this.registerConnectionReconcile();
         this.updateSubscriptions();
 
         // once reconnected, figure out if any participants connected during reconnect and emit events for it
@@ -494,7 +501,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }
         this.setAndEmitConnectionState(ConnectionState.Connected);
         this.emit(RoomEvent.Connected);
-      
+    this.registerConnectionReconcile();
   };
 
   /**
@@ -841,6 +848,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   }
 
   private handleRestarting = () => {
+    this.clearConnectionReconcile();
     // also unwind existing participants & existing subscriptions
     for (const p of this.participants.values()) {
       this.handleParticipantDisconnected(p.sid, p);
@@ -906,6 +914,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
     this.setAndEmitConnectionState(ConnectionState.Connected);
     this.emit(RoomEvent.Reconnected);
+    this.registerConnectionReconcile();
 
     // emit participant connected events after connection has been re-established
     this.participants.forEach((participant) => {
@@ -914,10 +923,12 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   };
 
   private handleDisconnect(shouldStopTracks = true, reason?: DisconnectReason) {
+    this.clearConnectionReconcile();
     if (this.state === ConnectionState.Disconnected) {
       return;
     }
 
+    try {
     this.participants.forEach((p) => {
       p.tracks.forEach((pub) => {
         p.unpublishTrack(pub.trackSid);
@@ -963,8 +974,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       window.removeEventListener('pagehide', this.onPageLeave);
       navigator.mediaDevices?.removeEventListener('devicechange', this.handleDeviceChange);
     }
+    } finally {
     this.setAndEmitConnectionState(ConnectionState.Disconnected);
     this.emit(RoomEvent.Disconnected, reason);
+    }
   }
 
   private handleParticipantUpdates = (participantInfos: ParticipantInfo[]) => {
@@ -1352,6 +1365,37 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           pub.emitTrackUpdate();
         }
       }
+    }
+  }
+
+  private registerConnectionReconcile() {
+    this.clearConnectionReconcile();
+    let consecutiveFailures = 0;
+    this.connectionReconcileInterval = CriticalTimers.setInterval(() => {
+      if (
+        // ensure we didn't tear it down
+        !this.engine ||
+        // engine detected close, but Room missed it
+        this.engine.isClosed ||
+        // transports failed without notifying engine
+        !this.engine.verifyTransport()
+      ) {
+        consecutiveFailures++;
+        log.warn('detected connection state mismatch', { numFailures: consecutiveFailures });
+        if (consecutiveFailures >= 3)
+          this.handleDisconnect(
+            this.options.stopLocalTrackOnUnpublish,
+            DisconnectReason.UNKNOWN_REASON,
+          );
+      } else {
+        consecutiveFailures = 0;
+      }
+    }, connectionReconcileFrequency);
+  }
+
+  private clearConnectionReconcile() {
+    if (this.connectionReconcileInterval) {
+      CriticalTimers.clearInterval(this.connectionReconcileInterval);
     }
   }
 
