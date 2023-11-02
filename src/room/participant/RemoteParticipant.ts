@@ -11,7 +11,8 @@ import RemoteVideoTrack from '../track/RemoteVideoTrack';
 import { Track } from '../track/Track';
 import type { TrackPublication } from '../track/TrackPublication';
 import type { AdaptiveStreamSettings } from '../track/types';
-import Participant, { ParticipantEventCallbacks } from './Participant';
+import Participant from './Participant';
+import type { ParticipantEventCallbacks } from './Participant';
 
 export default class RemoteParticipant extends Participant {
   audioTracks: Map<string, RemoteTrackPublication>;

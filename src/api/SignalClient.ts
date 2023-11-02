@@ -330,6 +330,7 @@ export class SignalClient {
       };
 
       this.ws.onclose = (ev: CloseEvent) => {
+        log.warn(`websocket closed`, { ev });
         this.handleOnClose(ev.reason);
       };
     });
@@ -353,12 +354,14 @@ export class SignalClient {
           }
         });
 
-        this.ws.close();
-        // 250ms grace period for ws to close gracefully
-        await Promise.race([closePromise, sleep(250)]);
+        if (this.ws.readyState < this.ws.CLOSING) {
+          this.ws.close();
+          // 250ms grace period for ws to close gracefully
+          await Promise.race([closePromise, sleep(250)]);
+        }
+        this.ws = undefined;
+        this.clearPingInterval();
       }
-      this.ws = undefined;
-      this.clearPingInterval();
     } finally {
       unlock();
     }
@@ -646,17 +649,13 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
     this.isReconnecting = false;
   }
 
-  private handleOnClose(reason: string) {
+  private async handleOnClose(reason: string) {
     if (!this.isConnected) return;
-    this.clearPingInterval();
-    this.clearPingTimeout();
-
+    await this.close();
     log.debug(`websocket connection closed: ${reason}`);
-    this.isConnected = false;
     if (this.onClose) {
       this.onClose(reason);
     }
-    this.ws = undefined;
   }
 
   private handleWSError(ev: Event) {

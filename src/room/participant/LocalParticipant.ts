@@ -2,7 +2,8 @@ import 'webrtc-adapter';
 import log from '../../logger';
 import type { InternalRoomOptions } from '../../options';
 import { DataPacket, DataPacket_Kind, ParticipantInfo,UserPacket, } from '../../proto/livekit_models_pb';
-import {
+import { ScreenSharePresets, isBackupCodec} from '../track/options';
+import  {
   AddTrackRequest,
   DataChannelInfo,
   SignalTarget,
@@ -24,16 +25,17 @@ import {
   BackupVideoCodec,
   CreateLocalTracksOptions,
   ScreenShareCaptureOptions,
-  ScreenSharePresets,
+
   TrackPublishOptions,
   VideoCaptureOptions,
-  isBackupCodec,
+  
 } from '../track/options';
 import { constraintsForOptions, mergeDefaultOptions } from '../track/utils';
 import type { DataPublishOptions } from '../types';
 import { Future, isFireFox, isSafari, isWeb, supportsAV1 } from '../utils';
 import Participant from './Participant';
-import { ParticipantTrackPermission, trackPermissionToProto } from './ParticipantTrackPermission';
+import { trackPermissionToProto } from './ParticipantTrackPermission';
+import type { ParticipantTrackPermission } from './ParticipantTrackPermission';
 import RemoteParticipant from './RemoteParticipant';
 import {
   computeTrackBackupEncodings,
@@ -681,10 +683,12 @@ export default class LocalParticipant extends Participant {
         opts,
       );
       req.layers = videoLayersFromEncodings(req.width, req.height, simEncodings ?? encodings);
-    } else if (track.kind === Track.Kind.Audio && opts.audioBitrate) {
+    } else if (track.kind === Track.Kind.Audio) {
       encodings = [
         {
-          maxBitrate: opts.audioBitrate,
+          maxBitrate: opts.audioPreset?.maxBitrate ?? opts.audioBitrate,
+          priority: opts.audioPreset?.priority ?? 'high',
+          networkPriority: opts.audioPreset?.priority ?? 'high',
         },
       ];
     }
