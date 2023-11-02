@@ -11,35 +11,35 @@ import {
   TrackPublishedResponse,
   TrackUnpublishedResponse,
 } from '../../proto/livekit_rtc_pb';
+import type RTCEngine from '../RTCEngine';
 import { DeviceUnsupportedError, TrackInvalidError, UnexpectedConnectionState } from '../errors';
 import { EngineEvent, ParticipantEvent, TrackEvent } from '../events';
-import type RTCEngine from '../RTCEngine';
 import LocalAudioTrack from '../track/LocalAudioTrack';
 import LocalTrack from '../track/LocalTrack';
 import LocalTrackPublication from '../track/LocalTrackPublication';
 import LocalVideoTrack, { videoLayersFromEncodings } from '../track/LocalVideoTrack';
+import { Track } from '../track/Track';
 import {
   AudioCaptureOptions,
   BackupVideoCodec,
   CreateLocalTracksOptions,
-  isBackupCodec,
   ScreenShareCaptureOptions,
   ScreenSharePresets,
   TrackPublishOptions,
   VideoCaptureOptions,
+  isBackupCodec,
 } from '../track/options';
-import { Track } from '../track/Track';
 import { constraintsForOptions, mergeDefaultOptions } from '../track/utils';
 import type { DataPublishOptions } from '../types';
 import { Future, isFireFox, isSafari, isWeb, supportsAV1 } from '../utils';
 import Participant from './Participant';
 import { ParticipantTrackPermission, trackPermissionToProto } from './ParticipantTrackPermission';
+import RemoteParticipant from './RemoteParticipant';
 import {
   computeTrackBackupEncodings,
   computeVideoEncodings,
   mediaTrackToLocalTrack,
 } from './publishUtils';
-import RemoteParticipant from './RemoteParticipant';
 
 export default class LocalParticipant extends Participant {
   audioTracks: Map<string, LocalTrackPublication>;
@@ -1016,13 +1016,15 @@ export default class LocalParticipant extends Participant {
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo) {
+  updateInfo(info: ParticipantInfo): boolean {
     if (info.sid !== this.sid) {
       // drop updates that specify a wrong sid.
       // the sid for local participant is only explicitly set on join and full reconnect
-      return;
+      return false;
     }
-    super.updateInfo(info);
+    if (!super.updateInfo(info)) {
+      return false;
+    }
 
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
@@ -1101,7 +1103,9 @@ export default class LocalParticipant extends Participant {
           }
         }
       }
+      
     });
+    return true;
   }
 
   private updateTrackSubscriptionPermissions = () => {

@@ -33,6 +33,9 @@ import {
   SyncState,
   UpdateSubscription,
 } from '../proto/livekit_rtc_pb';
+import DeviceManager from './DeviceManager';
+import RTCEngine from './RTCEngine';
+import { RegionUrlProvider } from './RegionUrlProvider';
 import {
   audioDefaults,
   publishDefaults,
@@ -40,14 +43,12 @@ import {
   roomOptionDefaults,
   videoDefaults,
 } from './defaults';
-import DeviceManager from './DeviceManager';
 import { ConnectionError, ConnectionErrorReason, UnsupportedServer } from './errors';
 import { EngineEvent, ParticipantEvent, RoomEvent, TrackEvent } from './events';
 import LocalParticipant from './participant/LocalParticipant';
 import type Participant from './participant/Participant';
 import type { ConnectionQuality } from './participant/Participant';
 import RemoteParticipant from './participant/RemoteParticipant';
-import RTCEngine from './RTCEngine';
 import LocalAudioTrack from './track/LocalAudioTrack';
 import LocalTrackPublication from './track/LocalTrackPublication';
 import LocalVideoTrack from './track/LocalVideoTrack';
@@ -59,16 +60,15 @@ import type { AdaptiveStreamSettings } from './track/types';
 import { getNewAudioContext } from './track/utils';
 import type { SimulationOptions } from './types';
 import {
-  createDummyVideoStreamTrack,
   Future,
+  Mutex,
+  createDummyVideoStreamTrack,
   getEmptyAudioStreamTrack,
   isCloud,
   isWeb,
-  Mutex,
   supportsSetSinkId,
   unpackStreamId,
 } from './utils';
-import { RegionUrlProvider } from './RegionUrlProvider';
 
 export enum ConnectionState {
   Disconnected = 'disconnected',
@@ -103,23 +103,13 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   /** @internal */
   engine!: RTCEngine;
 
-  // available after connected
-  /** server assigned unique room id */
-  sid: string = '';
-
-  /** user assigned name, derived from JWT token */
-  name: string = '';
-
   /** the current participant */
   localParticipant: LocalParticipant;
-
-  /** room metadata */
-  metadata: string | undefined = undefined;
 
   /** options of room */
   options: InternalRoomOptions;
 
-  private _isRecording: boolean = false;
+  private roomInfo?: RoomModel;
 
   private identityToSid: Map<string, string>;
 
@@ -169,6 +159,36 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     this.localParticipant = new LocalParticipant('', '', this.engine, this.options);
   }
 
+  /**
+   * if the current room has a participant with `recorder: true` in its JWT grant
+   **/
+  get isRecording(): boolean {
+    return this.roomInfo?.activeRecording ?? false;
+  }
+
+  /** server assigned unique room id */
+  get sid(): string {
+    return this.roomInfo?.sid ?? '';
+  }
+
+  /** user assigned name, derived from JWT token */
+  get name(): string {
+    return this.roomInfo?.name ?? '';
+  }
+
+  /** room metadata */
+  get metadata(): string | undefined {
+    return this.roomInfo?.metadata;
+  }
+
+  get numParticipants(): number {
+    return this.roomInfo?.numParticipants ?? 0;
+  }
+
+  get numPublishers(): number {
+    return this.roomInfo?.numPublishers ?? 0;
+  }
+
   private maybeCreateEngine() {
     if (this.engine) {
       return;
@@ -211,7 +231,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }
       })
       .on(EngineEvent.Restarting, this.handleRestarting)
-      .on(EngineEvent.Restarted, this.handleRestarted);
+      .on(EngineEvent.SignalRestarted, this.handleSignalRestarted);
 
     if (this.localParticipant) {
       this.localParticipant.setupEngine(this.engine);
@@ -375,31 +395,11 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         this.localParticipant.sid = pi.sid;
         this.localParticipant.identity = pi.identity;
 
-        this.localParticipant.updateInfo(pi);
-        // forward metadata changed for the local participant
-        this.setupLocalParticipantEvents();
+    // populate remote participants, these should not trigger new events
+    this.handleParticipantUpdates([pi, ...joinResponse.otherParticipants]);
 
-        // populate remote participants, these should not trigger new events
-        joinResponse.otherParticipants.forEach((info) => {
-          if (
-            info.sid !== this.localParticipant.sid &&
-            info.identity !== this.localParticipant.identity
-          ) {
-            this.getOrCreateParticipant(info.sid, info);
-          } else {
-            log.warn('received info to create local participant as remote participant', {
-              info,
-              localParticipant: this.localParticipant,
-            });
-          }
-        });
-
-    this.name = joinResponse.room!.name;
-    this.sid = joinResponse.room!.sid;
-    this.metadata = joinResponse.room!.metadata;
-    if (this._isRecording !== joinResponse.room!.activeRecording) {
-      this._isRecording = joinResponse.room!.activeRecording;
-      this.emit(RoomEvent.RecordingStatusChanged, joinResponse.room!.activeRecording);
+    if (joinResponse.room) {
+      this.handleRoomUpdate(joinResponse.room);
     }
   };
 
@@ -544,13 +544,6 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   private clearConnectionFutures() {
     this.connectFuture = undefined;
-  }
-
-  /**
-   * if the current room has a participant with `recorder: true` in its JWT grant
-   **/
-  get isRecording() {
-    return this._isRecording;
   }
 
   /**
@@ -847,20 +840,14 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
   };
 
-  private handleRestarted = async (joinResponse: JoinResponse) => {
-    log.debug(`reconnected to server`, {
+  private handleSignalRestarted = async (joinResponse: JoinResponse) => {
+    log.debug(`signal reconnected to server`, {
       region: joinResponse.serverRegion,
     });
 
-    try {
-      // rehydrate participants
-      if (joinResponse.participant) {
-        // with a restart, the sid will have changed, we'll map our understanding to it
-        this.localParticipant.sid = joinResponse.participant.sid;
-        this.handleParticipantUpdates([joinResponse.participant]);
-      }
-      this.handleParticipantUpdates(joinResponse.otherParticipants);
+    this.applyJoinResponse(joinResponse);
 
+    try {
       // unpublish & republish tracks
       const localPubs: LocalTrackPublication[] = [];
       this.localParticipant.tracks.forEach((pub) => {
@@ -894,10 +881,24 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       );
     } catch (error) {
       log.error('error trying to re-publish tracks after reconnection', { error });
-    } finally {
-      this.setAndEmitConnectionState(ConnectionState.Connected);
-      this.emit(RoomEvent.Reconnected);
     }
+
+    try {
+      await this.engine.waitForRestarted();
+      log.debug(`fully reconnected to server`, {
+        region: joinResponse.serverRegion,
+      });
+    } catch {
+      // reconnection failed, handleDisconnect is being invoked already, just return here
+      return;
+    }
+    this.setAndEmitConnectionState(ConnectionState.Connected);
+    this.emit(RoomEvent.Reconnected);
+
+    // emit participant connected events after connection has been re-established
+    this.participants.forEach((participant) => {
+      this.emit(RoomEvent.ParticipantConnected, participant);
+    });
   };
 
   private handleDisconnect(shouldStopTracks = true, reason?: DisconnectReason) {
@@ -1129,14 +1130,14 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     this.emit(RoomEvent.MediaDevicesChanged);
   };
 
-  private handleRoomUpdate = (r: RoomModel) => {
-    if (this._isRecording !== r.activeRecording) {
-      this._isRecording = r.activeRecording;
-      this.emit(RoomEvent.RecordingStatusChanged, r.activeRecording);
+  private handleRoomUpdate = (room: RoomModel) => {
+    const oldRoom = this.roomInfo;
+    this.roomInfo = room;
+    if (oldRoom && oldRoom.metadata !== room.metadata) {
+      this.emitWhenConnected(RoomEvent.RoomMetadataChanged, room.metadata);
     }
-    if (this.metadata !== r.metadata) {
-      this.metadata = r.metadata;
-      this.emitWhenConnected(RoomEvent.RoomMetadataChanged, r.metadata);
+    if (oldRoom?.activeRecording !== room.activeRecording) {
+      this.emitWhenConnected(RoomEvent.RecordingStatusChanged, room.activeRecording);
     }
   };
 
@@ -1424,8 +1425,19 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       ...options.participants,
     };
     this.handleDisconnect();
-    this.name = 'simulated-room';
-
+    this.roomInfo = new RoomModel({
+      sid: 'RM_SIMULATED',
+      name: 'simulated-room',
+      emptyTimeout: 0,
+      maxParticipants: 0,
+      creationTime: protoInt64.parse(new Date().getTime()),
+      metadata: '',
+      numParticipants: 1,
+      numPublishers: 1,
+      turnPassword: '',
+      enabledCodecs: [],
+      activeRecording: false,
+    });
     this.localParticipant.updateInfo(
       new ParticipantInfo({
         identity: 'simulated-local',

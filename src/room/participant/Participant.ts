@@ -144,7 +144,20 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo) {
+  updateInfo(info: ParticipantInfo): boolean {
+    // it's possible the update could be applied out of order due to await
+    // during reconnect sequences. when that happens, it's possible for server
+    // to have sent more recent version of participant info while JS is waiting
+    // to process the existing payload.
+    // when the participant sid remains the same, and we already have a later version
+    // of the payload, they can be safely skipped
+    if (
+      this.participantInfo &&
+      this.participantInfo.sid === info.sid &&
+      this.participantInfo.version > info.version
+    ) {
+      return false;
+    }
     this.identity = info.identity;
     this.sid = info.sid;
     this.setName(info.name);
@@ -155,6 +168,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     // set this last so setMetadata can detect changes
     this.participantInfo = info;
     log.trace('update participant info', { info });
+    return true;
   }
 
   /** @internal */
