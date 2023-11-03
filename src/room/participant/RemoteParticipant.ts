@@ -1,3 +1,4 @@
+import type EventEmitter from 'eventemitter3';
 import type { SignalClient } from '../../api/SignalClient';
 import log from '../../logger';
 import type { ParticipantInfo,SubscriptionError} from '../../proto/livekit_models_pb';
@@ -344,10 +345,9 @@ export default class RemoteParticipant extends Participant {
     await Promise.all(promises);
   }
 
-  /** @internal */
-  emit<E extends keyof ParticipantEventCallbacks>(
-    event: E,
-    ...args: Parameters<ParticipantEventCallbacks[E]>
+  emit<T extends EventEmitter.EventNames<ParticipantEventCallbacks>>(
+    event: T,
+    ...args: EventEmitter.EventArgs<ParticipantEventCallbacks, T>
   ): boolean {
     log.trace('participant event', { participant: this.sid, event, args });
     return super.emit(event, ...args);
