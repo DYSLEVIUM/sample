@@ -290,6 +290,7 @@ export default class RemoteParticipant extends Participant {
       return;
     }
 
+    
     this.tracks.delete(sid);
 
     // remove from the right type map
