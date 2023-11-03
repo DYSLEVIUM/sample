@@ -1,5 +1,6 @@
 import { protoInt64 } from '@bufbuild/protobuf';
-import EventEmitter from 'eventemitter3';
+import { EventEmitter } from 'events';
+import type TypedEmitter from 'typed-emitter';
 import { toProtoSessionDescription } from '../api/SignalClient';
 import log from '../logger';
 import type {
@@ -67,7 +68,6 @@ import {
   createDummyVideoStreamTrack,
   getEmptyAudioStreamTrack,
   isCloud,
-  isSafari,
   isWeb,
   supportsSetSinkId,
   unpackStreamId,
@@ -93,7 +93,7 @@ export const RoomState = ConnectionState;
  *
  * @noInheritDoc
  */
-class Room extends EventEmitter<RoomEventCallbacks> {
+class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) {
   state: ConnectionState = ConnectionState.Disconnected;
 
   /** map of sid: [[RemoteParticipant]] */
@@ -143,6 +143,7 @@ class Room extends EventEmitter<RoomEventCallbacks> {
    */
   constructor(options?: RoomOptions) {
     super();
+    this.setMaxListeners(100);
     this.participants = new Map();
     this.cachedParticipantSids = [];
     this.identityToSid = new Map();
@@ -668,30 +669,6 @@ class Room extends EventEmitter<RoomEventCallbacks> {
     await this.acquireAudioContext();
 
     const elements: Array<HTMLMediaElement> = [];
-    
-    if (isSafari()) {
-      /**
-       * iOS Safari blocks audio element playback if
-       * - user is not publishing audio themselves and
-       * - no other audio source is playing
-       *
-       * as a workaround, we create an audio element with an empty track, so that
-       * silent audio is always playing
-       */
-      const audioId = 'livekit-dummy-audio-el';
-      let dummyAudioEl = document.getElementById(audioId) as HTMLAudioElement | null;
-      if (!dummyAudioEl) {
-        dummyAudioEl = document.createElement('audio');
-        dummyAudioEl.autoplay = true;
-        dummyAudioEl.hidden = true;
-        const track = getEmptyAudioStreamTrack();
-        track.enabled = true;
-        dummyAudioEl.srcObject = new MediaStream([track]);
-        document.body.append(dummyAudioEl);
-      }
-      elements.push(dummyAudioEl);
-    }
-
     this.participants.forEach((p) => {
       p.audioTracks.forEach((t) => {
         if (t.track) {
@@ -1455,9 +1432,9 @@ class Room extends EventEmitter<RoomEventCallbacks> {
     return true;
   }
 
-  private emitWhenConnected<T extends EventEmitter.EventNames<RoomEventCallbacks>>(
-    event: T,
-    ...args: EventEmitter.EventArgs<RoomEventCallbacks, T>
+  private emitWhenConnected<E extends keyof RoomEventCallbacks>(
+    event: E,
+    ...args: Parameters<RoomEventCallbacks[E]>
   ): boolean {
     if (this.state === ConnectionState.Connected) {
       return this.emit(event, ...args);
@@ -1632,14 +1609,11 @@ class Room extends EventEmitter<RoomEventCallbacks> {
     }
   }
 
-  emit<T extends EventEmitter.EventNames<RoomEventCallbacks>>(
-    event: T,
-    ...args: EventEmitter.EventArgs<RoomEventCallbacks, T>
+  // /** @internal */
+  emit<E extends keyof RoomEventCallbacks>(
+    event: E,
+    ...args: Parameters<RoomEventCallbacks[E]>
   ): boolean {
-    // emit<E extends keyof RoomEventCallbacks>(
-    //   event: E,
-    //   ...args: Parameters<RoomEventCallbacks[E]>
-    // ): boolean {
     // active speaker updates are too spammy
     if (event !== RoomEvent.ActiveSpeakersChanged) {
       log.debug(`room event ${event}`, { event, args });

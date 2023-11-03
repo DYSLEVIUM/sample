@@ -192,7 +192,7 @@ export function getEmptyVideoStreamTrack() {
   if (!emptyVideoStreamTrack) {
     emptyVideoStreamTrack = createDummyVideoStreamTrack();
   }
-  return emptyVideoStreamTrack.clone();
+  return emptyVideoStreamTrack;
 }
 
 export function createDummyVideoStreamTrack(
@@ -232,11 +232,8 @@ export function getEmptyAudioStreamTrack() {
     // implementation adapted from https://blog.mozilla.org/webrtc/warm-up-with-replacetrack/
     const ctx = new AudioContext();
     const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, 0);
     const dst = ctx.createMediaStreamDestination();
-    oscillator.connect(gain);
-    gain.connect(dst);
+    oscillator.connect(dst);
     oscillator.start();
     [emptyAudioStreamTrack] = dst.stream.getAudioTracks();
     if (!emptyAudioStreamTrack) {
@@ -244,7 +241,7 @@ export function getEmptyAudioStreamTrack() {
     }
     emptyAudioStreamTrack.enabled = false;
   }
-  return emptyAudioStreamTrack.clone();
+  return emptyAudioStreamTrack;
 }
 
 export class Future<T> {
