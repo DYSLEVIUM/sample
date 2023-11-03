@@ -169,8 +169,11 @@ export default class LocalParticipant extends Participant {
   };
 
   private handleDisconnected = () => {
-    this.reconnectFuture?.reject?.('Got disconnected during publishing attempt');
-    this.reconnectFuture = undefined;
+    if (this.reconnectFuture) {
+      this.reconnectFuture.promise.catch((e) => log.warn(e));
+      this.reconnectFuture?.reject?.('Got disconnected during reconnection attempt');
+      this.reconnectFuture = undefined;
+    }
   };
 
   /**
