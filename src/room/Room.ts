@@ -18,6 +18,7 @@ import {
   Room as RoomModel,
   ServerInfo,
   SpeakerInfo,
+  SubscriptionError,
   TrackInfo,
   TrackSource,
   TrackType,
@@ -29,6 +30,7 @@ import {
   LeaveRequest,
   SimulateScenario,
   StreamStateUpdate,
+  SubscriptionResponse,
   SubscriptionPermissionUpdate,
   SyncState,
   UpdateSubscription,
@@ -210,6 +212,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     this.engine.client.onStreamStateUpdate = this.handleStreamStateUpdate;
     this.engine.client.onSubscriptionPermissionUpdate = this.handleSubscriptionPermissionUpdate;
     this.engine.client.onConnectionQuality = this.handleConnectionQualityUpdate;
+    this.engine.client.onSubscriptionError = this.handleSubscriptionError;
 
     this.engine
       .on(
@@ -1124,6 +1127,21 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     pub.setAllowed(update.allowed);
   };
 
+  private handleSubscriptionError = (update: SubscriptionResponse) => {
+    const participant = Array.from(this.participants.values()).find((p) =>
+      p.tracks.has(update.trackSid),
+    );
+    if (!participant) {
+      return;
+    }
+    const pub = participant.getTrackPublication(update.trackSid);
+    if (!pub) {
+      return;
+    }
+
+    pub.setSubscriptionError(update.err);
+  };
+
   private handleDataPacket = (userPacket: UserPacket, kind: DataPacket_Kind) => {
     // find the participant
     const participant = this.participants.get(userPacket.participantSid);
@@ -1289,6 +1307,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       )
       .on(ParticipantEvent.TrackSubscriptionStatusChanged, (pub, status) => {
         this.emitWhenConnected(RoomEvent.TrackSubscriptionStatusChanged, pub, status, participant);
+      })
+      .on(ParticipantEvent.TrackSubscriptionFailed, (trackSid, error) => {
+        this.emit(RoomEvent.TrackSubscriptionFailed, trackSid, participant, error);
       })
       .on(ParticipantEvent.TrackSubscriptionPermissionChanged, (pub, status) => {
         this.emitWhenConnected(
@@ -1620,7 +1641,11 @@ export type RoomEventCallbacks = {
     publication: RemoteTrackPublication,
     participant: RemoteParticipant,
   ) => void;
-  trackSubscriptionFailed: (trackSid: string, participant: RemoteParticipant) => void;
+  trackSubscriptionFailed: (
+    trackSid: string,
+    participant: RemoteParticipant,
+    reason?: SubscriptionError,
+  ) => void;
   trackUnpublished: (publication: RemoteTrackPublication, participant: RemoteParticipant) => void;
   trackUnsubscribed: (
     track: RemoteTrack,

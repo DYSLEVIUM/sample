@@ -272,7 +272,7 @@ export function isBackupCodec(codec: string): codec is BackupVideoCodec {
 /**
  * scalability modes for svc, only supprot l3t3 now.
  */
-export type ScalabilityMode = 'L3T3';
+export type ScalabilityMode = 'L3T3' | 'L3T3_KEY';
 
 export namespace AudioPresets {
   export const telephone: AudioPreset = {

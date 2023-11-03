@@ -632,7 +632,7 @@ export default class LocalParticipant extends Participant {
 
     // compute encodings and layers for video
     let encodings: RTCRtpEncodingParameters[] | undefined;
-    let simEncodings: RTCRtpEncodingParameters[] | undefined;
+    //let simEncodings: RTCRtpEncodingParameters[] | undefined;
     if (track.kind === Track.Kind.Video) {
       let dims: Track.Dimensions = {
         width: 0,
@@ -658,15 +658,15 @@ export default class LocalParticipant extends Participant {
       // for svc codecs, disable simulcast and use vp8 for backup codec
       if (track instanceof LocalVideoTrack) {
         if (opts?.videoCodec === 'av1') {
-          // set scalabilityMode to 'L3T3' by default
-          opts.scalabilityMode = opts.scalabilityMode ?? 'L3T3';
+          // set scalabilityMode to 'L3T3_KEY' by default
+          opts.scalabilityMode = opts.scalabilityMode ?? 'L3T3_KEY';
         }
 
         // set up backup
         if (opts.videoCodec && opts.backupCodec && opts.videoCodec !== opts.backupCodec.codec) {
           const simOpts = { ...opts };
           simOpts.simulcast = true;
-          simEncodings = computeTrackBackupEncodings(track, opts.backupCodec.codec, simOpts);
+           //simEncodings = computeTrackBackupEncodings(track, opts.backupCodec.codec, simOpts);
 
           req.simulcastCodecs = [
             
@@ -681,6 +681,18 @@ export default class LocalParticipant extends Participant {
               enableSimulcastLayers: true,
             }),
           ];
+        } else if (opts.videoCodec) {
+          // pass codec info to sfu so it can prefer codec for the client which don't support
+          // setCodecPreferences
+          req.simulcastCodecs = [ 
+            
+            new SimulcastCodec
+           ({
+              codec: opts.videoCodec,
+              cid: track.mediaStreamTrack.id,
+              enableSimulcastLayers: opts.simulcast ?? false,
+            }),
+          ];
         }
       }
 
@@ -690,7 +702,7 @@ export default class LocalParticipant extends Participant {
         dims.height,
         opts,
       );
-      req.layers = videoLayersFromEncodings(req.width, req.height, simEncodings ?? encodings);
+      req.layers = videoLayersFromEncodings(req.width, req.height, encodings);
     } else if (track.kind === Track.Kind.Audio) {
       encodings = [
         {
@@ -841,6 +853,16 @@ export default class LocalParticipant extends Participant {
     track.off(TrackEvent.UpstreamPaused, this.onTrackUpstreamPaused);
     track.off(TrackEvent.UpstreamResumed, this.onTrackUpstreamResumed);
 
+    const trackSender = track.sender;
+    track.sender = undefined;
+
+    // when pauseUpstream is used, the transceiver is stopped locally and will
+    // not be correctly removed, so we must mitigate it and replace it back to
+    // the original track, while keeping publisherMute to true
+    if (track.isUpstreamPaused && track.mediaStreamTrack && trackSender) {
+      await trackSender.replaceTrack(track.mediaStreamTrack);
+    }
+
     if (stopOnUnpublish === undefined) {
       stopOnUnpublish = this.roomOptions?.stopLocalTrackOnUnpublish ?? true;
     }
@@ -849,8 +871,7 @@ export default class LocalParticipant extends Participant {
     }
 
     let negotiationNeeded = false;
-    const trackSender = track.sender;
-    track.sender = undefined;
+    
     if (
       this.engine.publisher &&
       this.engine.publisher.pc.connectionState !== 'closed' &&

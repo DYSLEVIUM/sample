@@ -501,4 +501,9 @@ export enum TrackEvent {
    * Fires on RemoteTrackPublication
    */
   SubscriptionStatusChanged = 'subscriptionStatusChanged',
+
+  /**
+   * Fires on RemoteTrackPublication
+   */
+  SubscriptionFailed = 'subscriptionFailed',
 }
