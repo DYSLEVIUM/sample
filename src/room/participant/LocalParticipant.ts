@@ -684,16 +684,16 @@ export default class LocalParticipant extends Participant {
         opts,
       );
       req.layers = videoLayersFromEncodings(req.width, req.height, simEncodings ?? encodings);
-            if(encodings.length==1) //single layer encoding returned
-            { 
-            videoEncoding=determineAppropriateEncoding(track.source === Track.Source.ScreenShare,req.width, req.height, opts.videoCodec);
-              encodings = [
-                {maxBitrate:videoEncoding.maxBitrate,
-                  maxFramerate:videoEncoding.maxFramerate,
-                  active: true,
-                },
-              ];
-            }
+      if(encodings.length==1) { //single layer encoding returned 
+          videoEncoding=determineAppropriateEncoding(track.source === Track.Source.ScreenShare,req.width, req.height, opts.videoCodec);
+          encodings = [
+            {
+              maxBitrate:videoEncoding.maxBitrate,
+              maxFramerate:videoEncoding.maxFramerate,
+              active: true,
+            },
+          ];
+        }
     } else if (track.kind === Track.Kind.Audio && opts.audioBitrate) {
       encodings = [
         {
