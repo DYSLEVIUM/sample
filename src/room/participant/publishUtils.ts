@@ -105,7 +105,6 @@ export function computeVideoEncodings(
   if ((!videoEncoding && !useSimulcast && !scalabilityMode) || !width || !height) {
     // when we aren't simulcasting or svc, will need to return a single encoding 
     // we always require a encoding for dynacast
-    log.debug("SHAH1");
     return [{}];
     
   }
@@ -113,7 +112,6 @@ export function computeVideoEncodings(
   if (!videoEncoding) {
     // find the right encoding based on width/height
     videoEncoding = determineAppropriateEncoding(isScreenShare, width, height, videoCodec);
-    log.debug("SHAH2");
     log.debug('using video encoding', videoEncoding);
   }
 
@@ -143,7 +141,6 @@ export function computeVideoEncodings(
             scalabilityMode: 'L3T3',
           });
         }
-        log.debug("SHAH3");
         log.debug('encodings', encodings);
         return encodings;
 
@@ -154,7 +151,6 @@ export function computeVideoEncodings(
   }
 
   if (!useSimulcast) {
-    log.debug("SHAH4");
     return [videoEncoding];
   }
 
@@ -185,17 +181,13 @@ export function computeVideoEncodings(
     //      based on other conditions.
     const size = Math.max(width, height);
     if (size >= 960 && midPreset) {
-      log.debug("SHAH5");
-      log.debug("SHAH7",encodingsFromPresets(width, height, [lowPreset, midPreset, original]))
       return encodingsFromPresets(width, height, [lowPreset, midPreset, original]);
      
     }
     if (size >= 480) {
-      log.debug("SHAH6");
       return encodingsFromPresets(width, height, [lowPreset, original]);
     }
   }
-  log.debug("SHAH7");
   return encodingsFromPresets(width, height, [original]);
 }
 
@@ -321,7 +313,6 @@ function encodingsFromPresets(
       maxFramerate: preset.encoding.maxFramerate,
     });
   });
-  log.debug('SHAH6 using video encoding from presets', encodings);
   return encodings;
 }
 
