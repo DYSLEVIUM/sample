@@ -138,6 +138,8 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
   private shouldFailNext: boolean = false;
 
+  private firstReconnectAttempt: boolean = true;
+
   constructor(private options: InternalRoomOptions) {
     super();
     this.client = new SignalClient();
@@ -288,6 +290,12 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     return getConnectedAddress(this.primaryPC);
   }
 
+  private disconnectStartTimePrimary: number = 0;
+
+  private disconnectStartTimeSecondary: number = 0;
+
+  private numberOfTimeSet: number = 0;
+
   private configure(joinResponse: JoinResponse) {
     // already configured
     if (this.publisher || this.subscriber) {
@@ -360,6 +368,29 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
             ? ReconnectReason.RR_PUBLISHER_FAILED
             : ReconnectReason.RR_SUBSCRIBER_FAILED,
         );
+      }
+    };
+
+    primaryPC.oniceconnectionstatechange = (ev) => {
+      console.log(`Publisher event: `, ev);
+      if (primaryPC.iceConnectionState == 'disconnected' && this.firstReconnectAttempt) {
+        this.firstReconnectAttempt = false
+        this.numberOfTimeSet += 1
+        this.disconnectStartTimePrimary = Date.now();
+      }
+      if( primaryPC.iceConnectionState == 'connected' ){
+        this.firstReconnectAttempt = true
+      }
+    };
+
+    secondaryPC.oniceconnectionstatechange = (ev) => {
+      console.log(`Subscriber event: `, ev);
+      if (secondaryPC.iceConnectionState == 'disconnected' && this.firstReconnectAttempt) {
+        this.firstReconnectAttempt = false
+        this.disconnectStartTimeSecondary = Date.now();
+      }
+      if( secondaryPC.iceConnectionState == 'connected' ){
+        this.firstReconnectAttempt = true
       }
     };
 
@@ -849,11 +880,21 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       throw new Error('simulated failure');
     }
 
+    // the below line ensures that both Primary and Secondary PCs connections are established before moving ahead.
     await this.waitForPCConnected();
     this.client.setReconnected();
 
     // reconnect success
     this.emit(EngineEvent.Restarted, joinResponse);
+    let rightNow = Date.now()
+    if(this.disconnectStartTimePrimary == 0){
+      this.disconnectStartTimePrimary = rightNow
+    }
+    if(this.disconnectStartTimeSecondary == 0){
+      this.disconnectStartTimeSecondary = rightNow
+    }
+    this.emit(EngineEvent.PrimaryDelay, rightNow - this.disconnectStartTimePrimary);
+    this.emit(EngineEvent.SecondaryDelay, rightNow - this.disconnectStartTimeSecondary);
   }
 
   private async resumeConnection(reason?: ReconnectReason): Promise<void> {
@@ -867,6 +908,10 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     }
 
     log.info(`resuming signal connection, attempt ${this.reconnectAttempts}`);
+    if(this.firstReconnectAttempt){
+      this.firstReconnectAttempt = false
+      this.disconnectStartTimePrimary = this.disconnectStartTimeSecondary = Date.now()
+    }
     this.emit(EngineEvent.Resuming);
 
     try {
@@ -894,6 +939,9 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
     // only restart publisher if it's needed
     if (this.hasPublished) {
+      if(this.publisher.pc.iceConnectionState != 'disconnected'){
+        this.numberOfTimeSet += 1
+      }
       await this.publisher.createAndSendOffer({ iceRestart: true });
     }
 
@@ -927,6 +975,16 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
         now - startTime > minReconnectWait &&
         this.primaryPC?.connectionState === 'connected'
       ) {
+        let rightNow = Date.now()
+        if(this.disconnectStartTimePrimary == 0){
+          this.disconnectStartTimePrimary = rightNow
+        }
+        if(this.disconnectStartTimeSecondary == 0){
+          this.disconnectStartTimeSecondary = rightNow
+        }
+        this.emit(EngineEvent.PrimaryDelay, rightNow - this.disconnectStartTimePrimary);
+        this.emit(EngineEvent.SecondaryDelay, rightNow - this.disconnectStartTimeSecondary);
+        this.firstReconnectAttempt = true
         this.pcState = PCState.Connected;
       }
       if (this.pcState === PCState.Connected) {
@@ -1159,4 +1217,6 @@ export type EngineEventCallbacks = {
   activeSpeakersUpdate: (speakers: Array<SpeakerInfo>) => void;
   dataPacketReceived: (userPacket: UserPacket, kind: DataPacket_Kind) => void;
   transportsCreated: (publisher: PCTransport, subscriber: PCTransport) => void;
+  primaryDelay: (delay: number) => void;
+  secondaryDelay: (delay: number) => void;
 };
