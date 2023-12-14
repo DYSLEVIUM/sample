@@ -5,12 +5,12 @@ import { audioDefaults, videoDefaults } from '../defaults';
 import LocalAudioTrack from './LocalAudioTrack';
 import type LocalTrack from './LocalTrack';
 import LocalVideoTrack from './LocalVideoTrack';
-import {
+import { VideoPresets } from './options';
+import type {
   AudioCaptureOptions,
   CreateLocalTracksOptions,
   ScreenShareCaptureOptions,
   VideoCaptureOptions,
-  VideoPresets,
 } from './options';
 import { Track } from './Track';
 import { constraintsForOptions, mergeDefaultOptions } from './utils';

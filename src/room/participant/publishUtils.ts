@@ -2,15 +2,12 @@ import log from '../../logger';
 import { TrackInvalidError } from '../errors';
 import LocalAudioTrack from '../track/LocalAudioTrack';
 import LocalVideoTrack from '../track/LocalVideoTrack';
-import {
+import { ScreenSharePresets, VideoPreset, VideoPresets, VideoPresets43 } from '../track/options';
+import type {
   BackupVideoCodec,
-  ScreenSharePresets,
   TrackPublishOptions,
   VideoCodec,
   VideoEncoding,
-  VideoPreset,
-  VideoPresets,
-  VideoPresets43,
 } from '../track/options';
 import { Track } from '../track/Track';
 
@@ -60,6 +57,7 @@ export const computeDefaultScreenShareSimulcastPresets = (fromPreset: VideoPrese
           ),
         ),
         t.fps,
+        fromPreset.encoding.priority,
       ),
   );
 };
@@ -130,20 +128,17 @@ export function computeVideoEncodings(
     // svc use first encoding as the original, so we sort encoding from high to low
     switch (scalabilityMode) {
       case 'L3T3':
-        for (let i = 0; i < 3; i += 1) {
-          encodings.push({
-            rid: videoRids[2 - i],
-            scaleResolutionDownBy: 2 ** i,
-            maxBitrate: videoEncoding.maxBitrate / 3 ** i,
-            /* @ts-ignore */
-            maxFramerate: original.encoding.maxFramerate,
-            /* @ts-ignore */
-            scalabilityMode: 'L3T3',
-          });
-        }
+      case 'L3T3_KEY':
+        encodings.push({
+          rid: videoRids[2],
+          maxBitrate: videoEncoding.maxBitrate,
+          /* @ts-ignore */
+          maxFramerate: original.encoding.maxFramerate,
+          /* @ts-ignore */
+          scalabilityMode: scalabilityMode,
+        });
         log.debug('encodings', encodings);
         return encodings;
-
       default:
         // TODO : support other scalability modes
         throw new Error(`unsupported scalabilityMode: ${scalabilityMode}`);
@@ -305,13 +300,19 @@ function encodingsFromPresets(
     }
     const size = Math.min(width, height);
     const rid = videoRids[idx];
-    encodings.push({
+    const encoding: RTCRtpEncodingParameters = {
       rid,
       scaleResolutionDownBy: Math.max(1, size / Math.min(preset.width, preset.height)),
       maxBitrate: preset.encoding.maxBitrate,
-      /* @ts-ignore */
-      maxFramerate: preset.encoding.maxFramerate,
-    });
+    };
+    if (preset.encoding.maxFramerate) {
+      encoding.maxFramerate = preset.encoding.maxFramerate;
+    }
+    if (preset.encoding.priority) {
+      encoding.priority = preset.encoding.priority;
+      encoding.networkPriority = preset.encoding.priority;
+    }
+    encodings.push(encoding);
   });
   return encodings;
 }
@@ -332,4 +333,34 @@ export function sortPresets(presets: Array<VideoPreset> | undefined) {
     }
     return 0;
   });
+}
+/** @internal */
+export class ScalabilityMode {
+  spatial: number;
+
+  temporal: number;
+
+  suffix: undefined | 'h' | '_KEY' | '_KEY_SHIFT';
+
+  constructor(scalabilityMode: string) {
+    const results = scalabilityMode.match(/^L(\d)T(\d)(h|_KEY|_KEY_SHIFT){0,1}$/);
+    if (!results) {
+      throw new Error('invalid scalability mode');
+    }
+
+    this.spatial = parseInt(results[1]);
+    this.temporal = parseInt(results[2]);
+    if (results.length > 3) {
+      switch (results[3]) {
+        case 'h':
+        case '_KEY':
+        case '_KEY_SHIFT':
+          this.suffix = results[3];
+      }
+    }
+  }
+
+  toString(): string {
+    return `L${this.spatial}T${this.temporal}${this.suffix ?? ''}`;
+  }
 }

@@ -22,6 +22,7 @@ import {
   SignalResponse,
   SignalTarget,
   SimulateScenario,
+  SubscriptionResponse,
   StreamStateUpdate,
   SubscribedQualityUpdate,
   SubscriptionPermission,
@@ -137,6 +138,8 @@ export class SignalClient {
 
   onSubscriptionPermissionUpdate?: (update: SubscriptionPermissionUpdate) => void;
 
+  onSubscriptionError?: (update: SubscriptionResponse) => void;
+
   onLocalTrackUnpublished?: (res: TrackUnpublishedResponse) => void;
 
   onTokenRefresh?: (token: string) => void;
@@ -224,8 +227,8 @@ export class SignalClient {
 
     return new Promise<JoinResponse | ReconnectResponse | void>(async (resolve, reject) => {
       const abortHandler = async () => {
-        await this.close();
-        reject(new ConnectionError('room connection has been cancelled'));
+         this.close();
+        reject(new ConnectionError('room connection has been cancelled (signal)'));
       };
 
       if (abortSignal?.aborted) {
@@ -243,7 +246,7 @@ export class SignalClient {
         if (!this.isConnected) {
           try {
             const resp = await fetch(`http${url.substring(2)}/validate${params}`);
-            if (!resp.ok) {
+            if (resp.status.toFixed(0).startsWith('4')) {
               const msg = await resp.text();
               reject(new ConnectionError(msg, ConnectionErrorReason.NotAllowed, resp.status));
             } else {
@@ -330,14 +333,8 @@ export class SignalClient {
       };
 
       this.ws.onclose = (ev: CloseEvent) => {
-        if (!this.isConnected) return;
-
-        log.debug(`websocket connection closed: ${ev.reason}`);
-        this.isConnected = false;
-        if (this.onClose) {
-          this.onClose(ev.reason);
-        }
-        this.ws = undefined;
+        log.warn(`websocket closed`, { ev });
+        this.handleOnClose(ev.reason);
       };
     });
   }
@@ -360,12 +357,14 @@ export class SignalClient {
           }
         });
 
-        this.ws.close();
-        // 250ms grace period for ws to close gracefully
-        await Promise.race([closePromise, sleep(250)]);
+        if (this.ws.readyState < this.ws.CLOSING) {
+          this.ws.close();
+          // 250ms grace period for ws to close gracefully
+          await Promise.race([closePromise, sleep(250)]);
+        }
+        this.ws = undefined;
+        this.clearPingInterval();
       }
-      this.ws = undefined;
-      this.clearPingInterval();
     } finally {
       unlock();
     }
@@ -634,6 +633,10 @@ export class SignalClient {
       if (this.onLocalTrackUnpublished) {
         this.onLocalTrackUnpublished(msg.value);
       }
+    } else if (msg.case === 'subscriptionResponse') {
+      if (this.onSubscriptionError) {
+        this.onSubscriptionError(msg.value);
+      }
     } else if (msg.case === 'pong') {
       this.resetPingTimeout();
     } else if (msg.case === 'pongResp') {
@@ -652,6 +655,15 @@ export class SignalClient {
       }
     }
     this.isReconnecting = false;
+  }
+
+  private async handleOnClose(reason: string) {
+    if (!this.isConnected) return;
+    await this.close();
+    log.debug(`websocket connection closed: ${reason}`);
+    if (this.onClose) {
+      this.onClose(reason);
+    }
   }
 
   private handleWSError(ev: Event) {
@@ -674,9 +686,7 @@ export class SignalClient {
           Date.now() - this.pingTimeoutDuration! * 1000,
         ).toUTCString()}`,
       );
-      if (this.onClose) {
-        this.onClose('ping timeout');
-      }
+      this.handleOnClose('ping timeout');
     }, this.pingTimeoutDuration * 1000);
   }
 
