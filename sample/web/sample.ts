@@ -182,6 +182,8 @@ const appActions = {
           appendLog(`tracks published in ${Date.now() - startTime}ms`);
           updateButtonsForPublishState();
         }
+      }).on(RoomEvent.ReconnectICEDelay , (delay : number)  => {
+          appendLog(`@ICE connection delay: ${delay} seconds`)
       });
 
     try {

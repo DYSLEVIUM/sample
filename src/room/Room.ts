@@ -173,6 +173,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       return;
     }
 
+    // let iceDelay = Number.MAX_VALUE
+    let iceDelay = 0
+
     this.engine = new RTCEngine(this.options);
 
     this.engine.client.onParticipantUpdate = this.handleParticipantUpdates;
@@ -210,7 +213,15 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }
       })
       .on(EngineEvent.Restarting, this.handleRestarting)
-      .on(EngineEvent.Restarted, this.handleRestarted);
+      .on(EngineEvent.Restarted, this.handleRestarted)
+      .on(EngineEvent.PrimaryDelay, (delay: number) => {
+        iceDelay = Math.max(iceDelay , delay)
+      })
+      .on(EngineEvent.SecondaryDelay, (delay: number) => {
+        iceDelay = Math.max(iceDelay , delay)
+        this.emit(RoomEvent.ReconnectICEDelay , iceDelay / 1000)
+        iceDelay = 0
+      });
 
     if (this.localParticipant) {
       this.localParticipant.setupEngine(this.engine);
@@ -1535,4 +1546,7 @@ export type RoomEventCallbacks = {
   audioPlaybackChanged: (playing: boolean) => void;
   signalConnected: () => void;
   recordingStatusChanged: (recording: boolean) => void;
+  reconnectPrimaryDelay: (delay: number) => void;
+  reconnectSecondaryDelay: (delay: number) => void;
+  reconnectICEDelay: (delay: number) => void;
 };

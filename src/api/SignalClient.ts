@@ -419,7 +419,7 @@ export class SignalClient {
     });
   }
 
-sendUpdateLocalMetadata(metadata: string, name: string) {
+  sendUpdateLocalMetadata(metadata: string, name: string) {
       this.sendRequest({
       case: 'updateMetadata',
       value: new UpdateParticipantMetadata({
@@ -428,6 +428,7 @@ sendUpdateLocalMetadata(metadata: string, name: string) {
       }),
     });
   }
+
   sendUpdateTrackSettings(settings: UpdateTrackSettings) {
     log.debug('sending Update Track setting req to server', settings);
     return this.sendRequest({
