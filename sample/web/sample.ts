@@ -183,7 +183,7 @@ const appActions = {
           updateButtonsForPublishState();
         }
       }).on(RoomEvent.ReconnectICEDelay , (delay : number)  => {
-          appendLog(`@bhuwan ICE connection delay: ${delay} seconds`)
+          appendLog(`@ICE connection delay: ${delay} seconds`)
       });
 
     try {
