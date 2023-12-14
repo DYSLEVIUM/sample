@@ -272,6 +272,9 @@ export enum RoomEvent {
    * args: (isRecording: boolean)
    */
   RecordingStatusChanged = 'recordingStatusChanged',
+  ReconnectPrimaryDelay = 'reconnectPrimaryDelay',
+  ReconnectSecondaryDelay = 'reconnectSecondaryDelay',
+  ReconnectICEDelay = 'reconnectICEDelay'
 }
 
 export enum ParticipantEvent {
@@ -448,6 +451,8 @@ export enum EngineEvent {
   MediaTrackAdded = 'mediaTrackAdded',
   ActiveSpeakersUpdate = 'activeSpeakersUpdate',
   DataPacketReceived = 'dataPacketReceived',
+  PrimaryDelay = 'primaryDelay',
+  SecondaryDelay = 'secondaryDelay',
 }
 
 export enum TrackEvent {

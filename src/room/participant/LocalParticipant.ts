@@ -28,7 +28,7 @@ import {
 
   TrackPublishOptions,
   VideoCaptureOptions,
-  
+  VideoEncoding,
 } from '../track/options';
 import { constraintsForOptions, mergeDefaultOptions } from '../track/utils';
 import type { DataPublishOptions } from '../types';
@@ -41,6 +41,7 @@ import {
   computeTrackBackupEncodings,
   computeVideoEncodings,
   mediaTrackToLocalTrack,
+  determineAppropriateEncoding,
 } from './publishUtils';
 
 export default class LocalParticipant extends Participant {
@@ -635,7 +636,8 @@ export default class LocalParticipant extends Participant {
 
     // compute encodings and layers for video
     let encodings: RTCRtpEncodingParameters[] | undefined;
-    //let simEncodings: RTCRtpEncodingParameters[] | undefined;
+    let simEncodings: RTCRtpEncodingParameters[] | undefined;
+    let videoEncoding: VideoEncoding;
     if (track.kind === Track.Kind.Video) {
       let dims: Track.Dimensions = {
         width: 0,
@@ -669,7 +671,7 @@ export default class LocalParticipant extends Participant {
         if (opts.videoCodec && opts.backupCodec && opts.videoCodec !== opts.backupCodec.codec) {
           const simOpts = { ...opts };
           simOpts.simulcast = true;
-           //simEncodings = computeTrackBackupEncodings(track, opts.backupCodec.codec, simOpts);
+          simEncodings = computeTrackBackupEncodings(track, opts.backupCodec.codec, simOpts);
 
           req.simulcastCodecs = [
             
@@ -705,8 +707,18 @@ export default class LocalParticipant extends Participant {
         dims.height,
         opts,
       );
-      req.layers = videoLayersFromEncodings(req.width, req.height, encodings);
-    } else if (track.kind === Track.Kind.Audio) {
+      req.layers = videoLayersFromEncodings(req.width, req.height, simEncodings ?? encodings);
+      if(encodings.length==1) { //single layer encoding returned 
+          videoEncoding=determineAppropriateEncoding(track.source === Track.Source.ScreenShare,req.width, req.height, opts.videoCodec);
+          encodings = [
+            {
+              maxBitrate:videoEncoding.maxBitrate,
+              maxFramerate:videoEncoding.maxFramerate,
+              active: true,
+            },
+          ];
+        }
+    } else if (track.kind === Track.Kind.Audio ) {
       encodings = [
         {
           maxBitrate: opts.audioPreset?.maxBitrate ?? opts.audioBitrate,
@@ -715,7 +727,7 @@ export default class LocalParticipant extends Participant {
         },
       ];
     }
-
+    
     if (!this.engine || this.engine.isClosed) {
       throw new UnexpectedConnectionState('cannot publish track when not connected');
     }

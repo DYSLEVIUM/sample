@@ -101,9 +101,10 @@ export function computeVideoEncodings(
   const videoCodec = options?.videoCodec;
 
   if ((!videoEncoding && !useSimulcast && !scalabilityMode) || !width || !height) {
-    // when we aren't simulcasting or svc, will need to return a single encoding without
-    // capping bandwidth. we always require a encoding for dynacast
+    // when we aren't simulcasting or svc, will need to return a single encoding 
+    // we always require a encoding for dynacast
     return [{}];
+    
   }
 
   if (!videoEncoding) {
@@ -176,6 +177,7 @@ export function computeVideoEncodings(
     const size = Math.max(width, height);
     if (size >= 960 && midPreset) {
       return encodingsFromPresets(width, height, [lowPreset, midPreset, original]);
+     
     }
     if (size >= 480) {
       return encodingsFromPresets(width, height, [lowPreset, original]);
