@@ -5,7 +5,6 @@ import {
   ConnectionQuality as ProtoQuality,
   DataPacket_Kind,
   ParticipantInfo,
-  SubscriptionError,
   ParticipantPermission,
 } from '../../proto/livekit_models_pb';
 import { ParticipantEvent, TrackEvent } from '../events';
@@ -145,20 +144,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo): boolean {
-    // it's possible the update could be applied out of order due to await
-    // during reconnect sequences. when that happens, it's possible for server
-    // to have sent more recent version of participant info while JS is waiting
-    // to process the existing payload.
-    // when the participant sid remains the same, and we already have a later version
-    // of the payload, they can be safely skipped
-    if (
-      this.participantInfo &&
-      this.participantInfo.sid === info.sid &&
-      this.participantInfo.version > info.version
-    ) {
-      return false;
-    }
+  updateInfo(info: ParticipantInfo) {
     this.identity = info.identity;
     this.sid = info.sid;
     this.setName(info.name);
@@ -169,7 +155,6 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     // set this last so setMetadata can detect changes
     this.participantInfo = info;
     log.trace('update participant info', { info });
-    return true;
   }
 
   /** @internal */
@@ -266,7 +251,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
 export type ParticipantEventCallbacks = {
   trackPublished: (publication: RemoteTrackPublication) => void;
   trackSubscribed: (track: RemoteTrack, publication: RemoteTrackPublication) => void;
-  trackSubscriptionFailed: (trackSid: string, reason?: SubscriptionError) => void;
+  trackSubscriptionFailed: (trackSid: string) => void;
   trackUnpublished: (publication: RemoteTrackPublication) => void;
   trackUnsubscribed: (track: RemoteTrack, publication: RemoteTrackPublication) => void;
   trackMuted: (publication: TrackPublication) => void;

@@ -3,13 +3,12 @@ import {
   ParticipantTracks,
   TrackInfo,
   VideoQuality,
-  SubscriptionError,
 } from '../../proto/livekit_models_pb';
 import { UpdateSubscription, UpdateTrackSettings } from '../../proto/livekit_rtc_pb';
 import { TrackEvent } from '../events';
 import type RemoteTrack from './RemoteTrack';
 import RemoteVideoTrack from './RemoteVideoTrack';
-import { Track } from './Track';
+import type { Track } from './Track';
 import { TrackPublication } from './TrackPublication';
 
 export default class RemoteTrackPublication extends TrackPublication {
@@ -28,8 +27,6 @@ export default class RemoteTrackPublication extends TrackPublication {
   protected videoDimensions?: Track.Dimensions;
 
   protected fps?: number;
-
-  protected subscriptionError?: SubscriptionError;
 
   constructor(kind: Track.Kind, ti: TrackInfo, autoSubscribe: boolean | undefined) {
     super(kind, ti.sid, ti.name);
@@ -203,11 +200,6 @@ export default class RemoteTrackPublication extends TrackPublication {
     this.emitSubscriptionUpdateIfChanged(prevStatus);
   }
 
-    /** @internal */
-    setSubscriptionError(error: SubscriptionError) {
-      this.emit(TrackEvent.SubscriptionFailed, error);
-    }
-    
   /** @internal */
   setAllowed(allowed: boolean) {
     const prevStatus = this.subscriptionStatus;
@@ -251,8 +243,8 @@ export default class RemoteTrackPublication extends TrackPublication {
   }
 
   private isManualOperationAllowed(): boolean {
-    if (this.kind === Track.Kind.Video && this.isAdaptiveStream) {
-      log.warn('adaptive stream is enabled, cannot change video track settings', {
+    if (this.isAdaptiveStream) {
+      log.warn('adaptive stream is enabled, cannot change track settings', {
         trackSid: this.trackSid,
       });
       return false;

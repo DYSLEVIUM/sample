@@ -48,6 +48,7 @@ export {
   supportsDynacast,
   supportsAV1,
   createAudioAnalyser,
+  AudioAnalyserOptions,
   LogLevel,
   Room,
   ConnectionState,
@@ -65,17 +66,11 @@ export {
   RemoteAudioTrack,
   RemoteVideoTrack,
   RemoteTrackPublication,
+  ParticipantTrackPermission,
   TrackPublication,
   VideoQuality,
-  ConnectionQuality, 
+  ConnectionQuality,
+  ElementInfo,
   DefaultReconnectPolicy,
   CriticalTimers,
-};
-
-
-
-export type {
-  ElementInfo,
-  ParticipantTrackPermission,
-  AudioAnalyserOptions
 };
