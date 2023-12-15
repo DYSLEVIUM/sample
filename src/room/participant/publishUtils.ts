@@ -2,12 +2,15 @@ import log from '../../logger';
 import { TrackInvalidError } from '../errors';
 import LocalAudioTrack from '../track/LocalAudioTrack';
 import LocalVideoTrack from '../track/LocalVideoTrack';
-import { ScreenSharePresets, VideoPreset, VideoPresets, VideoPresets43 } from '../track/options';
-import type {
+import {
   BackupVideoCodec,
+  ScreenSharePresets,
   TrackPublishOptions,
   VideoCodec,
   VideoEncoding,
+  VideoPreset,
+  VideoPresets,
+  VideoPresets43,
 } from '../track/options';
 import { Track } from '../track/Track';
 
@@ -57,7 +60,6 @@ export const computeDefaultScreenShareSimulcastPresets = (fromPreset: VideoPrese
           ),
         ),
         t.fps,
-        fromPreset.encoding.priority,
       ),
   );
 };
@@ -101,10 +103,9 @@ export function computeVideoEncodings(
   const videoCodec = options?.videoCodec;
 
   if ((!videoEncoding && !useSimulcast && !scalabilityMode) || !width || !height) {
-    // when we aren't simulcasting or svc, will need to return a single encoding 
-    // we always require a encoding for dynacast
+    // when we aren't simulcasting or svc, will need to return a single encoding without
+    // capping bandwidth. we always require a encoding for dynacast
     return [{}];
-    
   }
 
   if (!videoEncoding) {
@@ -128,17 +129,20 @@ export function computeVideoEncodings(
     // svc use first encoding as the original, so we sort encoding from high to low
     switch (scalabilityMode) {
       case 'L3T3':
-      case 'L3T3_KEY':
-        encodings.push({
-          rid: videoRids[2],
-          maxBitrate: videoEncoding.maxBitrate,
-          /* @ts-ignore */
-          maxFramerate: original.encoding.maxFramerate,
-          /* @ts-ignore */
-          scalabilityMode: scalabilityMode,
-        });
+        for (let i = 0; i < 3; i += 1) {
+          encodings.push({
+            rid: videoRids[2 - i],
+            scaleResolutionDownBy: 2 ** i,
+            maxBitrate: videoEncoding.maxBitrate / 3 ** i,
+            /* @ts-ignore */
+            maxFramerate: original.encoding.maxFramerate,
+            /* @ts-ignore */
+            scalabilityMode: 'L3T3',
+          });
+        }
         log.debug('encodings', encodings);
         return encodings;
+
       default:
         // TODO : support other scalability modes
         throw new Error(`unsupported scalabilityMode: ${scalabilityMode}`);
@@ -177,7 +181,6 @@ export function computeVideoEncodings(
     const size = Math.max(width, height);
     if (size >= 960 && midPreset) {
       return encodingsFromPresets(width, height, [lowPreset, midPreset, original]);
-     
     }
     if (size >= 480) {
       return encodingsFromPresets(width, height, [lowPreset, original]);
@@ -300,19 +303,13 @@ function encodingsFromPresets(
     }
     const size = Math.min(width, height);
     const rid = videoRids[idx];
-    const encoding: RTCRtpEncodingParameters = {
+    encodings.push({
       rid,
       scaleResolutionDownBy: Math.max(1, size / Math.min(preset.width, preset.height)),
       maxBitrate: preset.encoding.maxBitrate,
-    };
-    if (preset.encoding.maxFramerate) {
-      encoding.maxFramerate = preset.encoding.maxFramerate;
-    }
-    if (preset.encoding.priority) {
-      encoding.priority = preset.encoding.priority;
-      encoding.networkPriority = preset.encoding.priority;
-    }
-    encodings.push(encoding);
+      /* @ts-ignore */
+      maxFramerate: preset.encoding.maxFramerate,
+    });
   });
   return encodings;
 }
@@ -333,34 +330,4 @@ export function sortPresets(presets: Array<VideoPreset> | undefined) {
     }
     return 0;
   });
-}
-/** @internal */
-export class ScalabilityMode {
-  spatial: number;
-
-  temporal: number;
-
-  suffix: undefined | 'h' | '_KEY' | '_KEY_SHIFT';
-
-  constructor(scalabilityMode: string) {
-    const results = scalabilityMode.match(/^L(\d)T(\d)(h|_KEY|_KEY_SHIFT){0,1}$/);
-    if (!results) {
-      throw new Error('invalid scalability mode');
-    }
-
-    this.spatial = parseInt(results[1]);
-    this.temporal = parseInt(results[2]);
-    if (results.length > 3) {
-      switch (results[3]) {
-        case 'h':
-        case '_KEY':
-        case '_KEY_SHIFT':
-          this.suffix = results[3];
-      }
-    }
-  }
-
-  toString(): string {
-    return `L${this.spatial}T${this.temporal}${this.suffix ?? ''}`;
-  }
 }

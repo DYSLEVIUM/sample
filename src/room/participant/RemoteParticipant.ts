@@ -1,6 +1,6 @@
 import type { SignalClient } from '../../api/SignalClient';
 import log from '../../logger';
-import type { ParticipantInfo,SubscriptionError} from '../../proto/livekit_models_pb';
+import type { ParticipantInfo } from '../../proto/livekit_models_pb';
 import type { UpdateSubscription, UpdateTrackSettings } from '../../proto/livekit_rtc_pb';
 import { ParticipantEvent, TrackEvent } from '../events';
 import type { AudioOutputOptions } from '../track/options';
@@ -11,8 +11,7 @@ import RemoteVideoTrack from '../track/RemoteVideoTrack';
 import { Track } from '../track/Track';
 import type { TrackPublication } from '../track/TrackPublication';
 import type { AdaptiveStreamSettings } from '../track/types';
-import Participant from './Participant';
-import type { ParticipantEventCallbacks } from './Participant';
+import Participant, { ParticipantEventCallbacks } from './Participant';
 
 export default class RemoteParticipant extends Participant {
   audioTracks: Map<string, RemoteTrackPublication>;
@@ -80,9 +79,6 @@ export default class RemoteParticipant extends Participant {
     });
     publication.on(TrackEvent.Unsubscribed, (previousTrack: RemoteTrack) => {
       this.emit(ParticipantEvent.TrackUnsubscribed, previousTrack, publication);
-    });
-    publication.on(TrackEvent.SubscriptionFailed, (error: SubscriptionError) => {
-      this.emit(ParticipantEvent.TrackSubscriptionFailed, publication.trackSid, error);
     });
   }
 
@@ -219,10 +215,8 @@ export default class RemoteParticipant extends Participant {
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo): boolean {
-    if (!super.updateInfo(info)) {
-      return false;
-    }
+  updateInfo(info: ParticipantInfo) {
+    super.updateInfo(info);
 
     // we are getting a list of all available tracks, reconcile in here
     // and send out events for changes
@@ -283,7 +277,6 @@ export default class RemoteParticipant extends Participant {
     newTracks.forEach((publication) => {
       this.emit(ParticipantEvent.TrackPublished, publication);
     });
-    return true;
   }
 
   /** @internal */
@@ -293,14 +286,6 @@ export default class RemoteParticipant extends Participant {
       return;
     }
 
-       // also send unsubscribe, if track is actively subscribed
-       const { track } = publication;
-       if (track) {
-         track.stop();
-         publication.setTrack(undefined);
-       }
-   
-       // remove track from maps only after unsubscribed has been fired
     this.tracks.delete(sid);
 
     // remove from the right type map
@@ -315,6 +300,12 @@ export default class RemoteParticipant extends Participant {
         break;
     }
 
+    // also send unsubscribe, if track is actively subscribed
+    const { track } = publication;
+    if (track) {
+      track.stop();
+      publication.setTrack(undefined);
+    }
     if (sendUnpublish) {
       this.emit(ParticipantEvent.TrackUnpublished, publication);
     }

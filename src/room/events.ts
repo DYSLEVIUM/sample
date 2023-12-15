@@ -272,9 +272,6 @@ export enum RoomEvent {
    * args: (isRecording: boolean)
    */
   RecordingStatusChanged = 'recordingStatusChanged',
-  ReconnectPrimaryDelay = 'reconnectPrimaryDelay',
-  ReconnectSecondaryDelay = 'reconnectSecondaryDelay',
-  ReconnectICEDelay = 'reconnectICEDelay'
 }
 
 export enum ParticipantEvent {
@@ -446,13 +443,10 @@ export enum EngineEvent {
   Restarting = 'restarting',
   Restarted = 'restarted',
   SignalResumed = 'signalResumed',
-  SignalRestarted = 'signalRestarted',
   Closing = 'closing',
   MediaTrackAdded = 'mediaTrackAdded',
   ActiveSpeakersUpdate = 'activeSpeakersUpdate',
   DataPacketReceived = 'dataPacketReceived',
-  PrimaryDelay = 'primaryDelay',
-  SecondaryDelay = 'secondaryDelay',
 }
 
 export enum TrackEvent {
@@ -506,9 +500,4 @@ export enum TrackEvent {
    * Fires on RemoteTrackPublication
    */
   SubscriptionStatusChanged = 'subscriptionStatusChanged',
-
-  /**
-   * Fires on RemoteTrackPublication
-   */
-  SubscriptionFailed = 'subscriptionFailed',
 }

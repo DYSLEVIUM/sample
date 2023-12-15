@@ -23,17 +23,9 @@ export interface TrackPublishDefaults {
   videoCodec?: VideoCodec;
 
   /**
-  * max audio bitrate, defaults to [[AudioPresets.music]]
-  * @deprecated use `audioPreset` instead
-  */
-  audioBitrate?: number;
-
-    /**
-   * which audio preset should be used for publishing (audio) tracks
-   * defaults to [[AudioPresets.music]]
+   * max audio bitrate, defaults to [[AudioPresets.speech]]
    */
-    audioPreset?: AudioPreset;
-
+  audioBitrate?: number;
 
   /**
    * dtx (Discontinuous Transmission of audio), enabled by default for mono tracks.
@@ -217,7 +209,6 @@ export interface VideoResolution {
 export interface VideoEncoding {
   maxBitrate: number;
   maxFramerate?: number;
-  priority?: RTCPriorityType;
 }
 
 export class VideoPreset {
@@ -227,19 +218,12 @@ export class VideoPreset {
 
   height: number;
 
-  constructor(
-    width: number,
-    height: number,
-    maxBitrate: number,
-    maxFramerate?: number,
-    priority?: RTCPriorityType,
-  ) {
+  constructor(width: number, height: number, maxBitrate: number, maxFramerate?: number) {
     this.width = width;
     this.height = height;
     this.encoding = {
       maxBitrate,
       maxFramerate,
-      priority,
     };
   }
 
@@ -255,7 +239,6 @@ export class VideoPreset {
 
 export interface AudioPreset {
   maxBitrate: number;
-  priority?: RTCPriorityType;
 }
 
 const codecs = ['vp8', 'h264', 'av1'] as const;
@@ -272,7 +255,7 @@ export function isBackupCodec(codec: string): codec is BackupVideoCodec {
 /**
  * scalability modes for svc, only supprot l3t3 now.
  */
-export type ScalabilityMode = 'L3T3' | 'L3T3_KEY';
+export type ScalabilityMode = 'L3T3';
 
 export namespace AudioPresets {
   export const telephone: AudioPreset = {
@@ -326,9 +309,9 @@ export const VideoPresets43 = {
 } as const;
 
 export const ScreenSharePresets = {
-  h360fps3: new VideoPreset(640, 360, 200_000, 3, 'medium'),
-  h720fps5: new VideoPreset(1280, 720, 400_000, 5, 'medium'),
-  h720fps15: new VideoPreset(1280, 720, 1_000_000, 15, 'medium'),
-  h1080fps15: new VideoPreset(1920, 1080, 1_500_000, 15, 'medium'),
-  h1080fps30: new VideoPreset(1920, 1080, 3_000_000, 30, 'medium'),
+  h360fps3: new VideoPreset(640, 360, 200_000, 3),
+  h720fps5: new VideoPreset(1280, 720, 400_000, 5),
+  h720fps15: new VideoPreset(1280, 720, 1_000_000, 15),
+  h1080fps15: new VideoPreset(1920, 1080, 1_500_000, 15),
+  h1080fps30: new VideoPreset(1920, 1080, 3_000_000, 30),
 } as const;

@@ -108,11 +108,6 @@ export function isFireFox(): boolean {
   return navigator.userAgent.indexOf('Firefox') !== -1;
 }
 
-export function isChromiumBased(): boolean {
-  if (!isWeb()) return false;
-  return navigator.userAgent.indexOf('Chrom') !== -1;
-}
-
 export function isSafari(): boolean {
   if (!isWeb()) return false;
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -127,9 +122,6 @@ export function isWeb(): boolean {
   return typeof document !== 'undefined';
 }
 
-export function isCloud(serverUrl: URL) {
-  return serverUrl.hostname.endsWith('.livekit.cloud');
-}
 export function compareVersions(v1: string, v2: string): number {
   const parts1 = v1.split('.');
   const parts2 = v2.split('.');
@@ -192,7 +184,7 @@ export function getEmptyVideoStreamTrack() {
   if (!emptyVideoStreamTrack) {
     emptyVideoStreamTrack = createDummyVideoStreamTrack();
   }
-  return emptyVideoStreamTrack.clone();;
+  return emptyVideoStreamTrack;
 }
 
 export function createDummyVideoStreamTrack(
@@ -232,11 +224,8 @@ export function getEmptyAudioStreamTrack() {
     // implementation adapted from https://blog.mozilla.org/webrtc/warm-up-with-replacetrack/
     const ctx = new AudioContext();
     const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, 0);
     const dst = ctx.createMediaStreamDestination();
-    oscillator.connect(gain);
-    gain.connect(dst);
+    oscillator.connect(dst);
     oscillator.start();
     [emptyAudioStreamTrack] = dst.stream.getAudioTracks();
     if (!emptyAudioStreamTrack) {
@@ -244,7 +233,7 @@ export function getEmptyAudioStreamTrack() {
     }
     emptyAudioStreamTrack.enabled = false;
   }
-   return emptyAudioStreamTrack.clone();;
+  return emptyAudioStreamTrack;
 }
 
 export class Future<T> {

@@ -2,17 +2,13 @@ import log from '../../logger';
 import DeviceManager from '../DeviceManager';
 import { TrackInvalidError } from '../errors';
 import { TrackEvent } from '../events';
-import {
-  getEmptyAudioStreamTrack,
-  getEmptyVideoStreamTrack,
-  isMobile,
-  Mutex,
-  sleep,
-} from '../utils';
+import { getEmptyAudioStreamTrack, getEmptyVideoStreamTrack, isMobile, sleep } from '../utils';
+import { Track, attachToElement, detachTrack } from './Track';
 import type { VideoCodec } from './options';
-import { attachToElement, detachTrack, Track } from './Track';
+//import { Queue as AsyncAwaitQueue } from 'async-await-queue';
+import { AsyncQueue } from '../../utils/AsyncQueue';
 
-const defaultDimensionsTimeout = 1000;
+const defaultDimensionsTimeout = 2 * 1000;
 
 export default abstract class LocalTrack extends Track {
   /** @internal */
@@ -27,9 +23,7 @@ export default abstract class LocalTrack extends Track {
 
   protected providedByUser: boolean;
 
-  protected muteLock: Mutex;
-
-  protected pauseUpstreamLock: Mutex;
+  protected muteQueue: AsyncQueue;
 
   /**
    *
@@ -49,8 +43,7 @@ export default abstract class LocalTrack extends Track {
     this.constraints = constraints ?? mediaTrack.getConstraints();
     this.reacquireTrack = false;
     this.providedByUser = userProvidedTrack;
-    this.muteLock = new Mutex();
-    this.pauseUpstreamLock = new Mutex();
+    this.muteQueue = new AsyncQueue();
   }
 
   get id(): string {
@@ -254,8 +247,7 @@ export default abstract class LocalTrack extends Track {
   };
 
   async pauseUpstream() {
-    const unlock = await this.pauseUpstreamLock.lock();
-    try {
+    this.muteQueue.run(async () => {
       if (this._isUpstreamPaused === true) {
         return;
       }
@@ -269,14 +261,11 @@ export default abstract class LocalTrack extends Track {
       const emptyTrack =
         this.kind === Track.Kind.Audio ? getEmptyAudioStreamTrack() : getEmptyVideoStreamTrack();
       await this.sender.replaceTrack(emptyTrack);
-    } finally {
-      unlock();
-    }
+    });
   }
 
   async resumeUpstream() {
-    const unlock = await this.pauseUpstreamLock.lock();
-    try {
+    this.muteQueue.run(async () => {
       if (this._isUpstreamPaused === false) {
         return;
       }
@@ -288,9 +277,7 @@ export default abstract class LocalTrack extends Track {
       this.emit(TrackEvent.UpstreamResumed, this);
 
       await this.sender.replaceTrack(this._mediaStreamTrack);
-    } finally {
-      unlock();
-    }
+    });
   }
 
   protected abstract monitorSender(): void;

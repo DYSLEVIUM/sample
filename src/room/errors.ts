@@ -11,7 +11,6 @@ export const enum ConnectionErrorReason {
   NotAllowed,
   ServerUnreachable,
   InternalError,
-  Cancelled,
 }
 
 export class ConnectionError extends LivekitError {
