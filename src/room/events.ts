@@ -7,47 +7,47 @@
  * room.on(RoomEvent.TrackPublished, (track, publication, participant) => {})
  * ```
  */
-
+​
 export enum RoomEvent {
   /**
    * When the connection to the server has been established
    */
   Connected = 'connected',
-
+​
   /**
    * When the connection to the server has been interrupted and it's attempting
    * to reconnect.
    */
   Reconnecting = 'reconnecting',
-
+​
   /**
    * Fires when a reconnection has been successful.
    */
   Reconnected = 'reconnected',
-
+​
   /**
    * When disconnected from room. This fires when room.disconnect() is called or
    * when an unrecoverable connection issue had occured
    */
   Disconnected = 'disconnected',
-
+​
   /**
    * Whenever the connection state of the room changes
    *
    * args: ([[ConnectionState]])
    */
   ConnectionStateChanged = 'connectionStateChanged',
-
+​
   /**
    * @deprecated StateChanged has been renamed to ConnectionStateChanged
    */
   StateChanged = 'connectionStateChanged',
-
+​
   /**
    * When input or output devices on the machine have changed.
    */
   MediaDevicesChanged = 'mediaDevicesChanged',
-
+​
   /**
    * When a [[RemoteParticipant]] joins *after* the local
    * participant. It will not emit events for participants that are already
@@ -56,7 +56,7 @@ export enum RoomEvent {
    * args: ([[RemoteParticipant]])
    */
   ParticipantConnected = 'participantConnected',
-
+​
   /**
    * When a [[RemoteParticipant]] leaves *after* the local
    * participant has joined.
@@ -64,7 +64,7 @@ export enum RoomEvent {
    * args: ([[RemoteParticipant]])
    */
   ParticipantDisconnected = 'participantDisconnected',
-
+​
   /**
    * When a new track is published to room *after* the local
    * participant has joined. It will not fire for tracks that are already published.
@@ -75,7 +75,7 @@ export enum RoomEvent {
    * args: ([[RemoteTrackPublication]], [[RemoteParticipant]])
    */
   TrackPublished = 'trackPublished',
-
+​
   /**
    * The [[LocalParticipant]] has subscribed to a new track. This event will **always**
    * fire as long as new tracks are ready for use.
@@ -83,21 +83,21 @@ export enum RoomEvent {
    * args: ([[RemoteTrack]], [[RemoteTrackPublication]], [[RemoteParticipant]])
    */
   TrackSubscribed = 'trackSubscribed',
-
+​
   /**
    * Could not subscribe to a track
    *
    * args: (track sid, [[RemoteParticipant]])
    */
   TrackSubscriptionFailed = 'trackSubscriptionFailed',
-
+​
   /**
    * A [[RemoteParticipant]] has unpublished a track
    *
    * args: ([[RemoteTrackPublication]], [[RemoteParticipant]])
    */
   TrackUnpublished = 'trackUnpublished',
-
+​
   /**
    * A subscribed track is no longer available. Clients should listen to this
    * event and ensure they detach tracks.
@@ -105,21 +105,21 @@ export enum RoomEvent {
    * args: ([[Track]], [[RemoteTrackPublication]], [[RemoteParticipant]])
    */
   TrackUnsubscribed = 'trackUnsubscribed',
-
+​
   /**
    * A track that was muted, fires on both [[RemoteParticipant]]s and [[LocalParticipant]]
    *
    * args: ([[TrackPublication]], [[Participant]])
    */
   TrackMuted = 'trackMuted',
-
+​
   /**
    * A track that was unmuted, fires on both [[RemoteParticipant]]s and [[LocalParticipant]]
    *
    * args: ([[TrackPublication]], [[Participant]])
    */
   TrackUnmuted = 'trackUnmuted',
-
+​
   /**
    * A local track was published successfully. This event is helpful to know
    * when to update your local UI with the newly published track.
@@ -127,7 +127,7 @@ export enum RoomEvent {
    * args: ([[LocalTrackPublication]], [[LocalParticipant]])
    */
   LocalTrackPublished = 'localTrackPublished',
-
+​
   /**
    * A local track was unpublished. This event is helpful to know when to remove
    * the local track from your UI.
@@ -138,7 +138,7 @@ export enum RoomEvent {
    * args: ([[LocalTrackPublication]], [[LocalParticipant]])
    */
   LocalTrackUnpublished = 'localTrackUnpublished',
-
+​
   /**
    * When a local audio track is published the SDK checks whether there is complete silence
    * on that track and emits the LocalAudioSilenceDetected event in that case.
@@ -146,7 +146,7 @@ export enum RoomEvent {
    * reset their audio hardware or check for proper device connectivity.
    */
   LocalAudioSilenceDetected = 'localAudioSilenceDetected',
-
+​
   /**
    * Active speakers changed. List of speakers are ordered by their audio level.
    * loudest speakers first. This will include the LocalParticipant too.
@@ -156,7 +156,7 @@ export enum RoomEvent {
    * args: (Array<[[Participant]]>)
    */
   ActiveSpeakersChanged = 'activeSpeakersChanged',
-
+​
   /**
    * Participant metadata is a simple way for app-specific state to be pushed to
    * all users.
@@ -167,7 +167,7 @@ export enum RoomEvent {
    *
    */
   ParticipantMetadataChanged = 'participantMetadataChanged',
-
+​
   /**
    * Participant's display name changed
    *
@@ -175,7 +175,7 @@ export enum RoomEvent {
    *
    */
   ParticipantNameChanged = 'participantNameChanged',
-
+​
   /**
    * Room metadata is a simple way for app-specific state to be pushed to
    * all users.
@@ -185,7 +185,7 @@ export enum RoomEvent {
    * args: (string)
    */
   RoomMetadataChanged = 'roomMetadataChanged',
-
+​
   /**
    * Data received from another participant.
    * Data packets provides the ability to use LiveKit to send/receive arbitrary payloads.
@@ -194,7 +194,7 @@ export enum RoomEvent {
    * args: (payload: Uint8Array, participant: [[Participant]], kind: [[DataPacket_Kind]], topic?: string)
    */
   DataReceived = 'dataReceived',
-
+​
   /**
    * Connection quality was changed for a Participant. It'll receive updates
    * from the local participant, as well as any [[RemoteParticipant]]s that we are
@@ -203,7 +203,7 @@ export enum RoomEvent {
    * args: (connectionQuality: [[ConnectionQuality]], participant: [[Participant]])
    */
   ConnectionQualityChanged = 'connectionQualityChanged',
-
+​
   /**
    * StreamState indicates if a subscribed (remote) track has been paused by the SFU
    * (typically this happens because of subscriber's bandwidth constraints)
@@ -215,7 +215,7 @@ export enum RoomEvent {
    *        participant: [[RemoteParticipant]])
    */
   TrackStreamStateChanged = 'trackStreamStateChanged',
-
+​
   /**
    * One of subscribed tracks have changed its permissions for the current
    * participant. If permission was revoked, then the track will no longer
@@ -227,7 +227,7 @@ export enum RoomEvent {
    *        participant: [[RemoteParticipant]])
    */
   TrackSubscriptionPermissionChanged = 'trackSubscriptionPermissionChanged',
-
+​
   /**
    * One of subscribed tracks have changed its status for the current
    * participant.
@@ -237,14 +237,14 @@ export enum RoomEvent {
    *        participant: [[RemoteParticipant]])
    */
   TrackSubscriptionStatusChanged = 'trackSubscriptionStatusChanged',
-
+​
   /**
    * LiveKit will attempt to autoplay all audio tracks when you attach them to
    * audio elements. However, if that fails, we'll notify you via AudioPlaybackStatusChanged.
    * `Room.canPlayAudio` will indicate if audio playback is permitted.
    */
   AudioPlaybackStatusChanged = 'audioPlaybackChanged',
-
+​
   /**
    * When we have encountered an error while attempting to create a track.
    * The errors take place in getUserMedia().
@@ -255,25 +255,28 @@ export enum RoomEvent {
    * args: (error: Error)
    */
   MediaDevicesError = 'mediaDevicesError',
-
+​
   /**
    * A participant's permission has changed. Currently only fired on LocalParticipant.
    * args: (prevPermissions: [[ParticipantPermission]], participant: [[Participant]])
    */
   ParticipantPermissionsChanged = 'participantPermissionsChanged',
-
+​
   /**
    * Signal connected, can publish tracks.
    */
   SignalConnected = 'signalConnected',
-
+​
   /**
    * Recording of a room has started/stopped. Room.isRecording will be updated too.
    * args: (isRecording: boolean)
    */
   RecordingStatusChanged = 'recordingStatusChanged',
+  ReconnectPrimaryDelay = 'reconnectPrimaryDelay',
+  ReconnectSecondaryDelay = 'reconnectSecondaryDelay',
+  ReconnectICEDelay = 'reconnectICEDelay'
 }
-
+​
 export enum ParticipantEvent {
   /**
    * When a new track is published to room *after* the local
@@ -285,7 +288,7 @@ export enum ParticipantEvent {
    * args: ([[RemoteTrackPublication]])
    */
   TrackPublished = 'trackPublished',
-
+​
   /**
    * Successfully subscribed to the [[RemoteParticipant]]'s track.
    * This event will **always** fire as long as new tracks are ready for use.
@@ -293,21 +296,21 @@ export enum ParticipantEvent {
    * args: ([[RemoteTrack]], [[RemoteTrackPublication]])
    */
   TrackSubscribed = 'trackSubscribed',
-
+​
   /**
    * Could not subscribe to a track
    *
    * args: (track sid)
    */
   TrackSubscriptionFailed = 'trackSubscriptionFailed',
-
+​
   /**
    * A [[RemoteParticipant]] has unpublished a track
    *
    * args: ([[RemoteTrackPublication]])
    */
   TrackUnpublished = 'trackUnpublished',
-
+​
   /**
    * A subscribed track is no longer available. Clients should listen to this
    * event and ensure they detach tracks.
@@ -315,21 +318,21 @@ export enum ParticipantEvent {
    * args: ([[RemoteTrack]], [[RemoteTrackPublication]])
    */
   TrackUnsubscribed = 'trackUnsubscribed',
-
+​
   /**
    * A track that was muted, fires on both [[RemoteParticipant]]s and [[LocalParticipant]]
    *
    * args: ([[TrackPublication]])
    */
   TrackMuted = 'trackMuted',
-
+​
   /**
    * A track that was unmuted, fires on both [[RemoteParticipant]]s and [[LocalParticipant]]
    *
    * args: ([[TrackPublication]])
    */
   TrackUnmuted = 'trackUnmuted',
-
+​
   /**
    * A local track was published successfully. This event is helpful to know
    * when to update your local UI with the newly published track.
@@ -337,7 +340,7 @@ export enum ParticipantEvent {
    * args: ([[LocalTrackPublication]])
    */
   LocalTrackPublished = 'localTrackPublished',
-
+​
   /**
    * A local track was unpublished. This event is helpful to know when to remove
    * the local track from your UI.
@@ -348,7 +351,7 @@ export enum ParticipantEvent {
    * args: ([[LocalTrackPublication]])
    */
   LocalTrackUnpublished = 'localTrackUnpublished',
-
+​
   /**
    * Participant metadata is a simple way for app-specific state to be pushed to
    * all users.
@@ -360,7 +363,7 @@ export enum ParticipantEvent {
    *
    */
   ParticipantMetadataChanged = 'participantMetadataChanged',
-
+​
   /**
    * Participant's display name changed
    *
@@ -368,7 +371,7 @@ export enum ParticipantEvent {
    *
    */
   ParticipantNameChanged = 'participantNameChanged',
-
+​
   /**
    * Data received from this participant as sender.
    * Data packets provides the ability to use LiveKit to send/receive arbitrary payloads.
@@ -377,14 +380,14 @@ export enum ParticipantEvent {
    * args: (payload: Uint8Array, kind: [[DataPacket_Kind]])
    */
   DataReceived = 'dataReceived',
-
+​
   /**
    * Has speaking status changed for the current participant
    *
    * args: (speaking: boolean)
    */
   IsSpeakingChanged = 'isSpeakingChanged',
-
+​
   /**
    * Connection quality was changed for a Participant. It'll receive updates
    * from the local participant, as well as any [[RemoteParticipant]]s that we are
@@ -393,7 +396,7 @@ export enum ParticipantEvent {
    * args: (connectionQuality: [[ConnectionQuality]])
    */
   ConnectionQualityChanged = 'connectionQualityChanged',
-
+​
   /**
    * StreamState indicates if a subscribed track has been paused by the SFU
    * (typically this happens because of subscriber's bandwidth constraints)
@@ -404,7 +407,7 @@ export enum ParticipantEvent {
    * args: (pub: [[RemoteTrackPublication]], streamState: [[Track.StreamState]])
    */
   TrackStreamStateChanged = 'trackStreamStateChanged',
-
+​
   /**
    * One of subscribed tracks have changed its permissions for the current
    * participant. If permission was revoked, then the track will no longer
@@ -415,24 +418,24 @@ export enum ParticipantEvent {
    *        status: [[TrackPublication.SubscriptionStatus]])
    */
   TrackSubscriptionPermissionChanged = 'trackSubscriptionPermissionChanged',
-
+​
   /**
    * One of the remote participants publications has changed its subscription status.
    *
    */
   TrackSubscriptionStatusChanged = 'trackSubscriptionStatusChanged',
-
+​
   // fired only on LocalParticipant
   /** @internal */
   MediaDevicesError = 'mediaDevicesError',
-
+​
   /**
    * A participant's permission has changed. Currently only fired on LocalParticipant.
    * args: (prevPermissions: [[ParticipantPermission]])
    */
   ParticipantPermissionsChanged = 'participantPermissionsChanged',
 }
-
+​
 /** @internal */
 export enum EngineEvent {
   TransportsCreated = 'transportsCreated',
@@ -447,8 +450,10 @@ export enum EngineEvent {
   MediaTrackAdded = 'mediaTrackAdded',
   ActiveSpeakersUpdate = 'activeSpeakersUpdate',
   DataPacketReceived = 'dataPacketReceived',
+  PrimaryDelay = 'primaryDelay',
+  SecondaryDelay = 'secondaryDelay',
 }
-
+​
 export enum TrackEvent {
   Message = 'message',
   Muted = 'muted',
