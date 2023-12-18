@@ -27,6 +27,7 @@ import {
   ScreenSharePresets,
   TrackPublishOptions,
   VideoCaptureOptions,
+  VideoEncoding,
 } from '../track/options';
 import { Track } from '../track/Track';
 import { constraintsForOptions, mergeDefaultOptions } from '../track/utils';
@@ -38,6 +39,7 @@ import {
   computeTrackBackupEncodings,
   computeVideoEncodings,
   mediaTrackToLocalTrack,
+  determineAppropriateEncoding,
 } from './publishUtils';
 import RemoteParticipant from './RemoteParticipant';
 
@@ -631,7 +633,7 @@ export default class LocalParticipant extends Participant {
     // compute encodings and layers for video
     let encodings: RTCRtpEncodingParameters[] | undefined;
     let simEncodings: RTCRtpEncodingParameters[] | undefined;
-
+    let videoEncoding: VideoEncoding;
     if (track.kind === Track.Kind.Video) {
       let dims: Track.Dimensions = {
         width: 0,
@@ -682,7 +684,16 @@ export default class LocalParticipant extends Participant {
         opts,
       );
       req.layers = videoLayersFromEncodings(req.width, req.height, simEncodings ?? encodings);
-      
+      if(encodings.length==1) { //single layer encoding returned 
+        videoEncoding=determineAppropriateEncoding(track.source === Track.Source.ScreenShare,req.width, req.height, opts.videoCodec);
+        encodings = [
+          {
+            maxBitrate:videoEncoding.maxBitrate,
+            maxFramerate:videoEncoding.maxFramerate,
+            active: true,
+          },
+        ];
+      }
     } else if (track.kind === Track.Kind.Audio && opts.audioBitrate) {
       encodings = [
         {
