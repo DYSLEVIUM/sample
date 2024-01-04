@@ -1,6 +1,7 @@
 import log from '../../logger';
 import { TrackEvent } from '../events';
-import { AudioReceiverStats, computeBitrate } from '../stats';
+import { computeBitrate } from '../stats';
+import type { AudioReceiverStats } from '../stats';
 import { supportsSetSinkId } from '../utils';
 import type { AudioOutputOptions } from './options';
 import RemoteTrack from './RemoteTrack';
