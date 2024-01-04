@@ -902,13 +902,14 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     }
 
 // the below line ensures that both Primary and Secondary PCs connections are established before moving ahead.
-   // await this.waitForPCConnected();
+  
     this.client.setReconnected();
+    this.emit(EngineEvent.SignalRestarted, joinResponse);
 
 await this.waitForPCReconnected();
       this.regionUrlProvider?.resetAttempts();
     // reconnect success
-    this.emit(EngineEvent.Restarted, joinResponse);
+    this.emit(EngineEvent.Restarted);
     let rightNow = Date.now()
         if(this.disconnectStartTimePrimary == 0){
       this.disconnectStartTimePrimary = rightNow
@@ -1333,8 +1334,9 @@ export type EngineEventCallbacks = {
   resuming: () => void;
   resumed: () => void;
   restarting: () => void;
-  restarted: (joinResp: JoinResponse) => void;
+  restarted: () => void;
   signalResumed: () => void;
+  signalRestarted: (joinResp: JoinResponse) => void;
   closing: () => void;
   mediaTrackAdded: (
     track: MediaStreamTrack,

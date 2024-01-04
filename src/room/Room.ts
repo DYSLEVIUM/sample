@@ -256,7 +256,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }
       })
       .on(EngineEvent.Restarting, this.handleRestarting)
-      .on(EngineEvent.Restarted, this.handleRestarted)
+      .on(EngineEvent.SignalRestarted, this.handleSignalRestarted)
       .on(EngineEvent.PrimaryDelay, (delay: number) => {
         iceDelay = Math.max(iceDelay , delay)
       })
@@ -896,8 +896,8 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
   };
 
-  private handleRestarted = async (joinResponse: JoinResponse) => {
-    log.debug(`reconnected to server`, {
+  private handleSignalRestarted = async (joinResponse: JoinResponse) => {
+    log.debug(`Signal reconnected to server`, {
       region: joinResponse.serverRegion,
     });
 
