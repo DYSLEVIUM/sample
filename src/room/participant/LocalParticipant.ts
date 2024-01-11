@@ -1040,13 +1040,13 @@ export default class LocalParticipant extends Participant {
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
     // the server's copy
-    console.log('AudioMute Flage is: '+this.audioMuted+'VideoMute Flage is: '+this.videoMuted);
+    // console.log('AudioMute Flage is: '+this.audioMuted+'VideoMute Flage is: '+this.videoMuted);
     info.tracks.forEach((ti) => {
       const pub = this.tracks.get(ti.sid);
       if (pub) {
-        const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
-        console.log('mutedOnServer flage is: '+mutedOnServer)
-        console.log('Track type is: '+pub.kind+'its Sid is: '+ti.sid+'its Mute value is: '+ti.muted);
+        // const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
+        // console.log('mutedOnServer flage is: '+mutedOnServer)
+        console.log('Track type is: '+pub.kind+' & Sid is: '+ti.sid+' & Mute value is: '+ti.muted);
         const localTrack = pub.track;
         if(pub.kind == Track.Kind.Audio)
         {
