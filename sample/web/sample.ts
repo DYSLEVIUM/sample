@@ -404,6 +404,7 @@ function participantConnected(participant: Participant) {
       renderParticipant(participant);
     })
     .on(ParticipantEvent.ParticipantPermissionsChanged , (prevPermissions,currPermissions) =>{
+      if (participant instanceof LocalParticipant) {
       if(!currPermissions?.canPublish)
       {
         setButtonDisabled('toggle-audio-button', true);
@@ -422,6 +423,7 @@ function participantConnected(participant: Participant) {
         This is a listener to event when the permisison of the participants are changed from server side
         The UI developer can refer to this accordingly
       */
+    }
     });
 }
 
