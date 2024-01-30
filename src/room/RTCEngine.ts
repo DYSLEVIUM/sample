@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import type TypedEventEmitter from 'typed-emitter';
-import { SignalClient, SignalOptions } from '../api/SignalClient';
+import { SignalClient } from '../api/SignalClient';
+import type { SignalOptions } from '../api/SignalClient';
 import log from '../logger';
 import type { InternalRoomOptions } from '../options';
 import {
@@ -40,6 +41,7 @@ import type { SimulcastTrackInfo } from './track/LocalVideoTrack';
 import type { TrackPublishOptions, VideoCodec } from './track/options';
 import { Track } from './track/Track';
 import {
+  isCloud,
   isWeb,
   Mutex,
   sleep,
@@ -47,6 +49,7 @@ import {
   supportsSetCodecPreferences,
   supportsTransceiver,
 } from './utils';
+import { RegionUrlProvider } from './RegionUrlProvider';
 
 const lossyDataChannel = '_lossy';
 const reliableDataChannel = '_reliable';
@@ -72,6 +75,11 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
   rtcConfig: RTCConfiguration = {};
 
   peerConnectionTimeout: number = roomConnectOptionDefaults.peerConnectionTimeout;
+
+    /**
+   * @internal
+   */
+    latestJoinResponse?: JoinResponse;
 
   get isClosed() {
     return this._isClosed;
@@ -132,13 +140,15 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
   /** specifies how often an initial join connection is allowed to retry */
   private maxJoinAttempts: number = 1;
 
+  private firstReconnectAttempt: boolean = true;
+  
   private closingLock: Mutex;
 
   private dataProcessLock: Mutex;
 
   private shouldFailNext: boolean = false;
 
-  private firstReconnectAttempt: boolean = true;
+  private regionUrlProvider?: RegionUrlProvider;
 
   constructor(private options: InternalRoomOptions) {
     super();
@@ -163,6 +173,8 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       this.joinAttempts += 1;
       const joinResponse = await this.client.join(url, token, opts, abortSignal);
       this._isClosed = false;
+
+      this.latestJoinResponse = joinResponse;
 
       this.subscriberPrimary = joinResponse.subscriberPrimary;
       if (!this.publisher) {
@@ -306,7 +318,8 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
     const rtcConfig = this.makeRTCConfiguration(joinResponse);
 
-    this.publisher = new PCTransport(rtcConfig);
+    const googConstraints = { optional: [{ googDscp: true }] };
+    this.publisher = new PCTransport(rtcConfig, googConstraints);
     this.subscriber = new PCTransport(rtcConfig);
 
     this.emit(EngineEvent.TransportsCreated, this.publisher, this.subscriber);
@@ -772,6 +785,9 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     log.debug(`reconnecting in ${delay}ms`);
 
     this.clearReconnectTimeout();
+    if (this.url && this.token && isCloud(new URL(this.url))) {
+      this.regionUrlProvider = new RegionUrlProvider(this.url, this.token);
+    }
     this.reconnectTimeout = CriticalTimers.setTimeout(
       () => this.attemptReconnect(disconnectReason),
       delay,
@@ -825,7 +841,7 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
           }ms. giving up`,
         );
         this.emit(EngineEvent.Disconnected);
-        this.close();
+        await this.close();
       }
     } finally {
       this.attemptingReconnect = false;
@@ -843,11 +859,12 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     return null;
   }
 
-  private async restartConnection() {
-    if (!this.url || !this.token) {
-      // permanent failure, don't attempt reconnection
-      throw new UnexpectedConnectionState('could not reconnect, url or token not saved');
-    }
+  private async restartConnection(regionUrl?: string) {
+    try {
+      if (!this.url || !this.token) {
+        // permanent failure, don't attempt reconnection
+        throw new UnexpectedConnectionState('could not reconnect, url or token not saved');
+      }
 
     log.info(`reconnecting, attempt: ${this.reconnectAttempts}`);
     this.emit(EngineEvent.Restarting);
@@ -862,16 +879,20 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     this.subscriber?.close();
     this.subscriber = undefined;
 
-    let joinResponse: JoinResponse;
-    try {
-      if (!this.signalOpts) {
-        log.warn('attempted connection restart, without signal options present');
+      let joinResponse: JoinResponse;
+      try {
+        if (!this.signalOpts) {
+          log.warn('attempted connection restart, without signal options present');
+          throw new SignalReconnectError();
+        }
+        // in case a regionUrl is passed, the region URL takes precedence
+        joinResponse = await this.join(regionUrl ?? this.url, this.token, this.signalOpts);
+      } catch (e) {
+        if (e instanceof ConnectionError && e.reason === ConnectionErrorReason.NotAllowed) {
+          throw new UnexpectedConnectionState('could not reconnect, token might be expired');
+        }
         throw new SignalReconnectError();
       }
-      joinResponse = await this.join(this.url, this.token, this.signalOpts);
-    } catch (e) {
-      throw new SignalReconnectError();
-    }
 
     if (this.shouldFailNext) {
       this.shouldFailNext = false;
@@ -879,11 +900,14 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     }
 
 // the below line ensures that both Primary and Secondary PCs connections are established before moving ahead.
-    await this.waitForPCConnected();
+  
     this.client.setReconnected();
+    this.emit(EngineEvent.SignalRestarted, joinResponse);
 
+await this.waitForPCReconnected();
+      this.regionUrlProvider?.resetAttempts();
     // reconnect success
-    this.emit(EngineEvent.Restarted, joinResponse);
+    this.emit(EngineEvent.Restarted);
     let rightNow = Date.now()
         if(this.disconnectStartTimePrimary == 0){
       this.disconnectStartTimePrimary = rightNow
@@ -894,8 +918,20 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     this.emit(EngineEvent.PrimaryDelay, rightNow - this.disconnectStartTimePrimary);
     this.emit(EngineEvent.SecondaryDelay, rightNow - this.disconnectStartTimeSecondary);
     this.disconnectStartTimePrimary = this.disconnectStartTimeSecondary = 0
+    } catch (error) {
+      const nextRegionUrl = await this.regionUrlProvider?.getNextBestRegionUrl();
+         if (nextRegionUrl) {
+        await this.restartConnection(nextRegionUrl);
+        return;
+      } else {
+        // no more regions to try (or we're not on cloud)
+        this.regionUrlProvider?.resetAttempts();
+        throw error;
+   
+      }
+   
   }
-
+  }
   private async resumeConnection(reason?: ReconnectReason): Promise<void> {
     if (!this.url || !this.token) {
       // permanent failure, don't attempt reconnection
@@ -921,6 +957,9 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       if (e instanceof Error) {
         message = e.message;
       }
+      if (e instanceof ConnectionError && e.reason === ConnectionErrorReason.NotAllowed) {
+        throw new UnexpectedConnectionState('could not reconnect, token might be expired');
+      }
       throw new SignalReconnectError(message);
     }
     this.emit(EngineEvent.SignalResumed);
@@ -941,7 +980,7 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       await this.publisher.createAndSendOffer({ iceRestart: true });
     }
 
-    await this.waitForPCConnected();
+    await this.waitForPCReconnected();
     this.client.setReconnected();
 
     // recreate publish datachannel if it's id is null
@@ -954,7 +993,45 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     this.emit(EngineEvent.Resumed);
   }
 
-  async waitForPCConnected() {
+  async waitForPCInitialConnection(timeout?: number, abortController?: AbortController) {
+    if (this.pcState === PCState.Connected) {
+      return;
+    }
+    if (this.pcState !== PCState.New) {
+      throw new UnexpectedConnectionState(
+        'Expected peer connection to be new on initial connection',
+      );
+    }
+    return new Promise<void>((resolve, reject) => {
+      const abortHandler = () => {
+        log.warn('closing engine');
+        CriticalTimers.clearTimeout(connectTimeout);
+
+        reject(
+          new ConnectionError(
+            'room connection has been cancelled',
+            ConnectionErrorReason.Cancelled,
+          ),
+        );
+      };
+      if (abortController?.signal.aborted) {
+        abortHandler();
+      }
+      abortController?.signal.addEventListener('abort', abortHandler);
+      const onConnected = () => {
+        CriticalTimers.clearTimeout(connectTimeout);
+        abortController?.signal.removeEventListener('abort', abortHandler);
+        resolve();
+      };
+      const connectTimeout = CriticalTimers.setTimeout(() => {
+        this.off(EngineEvent.Connected, onConnected);
+        reject(new ConnectionError('could not establish pc connection'));
+      }, timeout ?? this.peerConnectionTimeout);
+      this.once(EngineEvent.Connected, onConnected);
+    });
+  }
+
+  private async waitForPCReconnected() {
     const startTime = Date.now();
     let now = startTime;
     this.pcState = PCState.Reconnecting;
@@ -995,6 +1072,24 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     // have not reconnected, throw
     throw new ConnectionError('could not establish PC connection');
   }
+
+  waitForRestarted = () => {
+    return new Promise<void>((resolve, reject) => {
+      if (this.pcState === PCState.Connected) {
+        resolve();
+      }
+      const onRestarted = () => {
+        this.off(EngineEvent.Disconnected, onDisconnected);
+        resolve();
+      };
+      const onDisconnected = () => {
+        this.off(EngineEvent.Restarted, onRestarted);
+        reject();
+      };
+      this.once(EngineEvent.Restarted, onRestarted);
+      this.once(EngineEvent.Disconnected, onDisconnected);
+    });
+  };
 
   /* @internal */
   async sendDataPacket(packet: DataPacket, kind: DataPacket_Kind) {
@@ -1056,6 +1151,39 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
   private async ensurePublisherConnected(kind: DataPacket_Kind) {
     await this.ensureDataTransportConnected(kind, false);
+  }
+
+  /* @internal */
+  verifyTransport(): boolean {
+    // primary connection
+    if (!this.primaryPC) {
+      return false;
+    }
+    if (
+      this.primaryPC.connectionState === 'closed' ||
+      this.primaryPC.connectionState === 'failed'
+    ) {
+      return false;
+    }
+
+    // also verify publisher connection if it's needed or different
+    if (this.hasPublished && this.subscriberPrimary) {
+      if (!this.publisher) {
+        return false;
+      }
+      if (
+        this.publisher.pc.connectionState === 'closed' ||
+        this.publisher.pc.connectionState === 'failed'
+      ) {
+        return false;
+      }
+    }
+
+    // ensure signal is connected
+    if (!this.client.ws || this.client.ws.readyState === WebSocket.CLOSED) {
+      return false;
+    }
+    return true;
   }
 
   /** @internal */
@@ -1204,8 +1332,9 @@ export type EngineEventCallbacks = {
   resuming: () => void;
   resumed: () => void;
   restarting: () => void;
-  restarted: (joinResp: JoinResponse) => void;
+  restarted: () => void;
   signalResumed: () => void;
+  signalRestarted: (joinResp: JoinResponse) => void;
   closing: () => void;
   mediaTrackAdded: (
     track: MediaStreamTrack,

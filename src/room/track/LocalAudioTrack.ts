@@ -1,6 +1,7 @@
 import log from '../../logger';
 import { TrackEvent } from '../events';
-import { AudioSenderStats, computeBitrate, monitorFrequency } from '../stats';
+import { computeBitrate, monitorFrequency } from '../stats';
+import type { AudioSenderStats } from '../stats';
 import { isWeb } from '../utils';
 import LocalTrack from './LocalTrack';
 import type { AudioCaptureOptions } from './options';
@@ -39,7 +40,8 @@ export default class LocalAudioTrack extends LocalTrack {
   }
 
   async mute(): Promise<LocalAudioTrack> {
-    await this.muteQueue.run(async () => {
+    const unlock = await this.muteLock.lock();
+    try {
       // disabled special handling as it will cause BT headsets to switch communication modes
       if (this.source === Track.Source.Microphone && this.stopOnMute && !this.isUserProvided) {
         log.debug('stopping mic track');
@@ -47,12 +49,15 @@ export default class LocalAudioTrack extends LocalTrack {
         this._mediaStreamTrack.stop();
       }
       await super.mute();
-    });
-    return this;
+      return this;
+    } finally {
+      unlock();
+    }
   }
 
   async unmute(): Promise<LocalAudioTrack> {
-    await this.muteQueue.run(async () => {
+    const unlock = await this.muteLock.lock();
+    try {
       if (
         this.source === Track.Source.Microphone &&
         (this.stopOnMute || this._mediaStreamTrack.readyState === 'ended') &&
@@ -62,8 +67,11 @@ export default class LocalAudioTrack extends LocalTrack {
         await this.restartTrack();
       }
       await super.unmute();
-    });
-    return this;
+
+      return this;
+    } finally {
+      unlock();
+    }
   }
 
   async restartTrack(options?: AudioCaptureOptions) {
