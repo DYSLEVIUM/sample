@@ -4,6 +4,7 @@ import { protocolVersion, version } from '../version';
 import type LocalAudioTrack from './track/LocalAudioTrack';
 import type RemoteAudioTrack from './track/RemoteAudioTrack';
 import { getNewAudioContext } from './track/utils';
+import { DeviceInfo, DeviceInfo_SDK } from '../proto/livekit_rtc_pb';
 
 const separator = '|';
 
@@ -385,4 +386,90 @@ export class Mutex {
 
     return willUnlock;
   }
+}
+
+
+export async  function getDeviceInfo(): Promise<DeviceInfo> {
+ 
+  //Date and Time  
+  const currentDate: Date = new Date();
+
+  // Format the date and time according to the user's locale
+  const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  weekday: 'long',
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric'
+  });
+
+  const formattedDateTime = dateTimeFormatter.format(currentDate);
+
+  console.log('Current Date and Time:', formattedDateTime);
+  console.log('Current Date:', currentDate);
+
+  //IP-address
+  let clientIPAddress: string|undefined;
+  try {
+    clientIPAddress = await getIPAddress();
+    console.log('Client IP Address:', clientIPAddress);
+  } catch (error) {
+    console.error('Error fetching IP address:', error);
+  }
+
+  //Filling Device-Info request
+  const info = new DeviceInfo({
+  sdk: DeviceInfo_SDK.JS,
+  os: getClientOS(),
+  imei: "",
+  macaddress: "", //not possible in web broswer
+  date: formattedDateTime.toLocaleLowerCase(),
+  ipaddress: clientIPAddress || '',
+  nwSignalStrength: ""
+});
+
+
+return Promise.resolve(info);
+}
+
+// Define a function to fetch the IP address
+function getIPAddress(): Promise<string> {
+  return new Promise((resolve, reject) => {
+      // Use a third-party service to get the IP address
+      fetch('https://api.ipify.org?format=json')
+          .then(response => response.json())
+          .then(data => resolve(data.ip))
+          .catch(error => reject(error));
+  });
+}
+
+// Function to get basic OS information
+function getClientOS(): string {
+  const userAgent: string = navigator.userAgent;
+  let clientOS: string = 'Unknown';
+
+  // Detect Windows
+  if (userAgent.indexOf('Win') !== -1) {
+      clientOS = 'Windows';
+  }
+  // Detect Mac OS
+  else if (userAgent.indexOf('Mac') !== -1) {
+      clientOS = 'Mac OS';
+  }
+  // Detect Linux-based OS
+  else if (userAgent.indexOf('Linux') !== -1) {
+      clientOS = 'Linux';
+  }
+  // Detect Android
+  else if (userAgent.indexOf('Android') !== -1) {
+      clientOS = 'Android';
+  }
+  // Detect iOS
+  else if (userAgent.indexOf('iPhone') !== -1 || userAgent.indexOf('iPad') !== -1 || userAgent.indexOf('iPod') !== -1) {
+      clientOS = 'iOS';
+  }
+
+  return clientOS;
 }

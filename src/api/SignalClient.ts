@@ -37,6 +37,7 @@ import {
   UpdateSubscription,
   UpdateTrackSettings,
   UpdateVideoLayers,
+  DeviceInfo,
 } from '../proto/livekit_rtc_pb';
 import { ConnectionError, ConnectionErrorReason } from '../room/errors';
 import CriticalTimers from '../room/timers';
@@ -514,6 +515,14 @@ export class SignalClient {
     });
   }
 
+  sendDeviceInfo(info: DeviceInfo) {
+    log.debug('sending deviceInfo to server');
+    return this.sendRequest({
+      case: 'deviceInfo',
+      value: info,
+    });
+  }
+  
   async sendRequest(message: SignalMessage, fromQueue: boolean = false) {
     // capture all requests while reconnecting and put them in a queue
     // unless the request originates from the queue, then don't enqueue again
