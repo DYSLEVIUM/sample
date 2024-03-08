@@ -420,11 +420,11 @@ export async  function getDeviceInfo(): Promise<DeviceInfo> {
   }
 
   //Filling Device-Info request
+  
   const info = new DeviceInfo({
   sdk: DeviceInfo_SDK.JS,
   os: getClientOS(),
-  imei: "",
-  macaddress: "", //not possible in web broswer
+  deviceId: "",
   date: formattedDateTime.toLocaleLowerCase(),
   ipaddress: clientIPAddress || '',
   nwSignalStrength: ""
