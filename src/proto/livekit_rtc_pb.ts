@@ -88,62 +88,6 @@ proto3.util.setEnumType(CandidateProtocol, "ecprt.CandidateProtocol", [
 ]);
 
 /**
- * @generated from enum ecprt.RequestType
- */
-export enum RequestType {
-  /**
-   * @generated from enum value: AddAudioTrack = 0;
-   */
-  AddAudioTrack = 0,
-
-  /**
-   * @generated from enum value: AddVideoTrack = 1;
-   */
-  AddVideoTrack = 1,
-
-  /**
-   * @generated from enum value: Join = 2;
-   */
-  Join = 2,
-
-  /**
-   * @generated from enum value: Leave = 3;
-   */
-  Leave = 3,
-
-  /**
-   * @generated from enum value: MuteAudio = 4;
-   */
-  MuteAudio = 4,
-
-  /**
-   * @generated from enum value: MuteVideo = 5;
-   */
-  MuteVideo = 5,
-
-  /**
-   * @generated from enum value: UnmuteAudio = 6;
-   */
-  UnmuteAudio = 6,
-
-  /**
-   * @generated from enum value: UnmuteVideo = 7;
-   */
-  UnmuteVideo = 7,
-}
-// Retrieve enum metadata with: proto3.getEnumType(RequestType)
-proto3.util.setEnumType(RequestType, "ecprt.RequestType", [
-  { no: 0, name: "AddAudioTrack" },
-  { no: 1, name: "AddVideoTrack" },
-  { no: 2, name: "Join" },
-  { no: 3, name: "Leave" },
-  { no: 4, name: "MuteAudio" },
-  { no: 5, name: "MuteVideo" },
-  { no: 6, name: "UnmuteAudio" },
-  { no: 7, name: "UnmuteVideo" },
-]);
-
-/**
  * @generated from message ecprt.SignalRequest
  */
 export class SignalRequest extends Message<SignalRequest> {
@@ -268,7 +212,7 @@ export class SignalRequest extends Message<SignalRequest> {
     case: "pingReq";
   } | {
     /**
-     * device/clientInfo request
+     * device info
      *
      * @generated from field: ecprt.DeviceInfo device_info = 17;
      */
@@ -392,7 +336,8 @@ export class SignalResponse extends Message<SignalResponse> {
     case: "mute";
   } | {
     /**
-     * indicates changes to speaker status, including when they've gone to not speaking
+     * indicates changes to speaker status, including when they've gone to not
+     * speaking
      *
      * @generated from field: ecprt.SpeakersChanged speakers_changed = 10;
      */
@@ -416,8 +361,8 @@ export class SignalResponse extends Message<SignalResponse> {
     case: "connectionQuality";
   } | {
     /**
-     * when streamed tracks state changed, used to notify when any of the streams were paused due to
-     * congestion
+     * when streamed tracks state changed, used to notify when any of the
+     * streams were paused due to congestion
      *
      * @generated from field: ecprt.StreamStateUpdate stream_state_update = 13;
      */
@@ -425,7 +370,8 @@ export class SignalResponse extends Message<SignalResponse> {
     case: "streamStateUpdate";
   } | {
     /**
-     * when max subscribe quality changed, used by dynamic broadcasting to disable unused layers
+     * when max subscribe quality changed, used by dynamic broadcasting to
+     * disable unused layers
      *
      * @generated from field: ecprt.SubscribedQualityUpdate subscribed_quality_update = 14;
      */
@@ -441,7 +387,8 @@ export class SignalResponse extends Message<SignalResponse> {
     case: "subscriptionPermissionUpdate";
   } | {
     /**
-     * update the token the client was using, to prevent an active client from using an expired token
+     * update the token the client was using, to prevent an active client from
+     * using an expired token
      *
      * @generated from field: string refresh_token = 16;
      */
@@ -483,7 +430,8 @@ export class SignalResponse extends Message<SignalResponse> {
     case: "pongResp";
   } | {
     /**
-     * Subscription response, client should not expect any media from this subscription if it fails
+     * Subscription response, client should not expect any media from this
+     * subscription if it fails
      *
      * @generated from field: ecprt.SubscriptionResponse subscription_response = 21;
      */
@@ -669,7 +617,8 @@ export class AddTrackRequest extends Message<AddTrackRequest> {
 
   /**
    * which stream the track belongs to, used to group tracks together.
-   * if not specified, server will infer it from track source to bundle camera/microphone, screenshare/audio together
+   * if not specified, server will infer it from track source to bundle
+   * camera/microphone, screenshare/audio together
    *
    * @generated from field: string stream = 15;
    */
@@ -842,8 +791,8 @@ export class JoinResponse extends Message<JoinResponse> {
   subscriberPrimary = false;
 
   /**
-   * when the current server isn't available, return alternate url to retry connection
-   * when this is set, the other fields will be largely empty
+   * when the current server isn't available, return alternate url to retry
+   * connection when this is set, the other fields will be largely empty
    *
    * @generated from field: string alternative_url = 7;
    */
@@ -877,7 +826,8 @@ export class JoinResponse extends Message<JoinResponse> {
   serverInfo?: ServerInfo;
 
   /**
-   * Server-Injected-Frame byte trailer, used to identify unencrypted frames when e2ee is enabled
+   * Server-Injected-Frame byte trailer, used to identify unencrypted frames
+   * when e2ee is enabled
    *
    * @generated from field: bytes sif_trailer = 13;
    */
@@ -1223,7 +1173,8 @@ export class UpdateTrackSettings extends Message<UpdateTrackSettings> {
    * subscription priority. 1 being the highest (0 is unset)
    * when unset, server sill assign priority based on the order of subscription
    * server will use priority in the following ways:
-   * 1. when subscribed tracks exceed per-participant subscription limit, server will
+   * 1. when subscribed tracks exceed per-participant subscription limit, server
+   * will
    *    pause the lowest priority tracks
    * 2. when the network is congested, server will assign available bandwidth to
    *    higher priority tracks first. lowest priority tracks can be paused
@@ -2420,27 +2371,22 @@ export class DeviceInfo extends Message<DeviceInfo> {
   os = "";
 
   /**
-   * @generated from field: string imei = 3;
+   * @generated from field: string deviceId = 3;
    */
-  imei = "";
+  deviceId = "";
 
   /**
-   * @generated from field: string macaddress = 4;
-   */
-  macaddress = "";
-
-  /**
-   * @generated from field: string date = 5;
+   * @generated from field: string date = 4;
    */
   date = "";
 
   /**
-   * @generated from field: string ipaddress = 6;
+   * @generated from field: string ipaddress = 5;
    */
   ipaddress = "";
 
   /**
-   * @generated from field: string nw_signal_strength = 7;
+   * @generated from field: string nw_signal_strength = 6;
    */
   nwSignalStrength = "";
 
@@ -2454,11 +2400,10 @@ export class DeviceInfo extends Message<DeviceInfo> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "sdk", kind: "enum", T: proto3.getEnumType(DeviceInfo_SDK) },
     { no: 2, name: "os", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "imei", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "macaddress", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "ipaddress", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "nw_signal_strength", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "deviceId", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "ipaddress", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "nw_signal_strength", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeviceInfo {

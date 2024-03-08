@@ -71,6 +71,7 @@ export interface SignalOptions {
   publishOnly?: string;
   adaptiveStream?: boolean;
   maxRetries: number;
+  deviceId: string;
 }
 
 type SignalMessage = SignalRequest['message'];

@@ -18,6 +18,7 @@ import {
 import {
   AddTrackRequest,
   DeviceInfo,
+  
   JoinResponse,
   LeaveRequest,
   ReconnectResponse,
@@ -184,6 +185,8 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       }
 
       const deviceInfo = getDeviceInfo();
+      console.log(" deviceId:",opts.deviceId);
+      (await deviceInfo).deviceId=opts.deviceId;
       this.sendDeviceInfo(await deviceInfo);
 
       // create offer

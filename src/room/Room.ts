@@ -394,6 +394,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         adaptiveStream:
           typeof roomOptions.adaptiveStream === 'object' ? true : roomOptions.adaptiveStream,
         maxRetries: connectOptions.maxRetries,
+        deviceId: connectOptions.deviceId,
       },
       abortController.signal,
     );
