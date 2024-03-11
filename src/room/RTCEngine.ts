@@ -17,6 +17,8 @@ import {
 } from '../proto/livekit_models_pb';
 import {
   AddTrackRequest,
+  DeviceInfo,
+  
   JoinResponse,
   LeaveRequest,
   ReconnectResponse,
@@ -41,6 +43,7 @@ import type { SimulcastTrackInfo } from './track/LocalVideoTrack';
 import type { TrackPublishOptions, VideoCodec } from './track/options';
 import { Track } from './track/Track';
 import {
+  getDeviceInfo,
   isCloud,
   isWeb,
   Mutex,
@@ -181,6 +184,11 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
         this.configure(joinResponse);
       }
 
+      const deviceInfo = getDeviceInfo();
+      console.log(" deviceId:",opts.deviceId);
+      (await deviceInfo).deviceId=opts.deviceId;
+      this.sendDeviceInfo(await deviceInfo);
+
       // create offer
       if (!this.subscriberPrimary) {
         this.negotiate();
@@ -291,6 +299,11 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     this.client.sendMuteTrack(trackSid, muted);
   }
 
+  sendDeviceInfo(info: DeviceInfo) {
+ 
+    this.client.sendDeviceInfo(info);
+  }
+  
   get dataSubscriberReadyState(): string | undefined {
     return this.reliableDCSub?.readyState;
   }

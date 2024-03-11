@@ -85,6 +85,7 @@ const appActions = {
 
     const connectOpts: RoomConnectOptions = {
       autoSubscribe: autoSubscribe,
+      deviceId: "abcd123" ,
     };
     if (forceTURN) {
       connectOpts.rtcConfig = {
