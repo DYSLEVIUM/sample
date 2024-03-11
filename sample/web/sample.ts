@@ -90,7 +90,6 @@ const appActions = {
     }
 
     let codecChosen = (<HTMLSelectElement>$('preferred-codec')).value;
-    console.log( "bhuwan codec" , codecChosen);
     switch (codecChosen) {
       case 'vp8':
         preferredCodec = 'vp8';
