@@ -64,7 +64,7 @@ const appActions = {
     const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
-    const preferredCodec = 'vp8' as VideoCodec;
+    let preferredCodec = 'vp8' as VideoCodec;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
     let q = VideoPresets.h720.resolution;
@@ -88,6 +88,21 @@ const appActions = {
       default:
         break;
     }
+
+    let codecChosen = (<HTMLSelectElement>$('preferred-codec')).value;
+    console.log( "bhuwan codec" , codecChosen);
+    switch (codecChosen) {
+      case 'vp8':
+        preferredCodec = 'vp8';
+        break;
+      case 'h264':
+        preferredCodec = 'h264';
+        break;
+      default:
+        break;
+    }
+
+
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token);
 
@@ -97,7 +112,7 @@ const appActions = {
       publishDefaults: {
         simulcast,
         videoSimulcastLayers: [VideoPresets.h90, VideoPresets.h216],
-        videoCodec: preferredCodec || 'vp8',
+        videoCodec: preferredCodec
       },
       videoCaptureDefaults: {
         resolution: q,
