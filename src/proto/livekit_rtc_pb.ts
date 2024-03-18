@@ -88,6 +88,64 @@ proto3.util.setEnumType(CandidateProtocol, "ecprt.CandidateProtocol", [
 ]);
 
 /**
+ * To identify websocket request type for audit logs
+ *
+ * @generated from enum ecprt.RequestType
+ */
+export enum RequestType {
+  /**
+   * @generated from enum value: AddAudioTrack = 0;
+   */
+  AddAudioTrack = 0,
+
+  /**
+   * @generated from enum value: AddVideoTrack = 1;
+   */
+  AddVideoTrack = 1,
+
+  /**
+   * @generated from enum value: Join = 2;
+   */
+  Join = 2,
+
+  /**
+   * @generated from enum value: Leave = 3;
+   */
+  Leave = 3,
+
+  /**
+   * @generated from enum value: MuteAudio = 4;
+   */
+  MuteAudio = 4,
+
+  /**
+   * @generated from enum value: MuteVideo = 5;
+   */
+  MuteVideo = 5,
+
+  /**
+   * @generated from enum value: UnmuteAudio = 6;
+   */
+  UnmuteAudio = 6,
+
+  /**
+   * @generated from enum value: UnmuteVideo = 7;
+   */
+  UnmuteVideo = 7,
+}
+// Retrieve enum metadata with: proto3.getEnumType(RequestType)
+proto3.util.setEnumType(RequestType, "ecprt.RequestType", [
+  { no: 0, name: "AddAudioTrack" },
+  { no: 1, name: "AddVideoTrack" },
+  { no: 2, name: "Join" },
+  { no: 3, name: "Leave" },
+  { no: 4, name: "MuteAudio" },
+  { no: 5, name: "MuteVideo" },
+  { no: 6, name: "UnmuteAudio" },
+  { no: 7, name: "UnmuteVideo" },
+]);
+
+/**
  * @generated from message ecprt.SignalRequest
  */
 export class SignalRequest extends Message<SignalRequest> {
@@ -210,14 +268,6 @@ export class SignalRequest extends Message<SignalRequest> {
      */
     value: Ping;
     case: "pingReq";
-  } | {
-    /**
-     * device info
-     *
-     * @generated from field: ecprt.DeviceInfo device_info = 17;
-     */
-    value: DeviceInfo;
-    case: "deviceInfo";
   } | { case: undefined; value?: undefined } = { case: undefined };
 
   constructor(data?: PartialMessage<SignalRequest>) {
@@ -243,7 +293,6 @@ export class SignalRequest extends Message<SignalRequest> {
     { no: 14, name: "ping", kind: "scalar", T: 3 /* ScalarType.INT64 */, oneof: "message" },
     { no: 15, name: "update_metadata", kind: "message", T: UpdateParticipantMetadata, oneof: "message" },
     { no: 16, name: "ping_req", kind: "message", T: Ping, oneof: "message" },
-    { no: 17, name: "device_info", kind: "message", T: DeviceInfo, oneof: "message" },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SignalRequest {
@@ -2484,4 +2533,83 @@ proto3.util.setEnumType(DeviceInfo_SDK, "ecprt.DeviceInfo.SDK", [
   { no: 7, name: "REACT_NATIVE" },
   { no: 8, name: "RUST" },
 ]);
+
+/**
+ * @generated from message ecprt.DeviceNetworkStats
+ */
+export class DeviceNetworkStats extends Message<DeviceNetworkStats> {
+  /**
+   * @generated from field: double Framerate = 1;
+   */
+  Framerate = 0;
+
+  /**
+   * @generated from field: double MOS = 2;
+   */
+  MOS = 0;
+
+  /**
+   * @generated from field: double Latency = 3;
+   */
+  Latency = 0;
+
+  /**
+   * @generated from field: double Jitter = 4;
+   */
+  Jitter = 0;
+
+  /**
+   * @generated from field: double Packet_loss = 5;
+   */
+  PacketLoss = 0;
+
+  /**
+   * @generated from field: double Bitrate_used = 6;
+   */
+  BitrateUsed = 0;
+
+  /**
+   * @generated from field: double Throughput = 7;
+   */
+  Throughput = 0;
+
+  /**
+   * @generated from field: string deviceId = 8;
+   */
+  deviceId = "";
+
+  constructor(data?: PartialMessage<DeviceNetworkStats>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "ecprt.DeviceNetworkStats";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "Framerate", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 2, name: "MOS", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 3, name: "Latency", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 4, name: "Jitter", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 5, name: "Packet_loss", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 6, name: "Bitrate_used", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 7, name: "Throughput", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 8, name: "deviceId", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeviceNetworkStats {
+    return new DeviceNetworkStats().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeviceNetworkStats {
+    return new DeviceNetworkStats().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeviceNetworkStats {
+    return new DeviceNetworkStats().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeviceNetworkStats | PlainMessage<DeviceNetworkStats> | undefined, b: DeviceNetworkStats | PlainMessage<DeviceNetworkStats> | undefined): boolean {
+    return proto3.util.equals(DeviceNetworkStats, a, b);
+  }
+}
 
