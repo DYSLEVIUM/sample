@@ -1,8 +1,11 @@
 import EventEmitter from 'events';
-import { MediaDescription, parse, write } from 'sdp-transform';
+import { parse, write } from 'sdp-transform';
+import type { MediaDescription } from 'sdp-transform';
 import { debounce } from 'ts-debounce';
 import log from '../logger';
 import { NegotiationError } from './errors';
+import { isChromiumBased } from './utils';
+
 
 /** @internal */
 interface TrackBitrateInfo {
@@ -34,9 +37,11 @@ export default class PCTransport extends EventEmitter {
 
   onOffer?: (offer: RTCSessionDescriptionInit) => void;
 
-  constructor(config?: RTCConfiguration) {
+  constructor(config?: RTCConfiguration, mediaConstraints: Record<string, unknown> = {}) {
     super();
-    this.pc = new RTCPeerConnection(config);
+    this.pc = isChromiumBased()      ? // @ts-expect-error chrome allows additional media constraints to be passed into the RTCPeerConnection constructor
+    new RTCPeerConnection(config, mediaConstraints)
+  : new RTCPeerConnection(config);
   }
 
   get isICEConnected(): boolean {

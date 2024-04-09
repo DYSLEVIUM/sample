@@ -2,7 +2,8 @@ import 'webrtc-adapter';
 import log from '../../logger';
 import type { InternalRoomOptions } from '../../options';
 import { DataPacket, DataPacket_Kind, ParticipantInfo,UserPacket, } from '../../proto/livekit_models_pb';
-import {
+import { ScreenSharePresets, isBackupCodec,VideoPresets} from '../track/options';
+import  {
   AddTrackRequest,
   DataChannelInfo,
   SignalTarget,
@@ -11,37 +12,37 @@ import {
   TrackPublishedResponse,
   TrackUnpublishedResponse,
 } from '../../proto/livekit_rtc_pb';
+import type RTCEngine from '../RTCEngine';
 import { DeviceUnsupportedError, TrackInvalidError, UnexpectedConnectionState } from '../errors';
 import { EngineEvent, ParticipantEvent, TrackEvent } from '../events';
-import type RTCEngine from '../RTCEngine';
 import LocalAudioTrack from '../track/LocalAudioTrack';
 import LocalTrack from '../track/LocalTrack';
 import LocalTrackPublication from '../track/LocalTrackPublication';
 import LocalVideoTrack, { videoLayersFromEncodings } from '../track/LocalVideoTrack';
+import { Track } from '../track/Track';
 import {
   AudioCaptureOptions,
   BackupVideoCodec,
   CreateLocalTracksOptions,
-  isBackupCodec,
   ScreenShareCaptureOptions,
-  ScreenSharePresets,
+
   TrackPublishOptions,
   VideoCaptureOptions,
   VideoEncoding,
 } from '../track/options';
-import { Track } from '../track/Track';
 import { constraintsForOptions, mergeDefaultOptions } from '../track/utils';
 import type { DataPublishOptions } from '../types';
 import { Future, isFireFox, isSafari, isWeb, supportsAV1 } from '../utils';
 import Participant from './Participant';
-import { ParticipantTrackPermission, trackPermissionToProto } from './ParticipantTrackPermission';
+import { trackPermissionToProto } from './ParticipantTrackPermission';
+import type { ParticipantTrackPermission } from './ParticipantTrackPermission';
+import RemoteParticipant from './RemoteParticipant';
 import {
   computeTrackBackupEncodings,
   computeVideoEncodings,
   mediaTrackToLocalTrack,
   determineAppropriateEncoding,
 } from './publishUtils';
-import RemoteParticipant from './RemoteParticipant';
 
 export default class LocalParticipant extends Participant {
   audioTracks: Map<string, LocalTrackPublication>;
@@ -169,8 +170,11 @@ export default class LocalParticipant extends Participant {
   };
 
   private handleDisconnected = () => {
-    this.reconnectFuture?.reject?.('Got disconnected during publishing attempt');
-    this.reconnectFuture = undefined;
+    if (this.reconnectFuture) {
+      this.reconnectFuture.promise.catch((e) => log.warn(e));
+      this.reconnectFuture?.reject?.('Got disconnected during reconnection attempt');
+      this.reconnectFuture = undefined;
+    }
   };
 
   /**
@@ -642,8 +646,16 @@ export default class LocalParticipant extends Participant {
       try {
         dims = await track.waitForDimensions();
       } catch (e) {
+        // use defaults, it's quite painful for congestion control without simulcast
+        // so using default dims according to publish settings
+        const defaultRes =
+          this.roomOptions.videoCaptureDefaults?.resolution ?? VideoPresets.h720.resolution;
+        dims = {
+          width: defaultRes.width,
+          height: defaultRes.height,
+        };
         // log failure
-        log.error('could not determine track dimensions');
+        log.error('could not determine track dimensions, using defaults', dims);
       }
       // width and height should be defined for video
       req.width = dims.width;
@@ -651,8 +663,8 @@ export default class LocalParticipant extends Participant {
       // for svc codecs, disable simulcast and use vp8 for backup codec
       if (track instanceof LocalVideoTrack) {
         if (opts?.videoCodec === 'av1') {
-          // set scalabilityMode to 'L3T3' by default
-          opts.scalabilityMode = opts.scalabilityMode ?? 'L3T3';
+          // set scalabilityMode to 'L3T3_KEY' by default
+          opts.scalabilityMode = opts.scalabilityMode ?? 'L3T3_KEY';
         }
 
         // set up backup
@@ -666,12 +678,24 @@ export default class LocalParticipant extends Participant {
               new SimulcastCodec({
               codec: opts.videoCodec,
               cid: track.mediaStreamTrack.id,
-              enableSimulcastLayers: true,
+              
               }),
               new SimulcastCodec({
               codec: opts.backupCodec.codec,
               cid: '',
-              enableSimulcastLayers: true,
+             
+            }),
+          ];
+        } else if (opts.videoCodec) {
+          // pass codec info to sfu so it can prefer codec for the client which don't support
+          // setCodecPreferences
+          req.simulcastCodecs = [ 
+            
+            new SimulcastCodec
+           ({
+              codec: opts.videoCodec,
+              cid: track.mediaStreamTrack.id,
+             
             }),
           ];
         }
@@ -701,7 +725,7 @@ export default class LocalParticipant extends Participant {
         },
       ];
     }
-
+    
     if (!this.engine || this.engine.isClosed) {
       throw new UnexpectedConnectionState('cannot publish track when not connected');
     }
@@ -796,7 +820,7 @@ export default class LocalParticipant extends Participant {
         {
           codec: opts.videoCodec,
           cid: simulcastTrack.mediaStreamTrack.id,
-          enableSimulcastLayers: opts.simulcast,
+          
         },
       ],
     });
@@ -842,6 +866,16 @@ export default class LocalParticipant extends Participant {
     track.off(TrackEvent.UpstreamPaused, this.onTrackUpstreamPaused);
     track.off(TrackEvent.UpstreamResumed, this.onTrackUpstreamResumed);
 
+    const trackSender = track.sender;
+    track.sender = undefined;
+
+    // when pauseUpstream is used, the transceiver is stopped locally and will
+    // not be correctly removed, so we must mitigate it and replace it back to
+    // the original track, while keeping publisherMute to true
+    if (track.isUpstreamPaused && track.mediaStreamTrack && trackSender) {
+      await trackSender.replaceTrack(track.mediaStreamTrack);
+    }
+
     if (stopOnUnpublish === undefined) {
       stopOnUnpublish = this.roomOptions?.stopLocalTrackOnUnpublish ?? true;
     }
@@ -850,8 +884,7 @@ export default class LocalParticipant extends Participant {
     }
 
     let negotiationNeeded = false;
-    const trackSender = track.sender;
-    track.sender = undefined;
+    
     if (
       this.engine.publisher &&
       this.engine.publisher.pc.connectionState !== 'closed' &&
@@ -1029,13 +1062,15 @@ export default class LocalParticipant extends Participant {
   }
 
   /** @internal */
-  updateInfo(info: ParticipantInfo) {
+  updateInfo(info: ParticipantInfo): boolean {
     if (info.sid !== this.sid) {
       // drop updates that specify a wrong sid.
       // the sid for local participant is only explicitly set on join and full reconnect
-      return;
+      return false;
     }
-    super.updateInfo(info);
+    if (!super.updateInfo(info)) {
+      return false;
+    }
 
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
@@ -1114,7 +1149,9 @@ export default class LocalParticipant extends Participant {
           }
         }
       }
+      
     });
+    return true;
   }
 
   private updateTrackSubscriptionPermissions = () => {

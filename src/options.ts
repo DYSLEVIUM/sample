@@ -113,6 +113,7 @@ export interface InternalRoomConnectOptions {
 
   /** specifies how often an initial join connection is allowed to retry (only applicable if server is not reachable) */
   maxRetries: number;
+
 }
 
 /**
