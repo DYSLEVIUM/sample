@@ -64,9 +64,44 @@ const appActions = {
     const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
-    const preferredCodec = 'vp8' as VideoCodec;
+    let preferredCodec = 'vp8' as VideoCodec;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
+    let q = VideoPresets.h720.resolution;
+    const quality = (<HTMLSelectElement>$('preferred-quality')).value;
+    switch (quality) {
+      case '1080':
+        q = VideoPresets.h1080.resolution;
+        break;
+      case '720':
+        q = VideoPresets.h720.resolution;
+        break;
+      case '540':
+        q = VideoPresets.h540.resolution;
+        break;
+      case '360':
+        q = VideoPresets.h360.resolution;
+        break;
+      case '180':
+          q = VideoPresets.h180.resolution;
+        break;
+      default:
+        break;
+    }
+
+    let codecChosen = (<HTMLSelectElement>$('preferred-codec')).value;
+    switch (codecChosen) {
+      case 'vp8':
+        preferredCodec = 'vp8';
+        break;
+      case 'h264':
+        preferredCodec = 'h264';
+        break;
+      default:
+        break;
+    }
+
+
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token);
 
@@ -76,10 +111,10 @@ const appActions = {
       publishDefaults: {
         simulcast,
         videoSimulcastLayers: [VideoPresets.h90, VideoPresets.h216],
-        videoCodec: preferredCodec || 'vp8',
+        videoCodec: preferredCodec
       },
       videoCaptureDefaults: {
-        resolution: VideoPresets.h720.resolution,
+        resolution: q,
       },
     };
 
