@@ -1,18 +1,21 @@
-import log from '../../logger';
 import { TrackEvent } from '../events';
 import { computeBitrate, monitorFrequency } from '../stats';
 import type { AudioSenderStats } from '../stats';
-import { isWeb } from '../utils';
+import type { LoggerOptions } from '../types';
+import { isWeb, unwrapConstraint } from '../utils';
 import LocalTrack from './LocalTrack';
-import type { AudioCaptureOptions } from './options';
 import { Track } from './Track';
+import type { AudioCaptureOptions } from './options';
+import type { AudioProcessorOptions, TrackProcessor } from './processor/types';
 import { constraintsForOptions, detectSilence } from './utils';
 
-export default class LocalAudioTrack extends LocalTrack {
+export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
   /** @internal */
   stopOnMute: boolean = false;
 
   private prevStats?: AudioSenderStats;
+
+  protected processor?: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> | undefined;
 
   /**
    *
@@ -24,27 +27,41 @@ export default class LocalAudioTrack extends LocalTrack {
     mediaTrack: MediaStreamTrack,
     constraints?: MediaTrackConstraints,
     userProvidedTrack = true,
+    audioContext?: AudioContext,
+    loggerOptions?: LoggerOptions,
   ) {
-    super(mediaTrack, Track.Kind.Audio, constraints, userProvidedTrack);
+    super(mediaTrack, Track.Kind.Audio, constraints, userProvidedTrack, loggerOptions);
+    this.audioContext = audioContext;
     this.checkForSilence();
   }
 
-  async setDeviceId(deviceId: ConstrainDOMString) {
-    if (this.constraints.deviceId === deviceId) {
-      return;
+  async setDeviceId(deviceId: ConstrainDOMString): Promise<boolean> {
+    if (
+      this._constraints.deviceId === deviceId &&
+      this._mediaStreamTrack.getSettings().deviceId === unwrapConstraint(deviceId)
+    ) {
+      return true;
     }
-    this.constraints.deviceId = deviceId;
+    this._constraints.deviceId = deviceId;
     if (!this.isMuted) {
       await this.restartTrack();
     }
+    return (
+      this.isMuted || unwrapConstraint(deviceId) === this._mediaStreamTrack.getSettings().deviceId
+    );
   }
 
-  async mute(): Promise<LocalAudioTrack> {
+  async mute(): Promise<typeof this> {
     const unlock = await this.muteLock.lock();
     try {
+      if (this.isMuted) {
+        this.log.debug('Track already muted', this.logContext);
+        return this;
+      }
+
       // disabled special handling as it will cause BT headsets to switch communication modes
       if (this.source === Track.Source.Microphone && this.stopOnMute && !this.isUserProvided) {
-        log.debug('stopping mic track');
+        this.log.debug('stopping mic track', this.logContext);
         // also stop the track, so that microphone indicator is turned off
         this._mediaStreamTrack.stop();
       }
@@ -55,15 +72,25 @@ export default class LocalAudioTrack extends LocalTrack {
     }
   }
 
-  async unmute(): Promise<LocalAudioTrack> {
+  async unmute(): Promise<typeof this> {
     const unlock = await this.muteLock.lock();
     try {
+      if (!this.isMuted) {
+        this.log.debug('Track already unmuted', this.logContext);
+        return this;
+      }
+
+      const deviceHasChanged =
+        this._constraints.deviceId &&
+        this._mediaStreamTrack.getSettings().deviceId !==
+          unwrapConstraint(this._constraints.deviceId);
+
       if (
         this.source === Track.Source.Microphone &&
-        (this.stopOnMute || this._mediaStreamTrack.readyState === 'ended') &&
+        (this.stopOnMute || this._mediaStreamTrack.readyState === 'ended' || deviceHasChanged) &&
         !this.isUserProvided
       ) {
-        log.debug('reacquiring mic track');
+        this.log.debug('reacquiring mic track', this.logContext);
         await this.restartTrack();
       }
       await super.unmute();
@@ -85,7 +112,7 @@ export default class LocalAudioTrack extends LocalTrack {
     await this.restart(constraints);
   }
 
-  protected async restart(constraints?: MediaTrackConstraints): Promise<LocalTrack> {
+  protected async restart(constraints?: MediaTrackConstraints): Promise<typeof this> {
     const track = await super.restart(constraints);
     this.checkForSilence();
     return track;
@@ -114,7 +141,7 @@ export default class LocalAudioTrack extends LocalTrack {
     try {
       stats = await this.getSenderStats();
     } catch (e) {
-      log.error('could not get audio sender stats', { error: e });
+      this.log.error('could not get audio sender stats', { ...this.logContext, error: e });
       return;
     }
 
@@ -124,6 +151,44 @@ export default class LocalAudioTrack extends LocalTrack {
 
     this.prevStats = stats;
   };
+
+  async setProcessor(processor: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions>) {
+    const unlock = await this.processorLock.lock();
+    try {
+      if (!this.audioContext) {
+        throw Error(
+          'Audio context needs to be set on LocalAudioTrack in order to enable processors',
+        );
+      }
+      if (this.processor) {
+        await this.stopProcessor();
+      }
+
+      const processorOptions = {
+        kind: this.kind,
+        track: this._mediaStreamTrack,
+        audioContext: this.audioContext,
+      };
+      this.log.debug(`setting up audio processor ${processor.name}`, this.logContext);
+
+      await processor.init(processorOptions);
+      this.processor = processor;
+      if (this.processor.processedTrack) {
+        await this.sender?.replaceTrack(this.processor.processedTrack);
+      }
+      this.emit(TrackEvent.TrackProcessorUpdate, this.processor);
+    } finally {
+      unlock();
+    }
+  }
+
+  /**
+   * @internal
+   * @experimental
+   */
+  setAudioContext(audioContext: AudioContext | undefined) {
+    this.audioContext = audioContext;
+  }
 
   async getSenderStats(): Promise<AudioSenderStats | undefined> {
     if (!this.sender?.getStats) {
@@ -154,7 +219,7 @@ export default class LocalAudioTrack extends LocalTrack {
     const trackIsSilent = await detectSilence(this);
     if (trackIsSilent) {
       if (!this.isMuted) {
-        log.warn('silence detected on local audio track');
+        this.log.warn('silence detected on local audio track', this.logContext);
       }
       this.emit(TrackEvent.AudioSilenceDetected);
     }

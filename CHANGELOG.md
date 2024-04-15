@@ -1,5 +1,676 @@
 # Change Log
 
+## 2.0.10
+
+### Patch Changes
+
+- Create processorElement before processor init - [#1091](https://github.com/livekit/client-sdk-js/pull/1091) ([@xdef](https://github.com/xdef))
+
+- Improve VideoSenderStats with FPS and targetBitrate - [#1090](https://github.com/livekit/client-sdk-js/pull/1090) ([@davidzhao](https://github.com/davidzhao))
+
+## 2.0.9
+
+### Patch Changes
+
+- Fix publishing for Chrome M124. Read capabilities from RtcRTPReceiver instead of from sender - [#1088](https://github.com/livekit/client-sdk-js/pull/1088) ([@lukasIO](https://github.com/lukasIO))
+
+- Add keyring size to keyprovider options - [#1085](https://github.com/livekit/client-sdk-js/pull/1085) ([@lukasIO](https://github.com/lukasIO))
+
+## 2.0.8
+
+### Patch Changes
+
+- Set degradationPreference to maintain-resolution for screen share tracks - [#1080](https://github.com/livekit/client-sdk-js/pull/1080) ([@davidzhao](https://github.com/davidzhao))
+
+- Export browser parser - [#1074](https://github.com/livekit/client-sdk-js/pull/1074) ([@lukasIO](https://github.com/lukasIO))
+
+- Don't restart track when processor stops - [#1081](https://github.com/livekit/client-sdk-js/pull/1081) ([@lukasIO](https://github.com/lukasIO))
+
+- Handle SVC compatibility with Safari and Chrome prior to M113 - [#1079](https://github.com/livekit/client-sdk-js/pull/1079) ([@davidzhao](https://github.com/davidzhao))
+
+- Add sanity check for duplicate cryptors and log more errors - [#1082](https://github.com/livekit/client-sdk-js/pull/1082) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix quality issues with SVC screenshares - [#1077](https://github.com/livekit/client-sdk-js/pull/1077) ([@davidzhao](https://github.com/davidzhao))
+
+- Export SubscriptionError from protocol - [#1075](https://github.com/livekit/client-sdk-js/pull/1075) ([@davidzhao](https://github.com/davidzhao))
+
+## 2.0.7
+
+### Patch Changes
+
+- Recreate engine before trying to connect to another region - [#1071](https://github.com/livekit/client-sdk-js/pull/1071) ([@lukasIO](https://github.com/lukasIO))
+
+- Add experimental preferCurrentTab screen share capture option - [#1070](https://github.com/livekit/client-sdk-js/pull/1070) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix FPS and latency issues with VP9 screenshare - [#1069](https://github.com/livekit/client-sdk-js/pull/1069) ([@davidzhao](https://github.com/davidzhao))
+
+## 2.0.6
+
+### Patch Changes
+
+- Read deviceId from source mediastreamtrack - [#1068](https://github.com/livekit/client-sdk-js/pull/1068) ([@lukasIO](https://github.com/lukasIO))
+
+- Replace protocol submodule with npm package - [#1067](https://github.com/livekit/client-sdk-js/pull/1067) ([@lukasIO](https://github.com/lukasIO))
+
+- Demote facingMode logs to trace - [#1065](https://github.com/livekit/client-sdk-js/pull/1065) ([@lukasIO](https://github.com/lukasIO))
+
+## 2.0.5
+
+### Patch Changes
+
+- Set logExtension on all livekit loggers if not specified - [#1061](https://github.com/livekit/client-sdk-js/pull/1061) ([@lukasIO](https://github.com/lukasIO))
+
+- Don't treat PC config error as SignalReconnectError - [#1052](https://github.com/livekit/client-sdk-js/pull/1052) ([@lukasIO](https://github.com/lukasIO))
+
+- Align logContext fields with server naming - [#1062](https://github.com/livekit/client-sdk-js/pull/1062) ([@lukasIO](https://github.com/lukasIO))
+
+- Remove some noisy e2ee logs - [#1057](https://github.com/livekit/client-sdk-js/pull/1057) ([@lukasIO](https://github.com/lukasIO))
+
+- Throw error if trying to connect with a non-compatible browser - [#1064](https://github.com/livekit/client-sdk-js/pull/1064) ([@davidliu](https://github.com/davidliu))
+
+## 2.0.4
+
+### Patch Changes
+
+- Normalize audiooutput device id for webAudio mode - [#1051](https://github.com/livekit/client-sdk-js/pull/1051) ([@lukasIO](https://github.com/lukasIO))
+
+- Add page leave log - [#1056](https://github.com/livekit/client-sdk-js/pull/1056) ([@lukasIO](https://github.com/lukasIO))
+
+- Add `stopProcessor` param to replaceTrack function - [#1040](https://github.com/livekit/client-sdk-js/pull/1040) ([@lukasIO](https://github.com/lukasIO))
+
+- Set audio context on track as early as possible - [#1053](https://github.com/livekit/client-sdk-js/pull/1053) ([@lukasIO](https://github.com/lukasIO))
+
+- Export logger names to configure fine grained logging - [#1042](https://github.com/livekit/client-sdk-js/pull/1042) ([@lukasIO](https://github.com/lukasIO))
+
+- Emit Restarting as soon as both signal and pc connection are severed - [#1047](https://github.com/livekit/client-sdk-js/pull/1047) ([@lukasIO](https://github.com/lukasIO))
+
+- Add VideoPreset overload for more granular options settings - [#1044](https://github.com/livekit/client-sdk-js/pull/1044) ([@lukasIO](https://github.com/lukasIO))
+
+- Send worker loglevel in init message - [#1045](https://github.com/livekit/client-sdk-js/pull/1045) ([@lukasIO](https://github.com/lukasIO))
+
+- Only perform mute/unmute actions if necessary - [#1048](https://github.com/livekit/client-sdk-js/pull/1048) ([@lukasIO](https://github.com/lukasIO))
+
+- Make sure a 401 ConnectionError is thrown on invalid token permissions - [#1049](https://github.com/livekit/client-sdk-js/pull/1049) ([@lukasIO](https://github.com/lukasIO))
+
+## 2.0.3
+
+### Patch Changes
+
+- Fix transceiver reuse for e2ee and add more verbose e2ee debug logging - [#1041](https://github.com/livekit/client-sdk-js/pull/1041) ([@lukasIO](https://github.com/lukasIO))
+
+- Make sure only one track restart request is processed at a time - [#1039](https://github.com/livekit/client-sdk-js/pull/1039) ([@lukasIO](https://github.com/lukasIO))
+
+- Emit event when track processor changes - [#1036](https://github.com/livekit/client-sdk-js/pull/1036) ([@lukasIO](https://github.com/lukasIO))
+
+## 2.0.2
+
+### Patch Changes
+
+- Ignore unknown fields in protobuf parsing - [#1029](https://github.com/livekit/client-sdk-js/pull/1029) ([@lukasIO](https://github.com/lukasIO))
+
+- Stronger kind type for Tracks to improve processor support - [#1033](https://github.com/livekit/client-sdk-js/pull/1033) ([@lukasIO](https://github.com/lukasIO))
+
+- Verify participant identity matching when unsetting transformer for e2ee - [#1032](https://github.com/livekit/client-sdk-js/pull/1032) ([@lukasIO](https://github.com/lukasIO))
+
+## 2.0.1
+
+### Patch Changes
+
+- Sync disabled track sids - [#1025](https://github.com/livekit/client-sdk-js/pull/1025) ([@lukasIO](https://github.com/lukasIO))
+
+- Remove googConstraints from RTCPeerConnection constructor - [#1022](https://github.com/livekit/client-sdk-js/pull/1022) ([@lukasIO](https://github.com/lukasIO))
+
+## 2.0.0
+
+### Major Changes
+
+- Remove experimental hint for webAudioMix and enable it by default - [#1013](https://github.com/livekit/client-sdk-js/pull/1013) ([@lukasIO](https://github.com/lukasIO))
+
+- Add support for async room sid. Removes `room.sid` and replaces it with `await room.getSid()`. - [#983](https://github.com/livekit/client-sdk-js/pull/983) ([@lukasIO](https://github.com/lukasIO))
+
+- Change publishData signature - [#946](https://github.com/livekit/client-sdk-js/pull/946) ([@lukasIO](https://github.com/lukasIO))
+
+- Remote `OFF` option from VideoQuality enum - [#985](https://github.com/livekit/client-sdk-js/pull/985) ([@lukasIO](https://github.com/lukasIO))
+
+- Rename `participant.tracks` to `participant.trackPublications` - [#947](https://github.com/livekit/client-sdk-js/pull/947) ([@lukasIO](https://github.com/lukasIO))
+
+- Rename getTrack to getTrackPublications and participants to remoteParticipants - [#945](https://github.com/livekit/client-sdk-js/pull/945) ([@lukasIO](https://github.com/lukasIO))
+
+- Remove previously deprecated APIs - [#948](https://github.com/livekit/client-sdk-js/pull/948) ([@lukasIO](https://github.com/lukasIO))
+
+### Minor Changes
+
+- Don't emit RoomEvent.Reconnecting for resumes - [#1012](https://github.com/livekit/client-sdk-js/pull/1012) ([@lukasIO](https://github.com/lukasIO))
+
+### Patch Changes
+
+- Update participant info when getting participant - [#1009](https://github.com/livekit/client-sdk-js/pull/1009) ([@lukasIO](https://github.com/lukasIO))
+
+- Log websocket close code - [#1002](https://github.com/livekit/client-sdk-js/pull/1002) ([@lukasIO](https://github.com/lukasIO))
+
+- Avoid throwing unhandled error for simulcast codec tracks - [#999](https://github.com/livekit/client-sdk-js/pull/999) ([@lukasIO](https://github.com/lukasIO))
+
+- Get sid from roomInfo for logContext - [#991](https://github.com/livekit/client-sdk-js/pull/991) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.11
+
+### Patch Changes
+
+- Resume audio playback status when switching back to tab on iOS - [`c247f7d67c423f5d7ea09549cd2eb44a95762cbb`](https://github.com/livekit/client-sdk-js/commit/c247f7d67c423f5d7ea09549cd2eb44a95762cbb) ([@lukasIO](https://github.com/lukasIO))
+
+- Buffer room events during reconnect - [`f83124d881dc962ff940b806c45da4d1b8c0b86e`](https://github.com/livekit/client-sdk-js/commit/f83124d881dc962ff940b806c45da4d1b8c0b86e) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix state handling issue in SignalClient - [`1200535d0c87d127cebd0b07330dd0a688843287`](https://github.com/livekit/client-sdk-js/commit/1200535d0c87d127cebd0b07330dd0a688843287) ([@holzgeist](https://github.com/holzgeist))
+
+## 1.15.10
+
+### Patch Changes
+
+- Perform full reconnect on leave during reconnect - [`dc95472cca12ad3b150e824da8e3f7e387de0e12`](https://github.com/livekit/client-sdk-js/commit/dc95472cca12ad3b150e824da8e3f7e387de0e12) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.9
+
+### Patch Changes
+
+- Fix for recovering SignalChannel closing during reconnect - [`d1fa7554630d9f9fd787784b154eb460c8568894`](https://github.com/livekit/client-sdk-js/commit/d1fa7554630d9f9fd787784b154eb460c8568894) ([@lukasIO](https://github.com/lukasIO))
+
+- Log server offer sdp - [`6cd3ae5f0c3c30ce852d7b3f000f1adf2e08eb96`](https://github.com/livekit/client-sdk-js/commit/6cd3ae5f0c3c30ce852d7b3f000f1adf2e08eb96) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.8
+
+### Patch Changes
+
+- Await unpublish before re-publishing on signal-reconnect - [`eea871c11118ff36a04917dc1008dc9023c662b5`](https://github.com/livekit/client-sdk-js/commit/eea871c11118ff36a04917dc1008dc9023c662b5) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.7
+
+### Patch Changes
+
+- Fix stopping old track in `setMediaStreamTrack` - [#980](https://github.com/livekit/client-sdk-js/pull/980) ([@mpnri](https://github.com/mpnri))
+
+- Add class level configurable logger - [#988](https://github.com/livekit/client-sdk-js/pull/988) ([@lukasIO](https://github.com/lukasIO))
+
+- Default screenshare capture resolution to 1080p - [#972](https://github.com/livekit/client-sdk-js/pull/972) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.15.6
+
+### Patch Changes
+
+- Make sure that processorElement stays muted after attach - [#984](https://github.com/livekit/client-sdk-js/pull/984) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.5
+
+### Patch Changes
+
+- Add receiver video mime type to stats - [#963](https://github.com/livekit/client-sdk-js/pull/963) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Make sure all signal client callbacks are set up for a reconnect - [#966](https://github.com/livekit/client-sdk-js/pull/966) ([@lukasIO](https://github.com/lukasIO))
+
+- Make sure to apply audio output selection when participant is first created - [#968](https://github.com/livekit/client-sdk-js/pull/968) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.4
+
+### Patch Changes
+
+- Add ConnectionQuality.Lost - [#961](https://github.com/livekit/client-sdk-js/pull/961) ([@lukasIO](https://github.com/lukasIO))
+
+- Add isAgent getter on participant - [#960](https://github.com/livekit/client-sdk-js/pull/960) ([@lukasIO](https://github.com/lukasIO))
+
+- Improve auto playback handling - [#958](https://github.com/livekit/client-sdk-js/pull/958) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.3
+
+### Patch Changes
+
+- Prevent backup codec publishing when e2ee is enabled - [#943](https://github.com/livekit/client-sdk-js/pull/943) ([@lukasIO](https://github.com/lukasIO))
+
+- Use enum to track connection state of signal client - [#949](https://github.com/livekit/client-sdk-js/pull/949) ([@lukasIO](https://github.com/lukasIO))
+
+- Disable VP9 for Safari 15, AV1 for Safari (incomplete support) - [#950](https://github.com/livekit/client-sdk-js/pull/950) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.15.2
+
+### Patch Changes
+
+- Make sure no backup codecs are published when e2ee is enabled - [#941](https://github.com/livekit/client-sdk-js/pull/941) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.1
+
+### Patch Changes
+
+- Move PeerConnection logic into PCTransportManager - [#909](https://github.com/livekit/client-sdk-js/pull/909) ([@lukasIO](https://github.com/lukasIO))
+
+- Add `startVideo` method and `RoomEvent.VideoPlaybackStatusChanged` - [#939](https://github.com/livekit/client-sdk-js/pull/939) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.15.0
+
+### Minor Changes
+
+- Enable backup codec by default - [#929](https://github.com/livekit/client-sdk-js/pull/929) ([@lukasIO](https://github.com/lukasIO))
+
+### Patch Changes
+
+- Reset LocalTrack debounced mute when setting new track - [#936](https://github.com/livekit/client-sdk-js/pull/936) ([@davideberlein](https://github.com/davideberlein))
+
+- Make sleep use critical timers - [#934](https://github.com/livekit/client-sdk-js/pull/934) ([@lukasIO](https://github.com/lukasIO))
+
+- Treat all signal messages as ping response - [#933](https://github.com/livekit/client-sdk-js/pull/933) ([@davidzhao](https://github.com/davidzhao))
+
+- Add getStats() to PCTransport - [#927](https://github.com/livekit/client-sdk-js/pull/927) ([@rnakano](https://github.com/rnakano))
+
+## 1.14.4
+
+### Patch Changes
+
+- Correctly apply elementVolume on attach for webaudioMix - [#922](https://github.com/livekit/client-sdk-js/pull/922) ([@lukasIO](https://github.com/lukasIO))
+
+- Simplify multi-codec simulcast usage, backupCodec: true - [#923](https://github.com/livekit/client-sdk-js/pull/923) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.14.3
+
+### Patch Changes
+
+- Update dependency @bufbuild/protobuf to v1.4.1 - [#913](https://github.com/livekit/client-sdk-js/pull/913) ([@renovate](https://github.com/apps/renovate))
+
+- Demote duplicate source log to info - [#917](https://github.com/livekit/client-sdk-js/pull/917) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix reconnect when E2EE is enabled - [#921](https://github.com/livekit/client-sdk-js/pull/921) ([@lukasIO](https://github.com/lukasIO))
+
+- Don't set the autoplay attribute on video elements in Safari - [#918](https://github.com/livekit/client-sdk-js/pull/918) ([@lukasIO](https://github.com/lukasIO))
+
+- Call startAudio when an audio track has been acquired in order to update audio playback status - [#919](https://github.com/livekit/client-sdk-js/pull/919) ([@lukasIO](https://github.com/lukasIO))
+
+- Round start bitrate for svc - [#920](https://github.com/livekit/client-sdk-js/pull/920) ([@cnderrauber](https://github.com/cnderrauber))
+
+## 1.14.2
+
+### Patch Changes
+
+- Use a deepClone util function for CreateLocalTrackOptions - [#906](https://github.com/livekit/client-sdk-js/pull/906) ([@vas11yev1work](https://github.com/vas11yev1work))
+
+- Guard against overriding newly set key when auto-ratcheting - [#895](https://github.com/livekit/client-sdk-js/pull/895) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix Safari reporting wrong initial track resolution - [#898](https://github.com/livekit/client-sdk-js/pull/898) ([@lukasIO](https://github.com/lukasIO))
+
+- Make peerconnection private on PCTransport - [#903](https://github.com/livekit/client-sdk-js/pull/903) ([@lukasIO](https://github.com/lukasIO))
+
+- Improve handling of incompatible published codecs - [#911](https://github.com/livekit/client-sdk-js/pull/911) ([@davidzhao](https://github.com/davidzhao))
+
+- Fix a race in setKeyFromMaterial that would cause keys to be set at the wrong index if several keys were set in quick succession. - [#908](https://github.com/livekit/client-sdk-js/pull/908) ([@dbkr](https://github.com/dbkr))
+
+- Update protocol - [#902](https://github.com/livekit/client-sdk-js/pull/902) ([@lukasIO](https://github.com/lukasIO))
+
+- Add key index to e2e worker log lines - [#904](https://github.com/livekit/client-sdk-js/pull/904) ([@dbkr](https://github.com/dbkr))
+
+- Fix Typescript compilation error in angular setups - [#901](https://github.com/livekit/client-sdk-js/pull/901) ([@pabloFuente](https://github.com/pabloFuente))
+
+- Don't disconnect room before retrying new regions - [#910](https://github.com/livekit/client-sdk-js/pull/910) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.14.1
+
+### Patch Changes
+
+- Handle new format streamId to better sync a/v tracks - [#881](https://github.com/livekit/client-sdk-js/pull/881) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Do not support VP9 publishing for FF - [#894](https://github.com/livekit/client-sdk-js/pull/894) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.14.0
+
+### Minor Changes
+
+- Do not constrain screenshare resolution by default - [#889](https://github.com/livekit/client-sdk-js/pull/889) ([@davidzhao](https://github.com/davidzhao))
+
+### Patch Changes
+
+- Fix vp9 svc failed for screenshare - [#882](https://github.com/livekit/client-sdk-js/pull/882) ([@cnderrauber](https://github.com/cnderrauber))
+
+## 1.13.4
+
+### Patch Changes
+
+- Log connection error message on region retries - [#879](https://github.com/livekit/client-sdk-js/pull/879) ([@lukasIO](https://github.com/lukasIO))
+
+- Wait for publisher connection after reconnects - [#875](https://github.com/livekit/client-sdk-js/pull/875) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.13.3
+
+### Patch Changes
+
+- Disable opus RED when using E2EE - [#858](https://github.com/livekit/client-sdk-js/pull/858) ([@lukasIO](https://github.com/lukasIO))
+
+- Make audio analyser cleanup function async - [#867](https://github.com/livekit/client-sdk-js/pull/867) ([@kand193](https://github.com/kand193))
+
+- Strip SIF trailer before enqueuing it - [#868](https://github.com/livekit/client-sdk-js/pull/868) ([@lukasIO](https://github.com/lukasIO))
+
+- Update h360 video preset - [#872](https://github.com/livekit/client-sdk-js/pull/872) ([@davidzhao](https://github.com/davidzhao))
+
+- Fix infinite metadata loop when canUpdateOwnMetadata is granted - [#871](https://github.com/livekit/client-sdk-js/pull/871) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.13.2
+
+### Patch Changes
+
+- Fix opus RED publishing option not taking effect - [#856](https://github.com/livekit/client-sdk-js/pull/856) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.13.1
+
+### Patch Changes
+
+- Remove legacy code paths for tracks arriving before participant info - [#854](https://github.com/livekit/client-sdk-js/pull/854) ([@lukasIO](https://github.com/lukasIO))
+
+- Make KeyProvider and ParticipantKeyHandler work consistently for shared key and sender key scenarios (e2ee) - [#850](https://github.com/livekit/client-sdk-js/pull/850) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix track processor blips when restarting tracks - [#842](https://github.com/livekit/client-sdk-js/pull/842) ([@lukasIO](https://github.com/lukasIO))
+
+- Correctly import livekit logger in facingMode helper - [#855](https://github.com/livekit/client-sdk-js/pull/855) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.13.0
+
+### Minor Changes
+
+- Convert pauseUpstream and resumeUpstream to regular class methods - [#830](https://github.com/livekit/client-sdk-js/pull/830) ([@lukasIO](https://github.com/lukasIO))
+
+### Patch Changes
+
+- Add websocketTimeout to RoomConnectOptions - [#834](https://github.com/livekit/client-sdk-js/pull/834) ([@lukasIO](https://github.com/lukasIO))
+
+- Add support for get/setVolume in react-native - [#833](https://github.com/livekit/client-sdk-js/pull/833) ([@davidliu](https://github.com/davidliu))
+
+- Refine pause/resumeUpstream, setProcessor for multi-codecs - [#829](https://github.com/livekit/client-sdk-js/pull/829) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Force enable dynacast when backupCodec is enabled - [#839](https://github.com/livekit/client-sdk-js/pull/839) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Fix video device switch not working for backup codec - [#824](https://github.com/livekit/client-sdk-js/pull/824) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Update dependency webrtc-adapter to v8.2.3 - [#819](https://github.com/livekit/client-sdk-js/pull/819) ([@renovate](https://github.com/apps/renovate))
+
+- Allow ArrayBuffers to be used for ExternalKeyProvider keys - [#844](https://github.com/livekit/client-sdk-js/pull/844) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix passing maxRetries connectOption to RTCEngine - [#838](https://github.com/livekit/client-sdk-js/pull/838) ([@mpnri](https://github.com/mpnri))
+
+- Add support for audio processors - [#822](https://github.com/livekit/client-sdk-js/pull/822) ([@lukasIO](https://github.com/lukasIO))
+
+- Ability to simulate subscriber-bandwidth - [#835](https://github.com/livekit/client-sdk-js/pull/835) ([@davidzhao](https://github.com/davidzhao))
+
+- Fix getDevices permissions when no kind is supplied - [#811](https://github.com/livekit/client-sdk-js/pull/811) ([@Talljoe](https://github.com/Talljoe))
+
+- Fix setTrackMute ignored simulcast-codec - [#827](https://github.com/livekit/client-sdk-js/pull/827) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Add support for server injected frame trailer being passed down - [#812](https://github.com/livekit/client-sdk-js/pull/812) ([@lukasIO](https://github.com/lukasIO))
+
+- Add ceil of width and height when emitting UpdateTrackSettings - [#846](https://github.com/livekit/client-sdk-js/pull/846) ([@HermanBilous](https://github.com/HermanBilous))
+
+- Setup signal callbacks before connecting signal - [#832](https://github.com/livekit/client-sdk-js/pull/832) ([@lukasIO](https://github.com/lukasIO))
+
+- Ensure play requests are invoked synchronously in startAudio - [#841](https://github.com/livekit/client-sdk-js/pull/841) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.12.3
+
+### Patch Changes
+
+- Fix missing ScalabilityMode import when using SVC - [#816](https://github.com/livekit/client-sdk-js/pull/816) ([@davidzhao](https://github.com/davidzhao))
+
+- Adjust default bitrates according to VMAF results - [#817](https://github.com/livekit/client-sdk-js/pull/817) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.12.2
+
+### Patch Changes
+
+- Set a default resolution for createLocalScreenTracks - [#796](https://github.com/livekit/client-sdk-js/pull/796) ([@lukasIO](https://github.com/lukasIO))
+
+- Debounce reacting to mediastreamtrack mute events - [#809](https://github.com/livekit/client-sdk-js/pull/809) ([@lukasIO](https://github.com/lukasIO))
+
+- Remove duplicate options being passed to publish - [#794](https://github.com/livekit/client-sdk-js/pull/794) ([@lukasIO](https://github.com/lukasIO))
+
+- Replace ts-proto with protobuf-es - [#700](https://github.com/livekit/client-sdk-js/pull/700) ([@lukasIO](https://github.com/lukasIO))
+
+- Do not attempt to restart screen share tracks when re-publishing after reconnect - [#802](https://github.com/livekit/client-sdk-js/pull/802) ([@lukasIO](https://github.com/lukasIO))
+
+- Add failureTolerance to KeyProvider options (E2EE) - [#810](https://github.com/livekit/client-sdk-js/pull/810) ([@lukasIO](https://github.com/lukasIO))
+
+- Remove dummy audio element on disconnect - [#793](https://github.com/livekit/client-sdk-js/pull/793) ([@lukasIO](https://github.com/lukasIO))
+
+- Add video options to ScreenShareCaptureOptions - [#792](https://github.com/livekit/client-sdk-js/pull/792) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix iOS browser parser check, add more test cases - [#798](https://github.com/livekit/client-sdk-js/pull/798) ([@lukasIO](https://github.com/lukasIO))
+
+- Improved connection checker with more details about ICE candidates - [#806](https://github.com/livekit/client-sdk-js/pull/806) ([@davidzhao](https://github.com/davidzhao))
+
+- Throw connection error immediately if unauthorized instead of trying alternative URLs - [#804](https://github.com/livekit/client-sdk-js/pull/804) ([@lukasIO](https://github.com/lukasIO))
+
+- Revert event emitter lib usage to 'events' - [#807](https://github.com/livekit/client-sdk-js/pull/807) ([@lukasIO](https://github.com/lukasIO))
+
+- Support for region pinning with LiveKit Cloud using prepareConnection - [#783](https://github.com/livekit/client-sdk-js/pull/783) ([@davidzhao](https://github.com/davidzhao))
+
+- Ensure we do not replace http unless it's in the scheme - [#805](https://github.com/livekit/client-sdk-js/pull/805) ([@davidzhao](https://github.com/davidzhao))
+
+- Stop tracks if publishing fails with `setTrackEnabled` - [#799](https://github.com/livekit/client-sdk-js/pull/799) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.12.1
+
+### Patch Changes
+
+- Allow specifying audio source for participant.setVolume API - [#780](https://github.com/livekit/client-sdk-js/pull/780) ([@lukasIO](https://github.com/lukasIO))
+
+- Add iOS detection to browser parser and only use audio element workar… - [#785](https://github.com/livekit/client-sdk-js/pull/785) ([@lukasIO](https://github.com/lukasIO))
+
+- Skip decryption if maximum ratchet accounts have exceeded until a new key is set - [#786](https://github.com/livekit/client-sdk-js/pull/786) ([@lukasIO](https://github.com/lukasIO))
+
+- Set element Id for dummy audio element - [#778](https://github.com/livekit/client-sdk-js/pull/778) ([@lukasIO](https://github.com/lukasIO))
+
+- Update constraints with actually selected deviceId on track creation - [#773](https://github.com/livekit/client-sdk-js/pull/773) ([@toger5](https://github.com/toger5))
+
+- Always resume AudioContext if in suspended state - [#779](https://github.com/livekit/client-sdk-js/pull/779) ([@lukasIO](https://github.com/lukasIO))
+
+- Only check for setSinkId support on AudioContext if webaudiomix is enabled - [#787](https://github.com/livekit/client-sdk-js/pull/787) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.12.0
+
+### Minor Changes
+
+- Experimental end-to-end encryption support - [#557](https://github.com/livekit/client-sdk-js/pull/557) ([@lukasIO](https://github.com/lukasIO))
+
+### Patch Changes
+
+- Update adaptive stream dimensions when a remote track is being detached - [#766](https://github.com/livekit/client-sdk-js/pull/766) ([@burzomir](https://github.com/burzomir))
+
+- Fixed missed event listeners on MediaStreamTrack - [#768](https://github.com/livekit/client-sdk-js/pull/768) ([@davidzhao](https://github.com/davidzhao))
+
+- Forward signal events through engine - [#772](https://github.com/livekit/client-sdk-js/pull/772) ([@lukasIO](https://github.com/lukasIO))
+
+- Emit activeDeviceChanged when publishing local track - [#759](https://github.com/livekit/client-sdk-js/pull/759) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix peer connections leak - [#767](https://github.com/livekit/client-sdk-js/pull/767) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.11.4
+
+### Patch Changes
+
+- Use mutex lock for queueing calls to setProcessor - [#756](https://github.com/livekit/client-sdk-js/pull/756) ([@lukasIO](https://github.com/lukasIO))
+
+- Use active device when publishing a new track - [#757](https://github.com/livekit/client-sdk-js/pull/757) ([@lukasIO](https://github.com/lukasIO))
+
+- expose facingMode functions - [#753](https://github.com/livekit/client-sdk-js/pull/753) ([@Ocupe](https://github.com/Ocupe))
+
+## 1.11.3
+
+### Patch Changes
+
+- Apply user setting bitrate to maxaveragebitrates for firefox - [#752](https://github.com/livekit/client-sdk-js/pull/752) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Do not override forceStereo=false when publishing stereo input - [#748](https://github.com/livekit/client-sdk-js/pull/748) ([@davidzhao](https://github.com/davidzhao))
+
+- Add helper function to detect camera `facingMode`. - [#738](https://github.com/livekit/client-sdk-js/pull/738) ([@Ocupe](https://github.com/Ocupe))
+
+- Only set priority on Firefox - [#750](https://github.com/livekit/client-sdk-js/pull/750) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.11.2
+
+### Patch Changes
+
+- Fix missing await for async setMediaStreamTrack calls - [#747](https://github.com/livekit/client-sdk-js/pull/747) ([@boris-graeff](https://github.com/boris-graeff))
+
+- Emit RoomEvent.ActiveDeviceChanged when `room.switchActiveDevice` has been called. - [#743](https://github.com/livekit/client-sdk-js/pull/743) ([@lukasIO](https://github.com/lukasIO))
+  Add room.getActiveDevice(kind) method.
+
+- Use JSdocs instead of warning for mediastreamtrack access - [#742](https://github.com/livekit/client-sdk-js/pull/742) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.11.1
+
+### Patch Changes
+
+- Fix mute event handling - [#740](https://github.com/livekit/client-sdk-js/pull/740) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.11.0
+
+### Minor Changes
+
+- Increase default adaptiveStream pixelDensity on high-density(mobile) screens - [#735](https://github.com/livekit/client-sdk-js/pull/735) ([@davidzhao](https://github.com/davidzhao))
+
+- Replace event emitter lib with eventemitter3 - [#681](https://github.com/livekit/client-sdk-js/pull/681) ([@lukasIO](https://github.com/lukasIO))
+
+### Patch Changes
+
+- Handle device mute and document freeze events - [#734](https://github.com/livekit/client-sdk-js/pull/734) ([@davidzhao](https://github.com/davidzhao))
+
+- Pass method logLevel to LogExtension instead of configured logLevel - [#730](https://github.com/livekit/client-sdk-js/pull/730) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix svc encodings for safari and chrome before 113 - [#731](https://github.com/livekit/client-sdk-js/pull/731) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Always catch reconnectFuture rejections - [#727](https://github.com/livekit/client-sdk-js/pull/727) ([@HermanBilous](https://github.com/HermanBilous))
+
+- Work around iOS safari audio playback issue when not publishing, by playing back silent audio - [#733](https://github.com/livekit/client-sdk-js/pull/733) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.10.0
+
+### Minor Changes
+
+- Add track processor API - [#711](https://github.com/livekit/client-sdk-js/pull/711) ([@lukasIO](https://github.com/lukasIO))
+
+### Patch Changes
+
+- Use replaceTrack(null) for pauseUpstream - [#716](https://github.com/livekit/client-sdk-js/pull/716) ([@davidzhao](https://github.com/davidzhao))
+
+- Always add codec info to AddTrackRequest - [#728](https://github.com/livekit/client-sdk-js/pull/728) ([@cnderrauber](https://github.com/cnderrauber))
+
+- Surface subscription error via TrackEvent.SubscriptionFailed when trying to subsribe to an unsupported codec - [#722](https://github.com/livekit/client-sdk-js/pull/722) ([@lukasIO](https://github.com/lukasIO))
+
+- Reject signal connection promise immediately when aborted - [#719](https://github.com/livekit/client-sdk-js/pull/719) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix svc mode for chrome v113 - [#720](https://github.com/livekit/client-sdk-js/pull/720) ([@cnderrauber](https://github.com/cnderrauber))
+
+## 1.9.7
+
+### Patch Changes
+
+- Fix browser parser check - [#714](https://github.com/livekit/client-sdk-js/pull/714) ([@lukasIO](https://github.com/lukasIO))
+
+- Ensure same framerates for iOS RN simulcast - [#710](https://github.com/livekit/client-sdk-js/pull/710) ([@davidliu](https://github.com/davidliu))
+
+## 1.9.6
+
+### Patch Changes
+
+- Make sure `TrackUnsubscribed` events are emitted before the publication gets deleted from maps - [#708](https://github.com/livekit/client-sdk-js/pull/708) ([@lukasIO](https://github.com/lukasIO))
+
+- Use body instead of document as intersection observer root - [#703](https://github.com/livekit/client-sdk-js/pull/703) ([@lukasIO](https://github.com/lukasIO))
+
+- Use default video dimensions when they are not available - [#709](https://github.com/livekit/client-sdk-js/pull/709) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.9.5
+
+### Patch Changes
+
+- Remove ua-parser-js dependency and fix browser version comparison - [#697](https://github.com/livekit/client-sdk-js/pull/697) ([@lukasIO](https://github.com/lukasIO))
+
+- Use STATE_MISMATCH disconnect reason in connection reconciliation - [#705](https://github.com/livekit/client-sdk-js/pull/705) ([@lukasIO](https://github.com/lukasIO))
+
+- Make sure engine gets closed when connection reconciliation triggers - [#702](https://github.com/livekit/client-sdk-js/pull/702) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.9.4
+
+### Patch Changes
+
+- Replace async-await-queue with mutex based queue - [`2b09b7c`](https://github.com/livekit/client-sdk-js/commit/2b09b7cd45f5dad132363c0f79b375fa0e71ee48) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.9.3
+
+### Patch Changes
+
+- Update devDependencies (non-major) - [#678](https://github.com/livekit/client-sdk-js/pull/678) ([@renovate](https://github.com/apps/renovate))
+
+- Consolidate ws close action - [#685](https://github.com/livekit/client-sdk-js/pull/685) ([@lukasIO](https://github.com/lukasIO))
+
+- Add support for local priority in presets - [#677](https://github.com/livekit/client-sdk-js/pull/677) ([@lukasIO](https://github.com/lukasIO))
+
+- Fix supportsAV1 and supportsVP9 helper functions on Firefox - [#689](https://github.com/livekit/client-sdk-js/pull/689) ([@davidzhao](https://github.com/davidzhao))
+
+- Change TS target to es2015 - [#687](https://github.com/livekit/client-sdk-js/pull/687) ([@lukasIO](https://github.com/lukasIO))
+
+- Keep reference to latest joinResponse on engine - [#691](https://github.com/livekit/client-sdk-js/pull/691) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.9.2
+
+### Patch Changes
+
+- Ensure engine is always set to undefined when closing - [#682](https://github.com/livekit/client-sdk-js/pull/682) ([@lukasIO](https://github.com/lukasIO))
+
+- Handle connection state mismatch with periodic reconciliation - [#680](https://github.com/livekit/client-sdk-js/pull/680) ([@davidzhao](https://github.com/davidzhao))
+
+## 1.9.1
+
+### Patch Changes
+
+- Only set maxFramerate on encoding if defined - [#676](https://github.com/livekit/client-sdk-js/pull/676) ([@lukasIO](https://github.com/lukasIO))
+
+- added experimental option suppressLocalAudioPlayback - [#675](https://github.com/livekit/client-sdk-js/pull/675) ([@jibon57](https://github.com/jibon57))
+
+- Fix: Emit connected events for participants that connected during signal reconnect - [#672](https://github.com/livekit/client-sdk-js/pull/672) ([@lukasIO](https://github.com/lukasIO))
+
+- Add VP9 SVC support - [#643](https://github.com/livekit/client-sdk-js/pull/643) ([@cnderrauber](https://github.com/cnderrauber))
+
+## 1.9.0
+
+### Minor Changes
+
+- Fix race condition with full reconnect sequence during server restart - [#663](https://github.com/livekit/client-sdk-js/pull/663) ([@davidzhao](https://github.com/davidzhao))
+
+### Patch Changes
+
+- Add support for local participants to update own metadata - [#599](https://github.com/livekit/client-sdk-js/pull/599) ([@lukasIO](https://github.com/lukasIO))
+
+- Expose numParticipants and numPublishers on Room - [#668](https://github.com/livekit/client-sdk-js/pull/668) ([@davidzhao](https://github.com/davidzhao))
+
+- Handle signal reconnect and full reconnection separately #665 - [#670](https://github.com/livekit/client-sdk-js/pull/670) ([@lukasIO](https://github.com/lukasIO))
+
+## 1.8.0
+
+### Minor Changes
+
+- [#633](https://github.com/livekit/client-sdk-js/pull/633) [`95bd94e`](https://github.com/livekit/client-sdk-js/commit/95bd94eae361be8a23ed627bff665275050f8073) Thanks [@lukasIO](https://github.com/lukasIO)! - Give up on reconnections if token is invalid
+
+- [#634](https://github.com/livekit/client-sdk-js/pull/634) [`f085fbe`](https://github.com/livekit/client-sdk-js/commit/f085fbec0bb1c7687f0ea16dfc36d6d34220c35c) Thanks [@lukasIO](https://github.com/lukasIO)! - Allow manual operation on audio publications with adaptiveStream enabled
+
+- [#642](https://github.com/livekit/client-sdk-js/pull/642) [`dd381f1`](https://github.com/livekit/client-sdk-js/commit/dd381f106d68805388b3486b4cc3a23cb12132b5) Thanks [@lukasIO](https://github.com/lukasIO)! - Add Region URL Provider
+
+### Patch Changes
+
+- [#655](https://github.com/livekit/client-sdk-js/pull/655) [`8d7f854`](https://github.com/livekit/client-sdk-js/commit/8d7f85495b4562e629ac3f808407bddf08196f95) Thanks [@lukasIO](https://github.com/lukasIO)! - Remove page visibility listener when last element gets detached
+
+- [#658](https://github.com/livekit/client-sdk-js/pull/658) [`756cf56`](https://github.com/livekit/client-sdk-js/commit/756cf56b6ddab6e1ef2eee7359329a0ef5f9a2be) Thanks [@lukasIO](https://github.com/lukasIO)! - Stop monitoring track on unsubscribe
+
+- [#652](https://github.com/livekit/client-sdk-js/pull/652) [`bda2fa9`](https://github.com/livekit/client-sdk-js/commit/bda2fa91e0971b36ce15e2f481f576a1ecd0d3a9) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update devdependencies (non-major)
+
+- [#653](https://github.com/livekit/client-sdk-js/pull/653) [`201fcda`](https://github.com/livekit/client-sdk-js/commit/201fcdabd9868dd6a205dd85fdb84294af86a9b3) Thanks [@renovate](https://github.com/apps/renovate)! - fix(deps): update dependency webrtc-adapter to v8.2.2
+
+- [#629](https://github.com/livekit/client-sdk-js/pull/629) [`cb380c2`](https://github.com/livekit/client-sdk-js/commit/cb380c20201e590cd9f7e4fa1e1f563a5d3899a0) Thanks [@davidliu](https://github.com/davidliu)! - Identify react-native apps when connecting to server
+
+- [#654](https://github.com/livekit/client-sdk-js/pull/654) [`958eef2`](https://github.com/livekit/client-sdk-js/commit/958eef215454f0a600ae433654babe7bfaef108c) Thanks [@lukasIO](https://github.com/lukasIO)! - Expose DataChannel buffer status events
+
+- [#651](https://github.com/livekit/client-sdk-js/pull/651) [`80ec8d7`](https://github.com/livekit/client-sdk-js/commit/80ec8d7f0a1db1fb65ee18e3cd428474cc06c6d0) Thanks [@davidliu](https://github.com/davidliu)! - Support screen pixel density for react-native
+
+- [#632](https://github.com/livekit/client-sdk-js/pull/632) [`111971d`](https://github.com/livekit/client-sdk-js/commit/111971d43a0510d425950538873aa2482a790ac2) Thanks [@lukasIO](https://github.com/lukasIO)! - Replace async queue with mutex lock for mute operations
+
 ## 1.7.1
 
 ### Patch Changes

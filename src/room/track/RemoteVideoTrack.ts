@@ -1,18 +1,18 @@
 import { debounce } from 'ts-debounce';
-import log from '../../logger';
 import { TrackEvent } from '../events';
-import { computeBitrate } from '../stats';
 import type { VideoReceiverStats } from '../stats';
+import { computeBitrate } from '../stats';
 import CriticalTimers from '../timers';
-import { getIntersectionObserver, getResizeObserver, isWeb } from '../utils';
+import type { LoggerOptions } from '../types';
 import type { ObservableMediaElement } from '../utils';
+import { getDevicePixelRatio, getIntersectionObserver, getResizeObserver, isWeb } from '../utils';
 import RemoteTrack from './RemoteTrack';
-import { attachToElement, detachTrack, Track } from './Track';
+import { Track, attachToElement, detachTrack } from './Track';
 import type { AdaptiveStreamSettings } from './types';
 
 const REACTION_DELAY = 100;
 
-export default class RemoteVideoTrack extends RemoteTrack {
+export default class RemoteVideoTrack extends RemoteTrack<Track.Kind.Video> {
   private prevStats?: VideoReceiverStats;
 
   private elementInfos: ElementInfo[] = [];
@@ -23,15 +23,14 @@ export default class RemoteVideoTrack extends RemoteTrack {
 
   private lastDimensions?: Track.Dimensions;
 
-  private hasUsedAttach: boolean = false;
-
   constructor(
     mediaTrack: MediaStreamTrack,
     sid: string,
     receiver?: RTCRtpReceiver,
     adaptiveStreamSettings?: AdaptiveStreamSettings,
+    loggerOptions?: LoggerOptions,
   ) {
-    super(mediaTrack, sid, Track.Kind.Video, receiver);
+    super(mediaTrack, sid, Track.Kind.Video, receiver, loggerOptions);
     this.adaptiveStreamSettings = adaptiveStreamSettings;
   }
 
@@ -39,12 +38,10 @@ export default class RemoteVideoTrack extends RemoteTrack {
     return this.adaptiveStreamSettings !== undefined;
   }
 
+  /**
+   * Note: When using adaptiveStream, you need to use remoteVideoTrack.attach() to add the track to a HTMLVideoElement, otherwise your video tracks might never start
+   */
   get mediaStreamTrack() {
-    if (this.isAdaptiveStream && !this.hasUsedAttach) {
-      log.warn(
-        'When using adaptiveStream, you need to use remoteVideoTrack.attach() to add the track to a HTMLVideoElement, otherwise your video tracks might never start',
-      );
-    }
     return this._mediaStreamTrack;
   }
 
@@ -80,7 +77,6 @@ export default class RemoteVideoTrack extends RemoteTrack {
       const elementInfo = new HTMLElementInfo(element);
       this.observeElementInfo(elementInfo);
     }
-    this.hasUsedAttach = true;
     return element;
   }
 
@@ -108,7 +104,7 @@ export default class RemoteVideoTrack extends RemoteTrack {
       this.debouncedHandleResize();
       this.updateVisibility();
     } else {
-      log.warn('visibility resize observer not triggered');
+      this.log.warn('visibility resize observer not triggered', this.logContext);
     }
   }
 
@@ -119,7 +115,7 @@ export default class RemoteVideoTrack extends RemoteTrack {
    */
   stopObservingElementInfo(elementInfo: ElementInfo) {
     if (!this.isAdaptiveStream) {
-      log.warn('stopObservingElementInfo ignored');
+      this.log.warn('stopObservingElementInfo ignored', this.logContext);
       return;
     }
     const stopElementInfos = this.elementInfos.filter((info) => info === elementInfo);
@@ -128,6 +124,7 @@ export default class RemoteVideoTrack extends RemoteTrack {
     }
     this.elementInfos = this.elementInfos.filter((info) => info !== elementInfo);
     this.updateVisibility();
+    this.debouncedHandleResize();
   }
 
   detach(): HTMLMediaElement[];
@@ -173,8 +170,11 @@ export default class RemoteVideoTrack extends RemoteTrack {
 
     const stats = await this.receiver.getStats();
     let receiverStats: VideoReceiverStats | undefined;
+    let codecID = '';
+    let codecs = new Map<string, any>();
     stats.forEach((v) => {
       if (v.type === 'inbound-rtp') {
+        codecID = v.codecId;
         receiverStats = {
           type: 'video',
           framesDecoded: v.framesDecoded,
@@ -192,17 +192,21 @@ export default class RemoteVideoTrack extends RemoteTrack {
           bytesReceived: v.bytesReceived,
           decoderImplementation: v.decoderImplementation,
         };
+      } else if (v.type === 'codec') {
+        codecs.set(v.id, v);
       }
     });
+    if (receiverStats && codecID !== '' && codecs.get(codecID)) {
+      receiverStats.mimeType = codecs.get(codecID).mimeType;
+    }
     return receiverStats;
   }
 
   private stopObservingElement(element: HTMLMediaElement) {
     const stopElementInfos = this.elementInfos.filter((info) => info.element === element);
     for (const info of stopElementInfos) {
-      info.stopObserving();
+      this.stopObservingElementInfo(info);
     }
-    this.elementInfos = this.elementInfos.filter((info) => info.element !== element);
   }
 
   protected async handleAppVisibilityChanged() {
@@ -248,11 +252,10 @@ export default class RemoteVideoTrack extends RemoteTrack {
   private updateDimensions() {
     let maxWidth = 0;
     let maxHeight = 0;
+    const pixelDensity = this.getPixelDensity();
     for (const info of this.elementInfos) {
-      const pixelDensity = this.adaptiveStreamSettings?.pixelDensity ?? 1;
-      const pixelDensityValue = pixelDensity === 'screen' ? window.devicePixelRatio : pixelDensity;
-      const currentElementWidth = info.width() * pixelDensityValue;
-      const currentElementHeight = info.height() * pixelDensityValue;
+      const currentElementWidth = info.width() * pixelDensity;
+      const currentElementHeight = info.height() * pixelDensity;
       if (currentElementWidth + currentElementHeight > maxWidth + maxHeight) {
         maxWidth = currentElementWidth;
         maxHeight = currentElementHeight;
@@ -269,6 +272,24 @@ export default class RemoteVideoTrack extends RemoteTrack {
     };
 
     this.emit(TrackEvent.VideoDimensionsChanged, this.lastDimensions, this);
+  }
+
+  private getPixelDensity(): number {
+    const pixelDensity = this.adaptiveStreamSettings?.pixelDensity;
+    if (pixelDensity === 'screen') {
+      return getDevicePixelRatio();
+    } else if (!pixelDensity) {
+      // when unset, we'll pick a sane default here.
+      // for higher pixel density devices (mobile phones, etc), we'll use 2
+      // otherwise it defaults to 1
+      const devicePixelRatio = getDevicePixelRatio();
+      if (devicePixelRatio > 2) {
+        return 2;
+      } else {
+        return 1;
+      }
+    }
+    return pixelDensity;
   }
 }
 

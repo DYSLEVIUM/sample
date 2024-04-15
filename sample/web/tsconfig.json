@@ -1,9 +1,9 @@
 {
+  "extends": "../../tsconfig",
   "compilerOptions": {
-    "target": "ES2019" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019', 'ES2020', or 'ESNEXT'. */,
+    "target": "ESNext" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019', 'ES2020', or 'ESNEXT'. */,
     "module": "ESNext" /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', 'es2020', or 'ESNext'. */,
-    "rootDir": "./",
-    "outDir": "dist",
+    "outDir": "build",
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -13,21 +13,8 @@
     "noUnusedLocals": true,
     "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
     "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "importsNotUsedAsValues": "error",
-    "ignoreDeprecations": "5.0"
+    "resolveJsonModule": true
   },
-  "exclude": ["dist", "**/*.test.ts"],
-  "include": ["/**/*"],
-  "typedocOptions": {
-    "entryPoints": ["/sample.ts"],
-    "excludeInternal": true,
-    "excludePrivate": true,
-    "excludeProtected": true,
-    "excludeExternals": true,
-    "includeVersion": true,
-    "name": "LiveKit Sample Webapp",
-    "out": "docs",
-    "theme": "default"
-  }
+  "include": ["../src/**/*", "sample.ts"],
+  "exclude": ["**/*.test.ts", "build/**/*"]
 }

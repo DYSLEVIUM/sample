@@ -27,7 +27,14 @@ export enum RoomEvent {
 
   /**
    * When disconnected from room. This fires when room.disconnect() is called or
-   * when an unrecoverable connection issue had occured
+   * when an unrecoverable connection issue had occured.
+   *
+   * DisconnectReason can be used to determine why the participant was disconnected. Notable reasons are
+   * - DUPLICATE_IDENTITY: another client with the same identity has joined the room
+   * - PARTICIPANT_REMOVED: participant was removed by RemoveParticipant API
+   * - ROOM_DELETED: the room has ended via DeleteRoom API
+   *
+   * args: ([[DisconnectReason]])
    */
   Disconnected = 'disconnected',
 
@@ -37,11 +44,6 @@ export enum RoomEvent {
    * args: ([[ConnectionState]])
    */
   ConnectionStateChanged = 'connectionStateChanged',
-
-  /**
-   * @deprecated StateChanged has been renamed to ConnectionStateChanged
-   */
-  StateChanged = 'connectionStateChanged',
 
   /**
    * When input or output devices on the machine have changed.
@@ -223,7 +225,7 @@ export enum RoomEvent {
    * be emitted.
    *
    * args: (pub: [[RemoteTrackPublication]],
-   *        status: [[TrackPublication.SubscriptionStatus]],
+   *        status: [[TrackPublication.PermissionStatus]],
    *        participant: [[RemoteParticipant]])
    */
   TrackSubscriptionPermissionChanged = 'trackSubscriptionPermissionChanged',
@@ -241,9 +243,16 @@ export enum RoomEvent {
   /**
    * LiveKit will attempt to autoplay all audio tracks when you attach them to
    * audio elements. However, if that fails, we'll notify you via AudioPlaybackStatusChanged.
-   * `Room.canPlayAudio` will indicate if audio playback is permitted.
+   * `Room.canPlaybackAudio` will indicate if audio playback is permitted.
    */
   AudioPlaybackStatusChanged = 'audioPlaybackChanged',
+
+  /**
+   * LiveKit will attempt to autoplay all video tracks when you attach them to
+   * a video element. However, if that fails, we'll notify you via VideoPlaybackStatusChanged.
+   * Calling `room.startVideo()` in a user gesture event handler will resume the video playback.
+   */
+  VideoPlaybackStatusChanged = 'videoPlaybackChanged',
 
   /**
    * When we have encountered an error while attempting to create a track.
@@ -272,6 +281,21 @@ export enum RoomEvent {
    * args: (isRecording: boolean)
    */
   RecordingStatusChanged = 'recordingStatusChanged',
+
+  ParticipantEncryptionStatusChanged = 'participantEncryptionStatusChanged',
+
+  EncryptionError = 'encryptionError',
+  /**
+   * Emits whenever the current buffer status of a data channel changes
+   * args: (isLow: boolean, kind: [[DataPacket_Kind]])
+   */
+  DCBufferStatusChanged = 'dcBufferStatusChanged',
+
+  /**
+   * Triggered by a call to room.switchActiveDevice
+   * args: (kind: MediaDeviceKind, deviceId: string)
+   */
+  ActiveDeviceChanged = 'activeDeviceChanged',
   ReconnectPrimaryDelay = 'reconnectPrimaryDelay',
   ReconnectSecondaryDelay = 'reconnectSecondaryDelay',
   ReconnectICEDelay = 'reconnectICEDelay'
@@ -429,11 +453,18 @@ export enum ParticipantEvent {
   /** @internal */
   MediaDevicesError = 'mediaDevicesError',
 
+  // fired only on LocalParticipant
+  /** @internal */
+  AudioStreamAcquired = 'audioStreamAcquired',
+
   /**
    * A participant's permission has changed. Currently only fired on LocalParticipant.
    * args: (prevPermissions: [[ParticipantPermission]])
    */
   ParticipantPermissionsChanged = 'participantPermissionsChanged',
+
+  /** @internal */
+  PCTrackAdded = 'pcTrackAdded',
 }
 
 /** @internal */
@@ -453,6 +484,19 @@ export enum EngineEvent {
   DataPacketReceived = 'dataPacketReceived',
   PrimaryDelay = 'primaryDelay',
   SecondaryDelay = 'secondaryDelay',
+  RTPVideoMapUpdate = 'rtpVideoMapUpdate',
+  DCBufferStatusChanged = 'dcBufferStatusChanged',
+  ParticipantUpdate = 'participantUpdate',
+  RoomUpdate = 'roomUpdate',
+  SpeakersChanged = 'speakersChanged',
+  StreamStateChanged = 'streamStateChanged',
+  ConnectionQualityUpdate = 'connectionQualityUpdate',
+  SubscriptionError = 'subscriptionError',
+  SubscriptionPermissionUpdate = 'subscriptionPermissionUpdate',
+  RemoteMute = 'remoteMute',
+  SubscribedQualityUpdate = 'subscribedQualityUpdate',
+  LocalTrackUnpublished = 'localTrackUnpublished',
+  Offline = 'offline',
 }
 
 export enum TrackEvent {
@@ -484,6 +528,10 @@ export enum TrackEvent {
   /** @internal */
   VideoDimensionsChanged = 'videoDimensionsChanged',
   /** @internal */
+  VideoPlaybackStarted = 'videoPlaybackStarted',
+  /** @internal */
+  VideoPlaybackFailed = 'videoPlaybackFailed',
+  /** @internal */
   ElementAttached = 'elementAttached',
   /** @internal */
   ElementDetached = 'elementDetached',
@@ -506,9 +554,12 @@ export enum TrackEvent {
    * Fires on RemoteTrackPublication
    */
   SubscriptionStatusChanged = 'subscriptionStatusChanged',
-
   /**
    * Fires on RemoteTrackPublication
    */
   SubscriptionFailed = 'subscriptionFailed',
+  /**
+   * @internal
+   */
+  TrackProcessorUpdate = 'trackProcessorUpdate',
 }

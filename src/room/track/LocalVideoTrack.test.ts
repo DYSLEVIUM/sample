@@ -1,5 +1,6 @@
-import { VideoQuality } from '../../proto/livekit_models';
+import { describe, expect, it } from 'vitest';
 import { videoLayersFromEncodings } from './LocalVideoTrack';
+import { VideoQuality } from './Track';
 
 describe('videoLayersFromEncodings', () => {
   it('returns single layer for no encoding', () => {

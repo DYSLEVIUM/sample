@@ -1,9 +1,10 @@
+//@ts-ignore
+import E2EEWorker from '../src/e2ee/worker/e2ee.worker?worker';
 import {
   ConnectionQuality,
   ConnectionState,
-  createAudioAnalyser,
-  DataPacket_Kind,
   DisconnectReason,
+  ExternalE2EEKeyProvider,
   LocalAudioTrack,
   LocalParticipant,
   LogLevel,
@@ -17,16 +18,21 @@ import {
   RoomConnectOptions,
   RoomEvent,
   RoomOptions,
-  setLogLevel,
+  ScreenSharePresets,
   Track,
   TrackPublication,
   VideoCaptureOptions,
   VideoCodec,
   VideoPresets,
   VideoQuality,
-} from 'ecprt-client-sdk';
+  createAudioAnalyser,
+  setLogLevel,
+  supportsAV1,
+  supportsVP9,
+} from '../src/index';
+import type { SimulationScenario } from '../src/room/types';
 
-const $ = (id: string) => document.getElementById(id);
+const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const state = {
   isFrontFacing: false,
@@ -34,6 +40,7 @@ const state = {
   decoder: new TextDecoder(),
   defaultDevices: new Map<MediaDeviceKind, string>(),
   bitrateInterval: undefined as any,
+  e2eeKeyProvider: new ExternalE2EEKeyProvider(),
 };
 let currentRoom: Room | undefined;
 
@@ -42,9 +49,15 @@ let startTime: number;
 const searchParams = new URLSearchParams(window.location.search);
 const storedUrl = searchParams.get('url') ?? 'ws://localhost:7880';
 (<HTMLInputElement>$('url')).value = storedUrl;
+let storedKey = searchParams.get('key');
+if (!storedKey) {
+  (<HTMLSelectElement>$('crypto-key')).value = 'password';
+} else {
+  (<HTMLSelectElement>$('crypto-key')).value = storedKey;
+}
 
-function updateSearchParams(url: string, token: string) {
-  const params = new URLSearchParams({ url, token });
+function updateSearchParams(url: string, token: string, key: string) {
+  const params = new URLSearchParams({ url, token, key });
   window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
 }
 
@@ -65,23 +78,42 @@ const appActions = {
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
     const preferredCodec = 'vp8' as VideoCodec;
+      const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
+      const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
+    const audioOutputId = (<HTMLSelectElement>$('audio-output')).value;
     setLogLevel(LogLevel.debug);
-    updateSearchParams(url, token);
+    updateSearchParams(url, token, cryptoKey);
 
     const roomOpts: RoomOptions = {
       adaptiveStream,
       dynacast,
+      audioOutput: {
+        deviceId: audioOutputId,
+      },
       publishDefaults: {
         simulcast,
         videoSimulcastLayers: [VideoPresets.h90, VideoPresets.h216],
         videoCodec: preferredCodec || 'vp8',
+        dtx: true,
+        red: true,
+        forceStereo: false,
+        screenShareEncoding: ScreenSharePresets.h1080fps30.encoding,
       },
       videoCaptureDefaults: {
         resolution: VideoPresets.h720.resolution,
       },
+      e2ee: e2eeEnabled
+        ? { keyProvider: state.e2eeKeyProvider, worker: new E2EEWorker() }
+        : undefined,
     };
+    if (
+      roomOpts.publishDefaults?.videoCodec === 'av1' ||
+      roomOpts.publishDefaults?.videoCodec === 'vp9'
+    ) {
+      roomOpts.publishDefaults.backupCodec = true;
+    }
 
     const connectOpts: RoomConnectOptions = {
       autoSubscribe: autoSubscribe,
@@ -106,7 +138,7 @@ const appActions = {
     const room = new Room(roomOptions);
 
     startTime = Date.now();
-    await room.prepareConnection(url);
+    await room.prepareConnection(url, token);
     const prewarmTime = Date.now() - startTime;
     appendLog(`prewarmed connection in ${prewarmTime}ms`);
 
@@ -182,11 +214,26 @@ const appActions = {
           appendLog(`tracks published in ${Date.now() - startTime}ms`);
           updateButtonsForPublishState();
         }
-      }).on(RoomEvent.ReconnectICEDelay , (delay : number)  => {
-          appendLog(`@ICE connection delay: ${delay} seconds`)
+      })
+      .on(RoomEvent.ParticipantEncryptionStatusChanged, () => {
+        updateButtonsForPublishState();
+      })
+      .on(RoomEvent.TrackStreamStateChanged, (pub, streamState, participant) => {
+        appendLog(
+          `stream state changed for ${pub.trackSid} (${
+            participant.identity
+          }) to ${streamState.toString()}`,
+        );
       });
 
     try {
+      // read and set current key from input
+      const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
+      state.e2eeKeyProvider.setKey(cryptoKey);
+      if ((<HTMLInputElement>$('e2ee')).checked) {
+        await room.setE2EEEnabled(true);
+      }
+
       await room.connect(url, token, connectOptions);
       const elapsed = Date.now() - startTime;
       appendLog(
@@ -205,12 +252,30 @@ const appActions = {
     window.currentRoom = room;
     setButtonsForState(true);
     updateButtonsForPublishState();
-    room.participants.forEach((participant) => {
+    room.remoteParticipants.forEach((participant) => {
       participantConnected(participant);
     });
     participantConnected(room.localParticipant);
 
     return room;
+  },
+
+  toggleE2EE: async () => {
+    if (!currentRoom || !currentRoom.options.e2ee) {
+      return;
+    }
+    // read and set current key from input
+    const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
+    state.e2eeKeyProvider.setKey(cryptoKey);
+
+    await currentRoom.setE2EEEnabled(!currentRoom.isE2EEEnabled);
+  },
+
+  ratchetE2EEKey: async () => {
+    if (!currentRoom || !currentRoom.options.e2ee) {
+      return;
+    }
+    await state.e2eeKeyProvider.ratchetKey();
   },
 
   toggleAudio: async () => {
@@ -223,6 +288,8 @@ const appActions = {
       appendLog('enabling audio');
     }
     await currentRoom.localParticipant.setMicrophoneEnabled(!enabled);
+    setButtonDisabled('toggle-audio-button', false);
+    updateButtonsForPublishState();
   },
 
   toggleVideo: async () => {
@@ -235,10 +302,15 @@ const appActions = {
       appendLog('enabling video');
     }
     await currentRoom.localParticipant.setCameraEnabled(!enabled);
+    setButtonDisabled('toggle-video-button', false);
+    renderParticipant(currentRoom.localParticipant);
+
+    // update display
+    updateButtonsForPublishState();
   },
 
   flipVideo: () => {
-    const videoPub = currentRoom?.localParticipant.getTrack(Track.Source.Camera);
+    const videoPub = currentRoom?.localParticipant.getTrackPublication(Track.Source.Camera);
     if (!videoPub) {
       return;
     }
@@ -261,7 +333,11 @@ const appActions = {
     const enabled = currentRoom.localParticipant.isScreenShareEnabled;
     appendLog(`${enabled ? 'stopping' : 'starting'} screen share`);
     setButtonDisabled('share-screen-button', true);
-    await currentRoom.localParticipant.setScreenShareEnabled(!enabled, { audio: true });
+    try {
+      await currentRoom.localParticipant.setScreenShareEnabled(!enabled, { audio: true });
+    } catch (e) {
+      appendLog('error sharing screen', e);
+    }
     setButtonDisabled('share-screen-button', false);
     updateButtonsForPublishState();
   },
@@ -275,10 +351,9 @@ const appActions = {
     const textField = <HTMLInputElement>$('entry');
     if (textField.value) {
       const msg = state.encoder.encode(textField.value);
-      currentRoom.localParticipant.publishData(msg, DataPacket_Kind.RELIABLE);
-      (<HTMLTextAreaElement>(
-        $('chat')
-      )).value += `${currentRoom.localParticipant.identity} (me): ${textField.value}\n`;
+      currentRoom.localParticipant.publishData(msg, { reliable: true });
+      (<HTMLTextAreaElement>$('chat')).value +=
+        `${currentRoom.localParticipant.identity} (me): ${textField.value}\n`;
       textField.value = '';
     }
   },
@@ -296,15 +371,15 @@ const appActions = {
   handleScenario: (e: Event) => {
     const scenario = (<HTMLSelectElement>e.target).value;
     if (scenario === 'subscribe-all') {
-      currentRoom?.participants.forEach((p) => {
-        p.tracks.forEach((rp) => rp.setSubscribed(true));
+      currentRoom?.remoteParticipants.forEach((p) => {
+        p.trackPublications.forEach((rp) => rp.setSubscribed(true));
       });
     } else if (scenario === 'unsubscribe-all') {
-      currentRoom?.participants.forEach((p) => {
-        p.tracks.forEach((rp) => rp.setSubscribed(false));
+      currentRoom?.remoteParticipants.forEach((p) => {
+        p.trackPublications.forEach((rp) => rp.setSubscribed(false));
       });
     } else if (scenario !== '') {
-      currentRoom?.simulateScenario(scenario);
+      currentRoom?.simulateScenario(scenario as SimulationScenario);
       (<HTMLSelectElement>e.target).value = '';
     }
   },
@@ -341,8 +416,8 @@ const appActions = {
         break;
     }
     if (currentRoom) {
-      currentRoom.participants.forEach((participant) => {
-        participant.tracks.forEach((track) => {
+      currentRoom.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((track) => {
           track.setVideoQuality(q);
         });
       });
@@ -352,8 +427,8 @@ const appActions = {
   handlePreferredFPS: (e: Event) => {
     const fps = +(<HTMLSelectElement>e.target).value;
     if (currentRoom) {
-      currentRoom.participants.forEach((participant) => {
-        participant.tracks.forEach((track) => {
+      currentRoom.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((track) => {
           track.setVideoFPS(fps);
         });
       });
@@ -386,6 +461,7 @@ function handleData(msg: Uint8Array, participant?: RemoteParticipant) {
 
 function participantConnected(participant: Participant) {
   appendLog('participant', participant.identity, 'connected', participant.metadata);
+  console.log('tracks', participant.trackPublications);
   participant
     .on(ParticipantEvent.TrackMuted, (pub: TrackPublication) => {
       appendLog('track was muted', pub.trackSid, participant.identity);
@@ -438,7 +514,7 @@ function handleRoomDisconnect(reason?: DisconnectReason) {
   appendLog('disconnected from room', { reason });
   setButtonsForState(false);
   renderParticipant(currentRoom.localParticipant, true);
-  currentRoom.participants.forEach((p) => {
+  currentRoom.remoteParticipants.forEach((p) => {
     renderParticipant(p, true);
   });
   renderScreenShare(currentRoom);
@@ -502,6 +578,7 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
         <div class="right">
           <span id="signal-${identity}"></span>
           <span id="mic-${identity}" class="mic-on"></span>
+          <span id="e2ee-${identity}" class="e2ee-on"></span>
         </div>
       </div>
       ${
@@ -543,8 +620,8 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
   }
   const micElm = $(`mic-${identity}`)!;
   const signalElm = $(`signal-${identity}`)!;
-  const cameraPub = participant.getTrack(Track.Source.Camera);
-  const micPub = participant.getTrack(Track.Source.Microphone);
+  const cameraPub = participant.getTrackPublication(Track.Source.Camera);
+  const micPub = participant.getTrackPublication(Track.Source.Microphone);
   if (participant.isSpeaking) {
     div!.classList.add('speaking');
   } else {
@@ -610,6 +687,15 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
     micElm.innerHTML = '<i class="fas fa-microphone-slash"></i>';
   }
 
+  const e2eeElm = $(`e2ee-${identity}`)!;
+  if (participant.isEncrypted) {
+    e2eeElm.className = 'e2ee-on';
+    e2eeElm.innerHTML = '<i class="fas fa-lock"></i>';
+  } else {
+    e2eeElm.className = 'e2ee-off';
+    e2eeElm.innerHTML = '<i class="fas fa-unlock"></i>';
+  }
+
   switch (participant.connectionQuality) {
     case ConnectionQuality.Excellent:
     case ConnectionQuality.Good:
@@ -630,21 +716,21 @@ function renderScreenShare(room: Room) {
     return;
   }
   let participant: Participant | undefined;
-  let screenSharePub: TrackPublication | undefined = room.localParticipant.getTrack(
+  let screenSharePub: TrackPublication | undefined = room.localParticipant.getTrackPublication(
     Track.Source.ScreenShare,
   );
   let screenShareAudioPub: RemoteTrackPublication | undefined;
   if (!screenSharePub) {
-    room.participants.forEach((p) => {
+    room.remoteParticipants.forEach((p) => {
       if (screenSharePub) {
         return;
       }
       participant = p;
-      const pub = p.getTrack(Track.Source.ScreenShare);
+      const pub = p.getTrackPublication(Track.Source.ScreenShare);
       if (pub?.isSubscribed) {
         screenSharePub = pub;
       }
-      const audioPub = p.getTrack(Track.Source.ScreenShareAudio);
+      const audioPub = p.getTrackPublication(Track.Source.ScreenShareAudio);
       if (audioPub?.isSubscribed) {
         screenShareAudioPub = audioPub;
       }
@@ -674,13 +760,13 @@ function renderBitrate() {
   if (!currentRoom || currentRoom.state !== ConnectionState.Connected) {
     return;
   }
-  const participants: Participant[] = [...currentRoom.participants.values()];
+  const participants: Participant[] = [...currentRoom.remoteParticipants.values()];
   participants.push(currentRoom.localParticipant);
 
   for (const p of participants) {
     const elm = $(`bitrate-${p.identity}`);
     let totalBitrate = 0;
-    for (const t of p.tracks.values()) {
+    for (const t of p.trackPublications.values()) {
       if (t.track) {
         totalBitrate += t.track.currentBitrate;
       }
@@ -742,6 +828,9 @@ function setButtonsForState(connected: boolean) {
     'flip-video-button',
     'send-button',
   ];
+  if (currentRoom && currentRoom.options.e2ee) {
+    connectedSet.push('toggle-e2ee-button', 'e2ee-ratchet-button');
+  }
   const disconnectedSet = ['connect-button'];
 
   const toRemove = connected ? connectedSet : disconnectedSet;
@@ -816,6 +905,12 @@ function updateButtonsForPublishState() {
     lp.isScreenShareEnabled ? 'Stop Screen Share' : 'Share Screen',
     lp.isScreenShareEnabled,
   );
+  // e2ee
+  setButtonState(
+    'toggle-e2ee-button',
+    `${currentRoom.isE2EEEnabled ? 'Disable' : 'Enable'} E2EE`,
+    currentRoom.isE2EEEnabled,
+  );
   setButtonDisabled('toggle-audio-button', false);
   setButtonDisabled('toggle-video-button', false);
 }
@@ -824,4 +919,33 @@ async function acquireDeviceList() {
   handleDevicesChanged();
 }
 
+function populateSupportedCodecs() {
+  /*
+<option value="" selected>PreferredCodec</option>
+                <option value="vp8">VP8</option>
+                <option value="h264">H.264</option>
+                <option value="vp9">VP9</option>
+                <option value="av1">AV1</option>
+*/
+  const codecSelect = $('preferred-codec');
+  const options: string[][] = [
+    ['', 'Preferred codec'],
+    ['h264', 'H.264'],
+    ['vp8', 'VP8'],
+  ];
+  if (supportsVP9()) {
+    options.push(['vp9', 'VP9']);
+  }
+  if (supportsAV1()) {
+    options.push(['av1', 'AV1']);
+  }
+  for (const o of options) {
+    const n = document.createElement('option');
+    n.value = o[0];
+    n.appendChild(document.createTextNode(o[1]));
+    codecSelect.appendChild(n);
+  }
+}
+
 acquireDeviceList();
+populateSupportedCodecs();
