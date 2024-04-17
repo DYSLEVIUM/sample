@@ -200,8 +200,8 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     }
     this.identity = info.identity;
     this.sid = info.sid;
-    this._setName(info.name);
-    this._setMetadata(info.metadata);
+    this.setName(info.name);
+    this.setMetadata(info.metadata);
     if (info.permission) {
       this.setPermissions(info.permission);
     }
@@ -214,7 +214,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
   /**
    * Updates metadata from server
    **/
-  private _setMetadata(md: string) {
+  protected setMetadata(md: string) {
     const changed = this.metadata !== md;
     const prevMetadata = this.metadata;
     this.metadata = md;
@@ -224,7 +224,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     }
   }
 
-  private _setName(name: string) {
+  protected setName(name: string) {
     const changed = this.name !== name;
     this.name = name;
 

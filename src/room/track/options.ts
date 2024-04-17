@@ -36,6 +36,12 @@ export interface TrackPublishDefaults {
    */
   audioPreset?: AudioPreset;
 
+   /**
+  * max audio bitrate, defaults to [[AudioPresets.music]]
+  * @deprecated use `audioPreset` instead
+  */
+   audioBitrate?: number;
+   
   /**
    * dtx (Discontinuous Transmission of audio), enabled by default for mono tracks.
    */
