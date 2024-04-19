@@ -3,8 +3,8 @@ import {
   ParticipantInfo,
   ParticipantPermission,
   ConnectionQuality as ProtoQuality,
-  SubscriptionError,
-} from '@livekit/protocol';
+  SubscriptionError
+} from '../../proto/livekit_models_pb';
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import log, { LoggerNames, StructuredLogger, getLogger } from '../../logger';

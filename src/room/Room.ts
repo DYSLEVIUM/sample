@@ -1,26 +1,28 @@
 import {
-  ConnectionQualityUpdate,
   DataPacket_Kind,
   DisconnectReason,
-  JoinResponse,
-  LeaveRequest,
   ParticipantInfo,
   ParticipantInfo_State,
   ParticipantPermission,
   Room as RoomModel,
   ServerInfo,
-  SimulateScenario,
   SpeakerInfo,
-  StreamStateUpdate,
   SubscriptionError,
-  SubscriptionPermissionUpdate,
-  SubscriptionResponse,
   TrackInfo,
   TrackSource,
   TrackType,
   UserPacket,
+} from '../proto/livekit_models_pb';
+import {
+  ConnectionQualityUpdate,
+  JoinResponse,
+  LeaveRequest,
+  SimulateScenario,
+  StreamStateUpdate,
+  SubscriptionPermissionUpdate,
+  SubscriptionResponse,
   protoInt64,
-} from '@livekit/protocol';
+} from '../proto/livekit_rtc_pb'
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import 'webrtc-adapter';
@@ -360,7 +362,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       })
       .on(EngineEvent.DCBufferStatusChanged, (status, kind) => {
         this.emit(RoomEvent.DCBufferStatusChanged, status, kind);
-      });
+      })
       .on(EngineEvent.PrimaryDelay, (delay: number) => {
         iceDelay = Math.max(iceDelay , delay)
       })
@@ -902,6 +904,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   }
 
   private onPageLeave = async () => {
+    alert("on page leave");
     this.log.info('Page leave detected, disconnecting', this.logContext);
     let token = sessionStorage.getItem('token') as string;
     let isAudioMuted = sessionStorage.getItem('isAudioMuted') as string;

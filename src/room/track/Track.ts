@@ -1,9 +1,9 @@
 import {
   VideoQuality as ProtoQuality,
-  StreamState as ProtoStreamState,
   TrackSource,
-  TrackType,
-} from '@livekit/protocol';
+  TrackType
+} from '../../proto/livekit_models_pb';
+import {StreamState as ProtoStreamState} from '../../proto/livekit_rtc_pb';
 import { EventEmitter } from 'events';
 import type TypedEventEmitter from 'typed-emitter';
 import type { SignalClient } from '../../api/SignalClient';

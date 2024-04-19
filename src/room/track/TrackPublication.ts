@@ -1,10 +1,12 @@
-import { Encryption_Type } from '@livekit/protocol';
+import { Encryption_Type } from '../../proto/livekit_models_pb';
 import type {
   SubscriptionError,
   TrackInfo,
+} from '../../proto/livekit_models_pb';
+import type {
   UpdateSubscription,
   UpdateTrackSettings,
-} from '@livekit/protocol';
+} from '../../proto/livekit_rtc_pb';
 import { EventEmitter } from 'events';
 import type TypedEventEmitter from 'typed-emitter';
 import log, { LoggerNames, getLogger } from '../../logger';

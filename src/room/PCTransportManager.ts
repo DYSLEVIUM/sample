@@ -1,4 +1,4 @@
-import { SignalTarget } from '@livekit/protocol';
+import { SignalTarget } from '../proto/livekit_rtc_pb';
 import log, { LoggerNames, getLogger } from '../logger';
 import PCTransport, { PCEvents } from './PCTransport';
 import { roomConnectOptionDefaults } from './defaults';

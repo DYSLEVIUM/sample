@@ -1,22 +1,16 @@
 import {
   AddTrackRequest,
-  ClientInfo,
   ConnectionQualityUpdate,
-  DisconnectReason,
   JoinResponse,
   LeaveRequest,
   MuteTrackRequest,
-  ParticipantInfo,
   Ping,
-  ReconnectReason,
   ReconnectResponse,
-  Room,
   SessionDescription,
   SignalRequest,
   SignalResponse,
   SignalTarget,
   SimulateScenario,
-  SpeakerInfo,
   StreamStateUpdate,
   SubscribedQualityUpdate,
   SubscriptionPermission,
@@ -31,9 +25,17 @@ import {
   UpdateSubscription,
   UpdateTrackSettings,
   UpdateVideoLayers,
-  VideoLayer,
   protoInt64,
-} from '@livekit/protocol';
+} from '../proto/livekit_rtc_pb';
+import {
+  ClientInfo,
+  DisconnectReason,
+  ParticipantInfo,
+  ReconnectReason,
+  VideoLayer,
+  Room,
+  SpeakerInfo,
+} from '../proto/livekit_models_pb';
 import log, { LoggerNames, getLogger } from '../logger';
 import { ConnectionError, ConnectionErrorReason } from '../room/errors';
 import CriticalTimers from '../room/timers';
@@ -880,10 +882,6 @@ function createConnectionParams(token: string, info: ClientInfo, opts: ConnectOp
   }
   if (info.browserVersion) {
     params.set('browser_version', info.browserVersion);
-  }
-
-  if (opts.publishOnly !== undefined) {
-    params.set('publish', opts.publishOnly);
   }
 
   if (opts.adaptiveStream) {

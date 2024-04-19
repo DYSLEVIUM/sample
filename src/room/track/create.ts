@@ -6,7 +6,6 @@ import { isSafari17 } from '../utils';
 import LocalAudioTrack from './LocalAudioTrack';
 import type LocalTrack from './LocalTrack';
 import LocalVideoTrack from './LocalVideoTrack';
-import { VideoPresets } from './options';
 import { Track } from './Track';
 import type {
   AudioCaptureOptions,

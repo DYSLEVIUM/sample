@@ -1,31 +1,33 @@
 import {
-  type AddTrackRequest,
   ClientConfigSetting,
   ClientConfiguration,
-  type ConnectionQualityUpdate,
-  DataChannelInfo,
   DataPacket,
   DataPacket_Kind,
   DisconnectReason,
-  type JoinResponse,
-  type LeaveRequest,
   ParticipantInfo,
   ReconnectReason,
-  type ReconnectResponse,
   Room as RoomModel,
-  SignalTarget,
   SpeakerInfo,
-  type StreamStateUpdate,
-  SubscribedQualityUpdate,
-  type SubscriptionPermissionUpdate,
-  type SubscriptionResponse,
-  SyncState,
   TrackInfo,
-  type TrackPublishedResponse,
+  UserPacket,
+} from '../proto/livekit_models_pb';
+import {
+  AddTrackRequest,
+  ConnectionQualityUpdate,
+  DataChannelInfo,
+  JoinResponse,
+  LeaveRequest,
+  ReconnectResponse,
+  SignalTarget,
+  StreamStateUpdate,
+  SubscribedQualityUpdate,
+  SubscriptionPermissionUpdate,
+  SubscriptionResponse,
+  SyncState,
+  TrackPublishedResponse,
   TrackUnpublishedResponse,
   UpdateSubscription,
-  UserPacket,
-} from '@livekit/protocol';
+} from '../proto/livekit_rtc_pb'
 import { EventEmitter } from 'events';
 import type { MediaAttributes } from 'sdp-transform';
 import type TypedEventEmitter from 'typed-emitter';

@@ -1,4 +1,4 @@
-import { TrackPublishedResponse } from '@livekit/protocol';
+import { TrackPublishedResponse } from '../../proto/livekit_rtc_pb';
 import { cloneDeep } from '../../utils/cloneDeep';
 import { isSafari, sleep } from '../utils';
 import { Track } from './Track';

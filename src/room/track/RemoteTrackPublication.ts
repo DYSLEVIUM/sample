@@ -1,11 +1,12 @@
 import {
-  ParticipantTracks,
-  SubscriptionError,
-  TrackInfo,
   UpdateSubscription,
-  SubscriptionError,
-  UpdateTrackSettings,
-} from '@livekit/protocol';
+  UpdateTrackSettings
+} from '../../proto/livekit_rtc_pb';
+import {
+  ParticipantTracks,
+  TrackInfo,
+  SubscriptionError
+} from '../../proto/livekit_models_pb';
 import { TrackEvent } from '../events';
 import type { LoggerOptions } from '../types';
 import type RemoteTrack from './RemoteTrack';
@@ -208,11 +209,6 @@ export default class RemoteTrackPublication extends TrackPublication {
     this.emitPermissionUpdateIfChanged(prevPermission);
     this.emitSubscriptionUpdateIfChanged(prevStatus);
   }
-
-    /** @internal */
-    setSubscriptionError(error: SubscriptionError) {
-      this.emit(TrackEvent.SubscriptionFailed, error);
-    }
     
   /** @internal */
   setAllowed(allowed: boolean) {

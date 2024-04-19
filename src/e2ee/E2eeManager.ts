@@ -1,4 +1,4 @@
-import { Encryption_Type, TrackInfo } from '@livekit/protocol';
+import { Encryption_Type, TrackInfo } from '../proto/livekit_models_pb';
 import { EventEmitter } from 'events';
 import type TypedEventEmitter from 'typed-emitter';
 import log, { LogLevel, workerLogger } from '../logger';

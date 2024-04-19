@@ -1,4 +1,4 @@
-import { ServerInfo_Edition } from '@livekit/protocol';
+import { ServerInfo_Edition } from '../../proto/livekit_models_pb';
 import { SignalClient } from '../../api/SignalClient';
 import { Checker } from './Checker';
 

@@ -1,9 +1,11 @@
 import {
   VideoQuality as ProtoVideoQuality,
+  VideoLayer,
+} from '../../proto/livekit_models_pb';
+import {
   SubscribedCodec,
   SubscribedQuality,
-  VideoLayer,
-} from '@livekit/protocol';
+} from '../../proto/livekit_rtc_pb';
 import type { SignalClient } from '../../api/SignalClient';
 import type { StructuredLogger } from '../../logger';
 import { ScalabilityMode } from '../participant/publishUtils';
