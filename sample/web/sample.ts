@@ -1,5 +1,5 @@
 //@ts-ignore
-import E2EEWorker from '../../src/e2ee/worker/e2ee.worker?worker';
+import E2EEWorker from 'ecprt-client-sdk';
 import {
   ConnectionQuality,
   ConnectionState,
@@ -29,8 +29,8 @@ import {
   setLogLevel,
   supportsAV1,
   supportsVP9,
-} from '../../src/index';
-import type { SimulationScenario } from '../../src/room/types';
+} from 'ecprt-client-sdk';
+import type { SimulationScenario } from 'ecprt-client-sdk';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
