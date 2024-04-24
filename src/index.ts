@@ -1,4 +1,4 @@
-import { DataPacket_Kind, DisconnectReason, SubscriptionError } from '@livekit/protocol';
+import { DataPacket_Kind, DisconnectReason, SubscriptionError } from '../src/proto/livekit_models_pb';
 import { LogLevel, LoggerNames, getLogger, setLogExtension, setLogLevel } from './logger';
 import DefaultReconnectPolicy from './room/DefaultReconnectPolicy';
 import Room, { ConnectionState } from './room/Room';
