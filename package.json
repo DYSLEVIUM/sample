@@ -31,7 +31,10 @@
       ]
     }
   },
-  "repository": "",
+  "publishConfig": {
+    "registry": "https://artifactory.oci.oraclecorp.com/api/npm/cgbu_ecprt-dev-npm-local/"
+  },
+  "repository": "https://artifactory.oci.oraclecorp.com/api/npm/cgbu_ecprt-dev-npm-local/",
   "author": "",
   "license": "Apache-2.0",
   "scripts": {
@@ -42,7 +45,6 @@
     "sample": "vite example -c vite.config.mjs"
   },
   "dependencies": {
-    "@livekit/protocol": "1.10.4",
     "events": "^3.3.0",
     "loglevel": "^1.8.0",
     "sdp-transform": "^2.14.1",
