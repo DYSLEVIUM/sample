@@ -81,7 +81,7 @@ const appActions = {
       const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
-      const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
+      //const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
     const audioOutputId = (<HTMLSelectElement>$('audio-output')).value;
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token, cryptoKey);
@@ -103,10 +103,10 @@ const appActions = {
       },
       videoCaptureDefaults: {
         resolution: VideoPresets.h720.resolution,
-      },
-      e2ee: e2eeEnabled
+      }
+      /*e2ee: e2eeEnabled
         ? { keyProvider: state.e2eeKeyProvider, worker: new E2EEWorker() }
-        : undefined,
+        : undefined,*/
     };
     if (
       roomOpts.publishDefaults?.videoCodec === 'av1' ||
