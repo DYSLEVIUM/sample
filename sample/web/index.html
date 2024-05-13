@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
   <head>
     <title>ECPRT Web sample app</title>
@@ -72,6 +72,20 @@
             </div>
             <div>
               <select id="preferred-codec" class="custom-select" style="width: auto"></select>
+            </div>
+            <div>
+              <label for="qulaity" class="form-check-label"> PreferredQuality </label>
+              <select
+              id="preferred-quality"
+              class="custom-select"
+              style="width: auto"
+            >
+              <option value="1080">1080</option>
+              <option value="720" selected>720</option>
+              <option value="540">540</option>
+              <option value="360">360</option>
+              <option value="180">180</option>
+            </select>
             </div>
             <!--<div>
               <select id="preferred-codec" class="custom-select" style="width: auto">
@@ -291,6 +305,3 @@
     </div>
     <script src="./sample.ts" type="module"></script>
     <!-- for icons -->
-    <script src="https://kit.fontawesome.com/7c1c4c7e9c.js" crossorigin="anonymous"></script>
-  </body>
-</html>

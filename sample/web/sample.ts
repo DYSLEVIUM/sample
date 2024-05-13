@@ -1,4 +1,3 @@
-//@ts-ignore
 import E2EEWorker from 'ecprt-client-sdk';
 import {
   ConnectionQuality,
@@ -81,13 +80,47 @@ const appActions = {
     const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
-    const preferredCodec = 'vp8' as VideoCodec;
+    let preferredCodec = 'vp8' as VideoCodec;
     //const scalabilityMode = (<HTMLSelectElement>$('scalability-mode')).value;
     const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
     //const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
     const audioOutputId = (<HTMLSelectElement>$('audio-output')).value;
+    let q = VideoPresets.h720.resolution;
+    const quality = (<HTMLSelectElement>$('preferred-quality')).value;
+    switch (quality) {
+      case '1080':
+        q = VideoPresets.h1080.resolution;
+        break;
+      case '720':
+        q = VideoPresets.h720.resolution;
+        break;
+      case '540':
+        q = VideoPresets.h540.resolution;
+        break;
+      case '360':
+        q = VideoPresets.h360.resolution;
+        break;
+      case '180':
+          q = VideoPresets.h180.resolution;
+        break;
+      default:
+        break;
+    }
+
+    let codecChosen = (<HTMLSelectElement>$('preferred-codec')).value;
+    switch (codecChosen) {
+      case 'vp8':
+        preferredCodec = 'vp8';
+        break;
+      case 'h264':
+        preferredCodec = 'h264';
+        break;
+      default:
+        break;
+    }
+
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token, cryptoKey);
 
@@ -107,7 +140,7 @@ const appActions = {
         screenShareEncoding: ScreenSharePresets.h1080fps30.encoding,
       },
       videoCaptureDefaults: {
-        resolution: VideoPresets.h720.resolution,
+        resolution: q,
       },
       /*e2ee: e2eeEnabled
         ? { keyProvider: state.e2eeKeyProvider, worker: new E2EEWorker() }
@@ -222,6 +255,9 @@ const appActions = {
           appendLog(`tracks published in ${Date.now() - startTime}ms`);
           updateButtonsForPublishState();
         }
+      })
+      .on(RoomEvent.ReconnectICEDelay , (delay : number)  => {
+          appendLog(`@ICE connection delay: ${delay} seconds`)
       })
       .on(RoomEvent.ParticipantEncryptionStatusChanged, () => {
         updateButtonsForPublishState();
@@ -955,7 +991,7 @@ function populateSupportedCodecs() {
   }
 }
 
-function populateScalabilityModes() {
+/* function populateScalabilityModes() {
   const modeSelect = $('scalability-mode');
   const modes: string[] = [
     'L1T1',
@@ -999,8 +1035,8 @@ function populateScalabilityModes() {
       modeSelect.setAttribute('disabled', 'true');
     }
   };
-}
+}*/
 
 acquireDeviceList();
 populateSupportedCodecs();
-populateScalabilityModes();
+//populateScalabilityModes();
