@@ -9,6 +9,7 @@ import {
   Room as RoomModel,
   SpeakerInfo,
   TrackInfo,
+  Transcription,
   UserPacket,
 } from '../proto/livekit_models_pb';
 import {
@@ -17,6 +18,7 @@ import {
   DataChannelInfo,
   JoinResponse,
   LeaveRequest,
+  LeaveRequest_Action,
   ReconnectResponse,
   SignalTarget,
   StreamStateUpdate,
@@ -55,22 +57,14 @@ import { EngineEvent } from './events';
 import CriticalTimers from './timers';
 import type LocalTrack from './track/LocalTrack';
 import type LocalTrackPublication from './track/LocalTrackPublication';
-import type LocalVideoTrack from './track/LocalVideoTrack';
+import LocalVideoTrack from './track/LocalVideoTrack';
 import type { SimulcastTrackInfo } from './track/LocalVideoTrack';
 import type RemoteTrackPublication from './track/RemoteTrackPublication';
-import { Track } from './track/Track';
+import type { Track } from './track/Track';
 import type { TrackPublishOptions, VideoCodec } from './track/options';
 import { getTrackPublicationInfo } from './track/utils';
 import type { LoggerOptions } from './types';
-import {
-  Mutex,
-  isVideoCodec,
-  isWeb,
-  sleep,
-  supportsAddTrack,
-  supportsSetCodecPreferences,
-  supportsTransceiver,
-} from './utils';
+import { Mutex, isVideoCodec, isWeb, sleep, supportsAddTrack, supportsTransceiver } from './utils';
 
 const lossyDataChannel = '_lossy';
 const reliableDataChannel = '_reliable';
@@ -128,7 +122,6 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
   private primaryPC?: RTCPeerConnection;
 
-
   private pcState: PCState = PCState.New;
 
   private _isClosed: boolean = true;
@@ -177,6 +170,8 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
   private log = log;
 
   private loggerOptions: LoggerOptions;
+
+  private publisherConnectionPromise: Promise<void> | undefined;
 
   constructor(private options: InternalRoomOptions) {
     super();
@@ -378,7 +373,7 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
   private disconnectStartTimeSecondary: number = 0;
 
   //private numberOfTimeSet: number = 0;
- /* @internal */
+  /* @internal */
   setRegionUrlProvider(provider: RegionUrlProvider) {
     this.regionUrlProvider = provider;
   }
@@ -412,6 +407,11 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     this.pcManager.onDataChannel = this.handleDataChannel;
     this.pcManager.onStateChange = async (connectionState, publisherState, subscriberState) => {
       this.log.debug(`primary PC state changed ${connectionState}`, this.logContext);
+
+      if (['closed', 'disconnected', 'failed'].includes(publisherState)) {
+        // reset publisher connection promise
+        this.publisherConnectionPromise = undefined;
+      }
       if (connectionState === PCTransportState.CONNECTED) {
         const shouldEmit = this.pcState === PCState.New;
         this.pcState = PCState.Connected;
@@ -466,12 +466,14 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
         this.firstReconnectAttempt = true
       }
     };*/
-};
+    };
     this.pcManager.onTrack = (ev: RTCTrackEvent) => {
       this.emit(EngineEvent.MediaTrackAdded, ev.track, ev.streams[0], ev.receiver);
     };
 
-    this.createDataChannels();
+    if (!supportOptionalDatachannel(joinResponse.serverInfo?.protocol)) {
+      this.createDataChannels();
+    }
   }
 
   private setupSignalClientCallbacks() {
@@ -541,20 +543,31 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       this.handleDisconnect('signal', ReconnectReason.RR_SIGNAL_DISCONNECTED);
     };
 
-    this.client.onLeave = (leave?: LeaveRequest) => {
+    this.client.onLeave = (leave: LeaveRequest) => {
+      this.log.debug('client leave request', { ...this.logContext, reason: leave?.reason });
       sessionStorage.removeItem('token');
       sessionStorage.removeItem("isAudioMuted");
       sessionStorage.removeItem("isVideoMuted");
-      if (leave?.canReconnect) {
-        this.fullReconnectOnNext = true;
-        this.primaryPC = undefined;
-        // reconnect immediately instead of waiting for next attempt
-        this.handleDisconnect(leaveReconnect);
-      } else {
-        this.emit(EngineEvent.Disconnected, leave?.reason);
-        this.close();
+      if (leave.regions && this.regionUrlProvider) {
+        this.log.debug('updating regions', this.logContext);
+        this.regionUrlProvider.setServerReportedRegions(leave.regions);
       }
-      this.log.debug('client leave request', { ...this.logContext, reason: leave?.reason });
+      switch (leave.action) {
+        case LeaveRequest_Action.DISCONNECT:
+          this.emit(EngineEvent.Disconnected, leave?.reason);
+          this.close();
+          break;
+        case LeaveRequest_Action.RECONNECT:
+          this.fullReconnectOnNext = true;
+          // reconnect immediately instead of waiting for next attempt
+          this.handleDisconnect(leaveReconnect);
+          break;
+        case LeaveRequest_Action.RESUME:
+          // reconnect immediately instead of waiting for next attempt
+          this.handleDisconnect(leaveReconnect);
+        default:
+          break;
+      }
     };
   }
 
@@ -676,6 +689,8 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
         this.emit(EngineEvent.ActiveSpeakersUpdate, dp.value.value.speakers);
       } else if (dp.value?.case === 'user') {
         this.emit(EngineEvent.DataPacketReceived, dp.value.value, dp.kind);
+      } else if (dp.value?.case === 'transcription') {
+        this.emit(EngineEvent.TranscriptionReceived, dp.value.value);
       }
     } finally {
       unlock();
@@ -704,51 +719,6 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
 
     this.updateAndEmitDCBufferStatus(channelKind);
   };
-
-  private setPreferredCodec(
-    transceiver: RTCRtpTransceiver,
-    kind: Track.Kind,
-    videoCodec: VideoCodec,
-  ) {
-    if (!('getCapabilities' in RTCRtpReceiver)) {
-      return;
-    }
-    // when setting codec preferences, the capabilites need to be read from the RTCRtpReceiver
-    const cap = RTCRtpReceiver.getCapabilities(kind);
-    if (!cap) return;
-    this.log.debug('get receiver capabilities', { ...this.logContext, cap });
-    const matched: RTCRtpCodecCapability[] = [];
-    const partialMatched: RTCRtpCodecCapability[] = [];
-    const unmatched: RTCRtpCodecCapability[] = [];
-    cap.codecs.forEach((c) => {
-      const codec = c.mimeType.toLowerCase();
-      if (codec === 'audio/opus') {
-        matched.push(c);
-        return;
-      }
-      const matchesVideoCodec = codec === `video/${videoCodec}`;
-      if (!matchesVideoCodec) {
-        unmatched.push(c);
-        return;
-      }
-      // for h264 codecs that have sdpFmtpLine available, use only if the
-      // profile-level-id is 42e01f for cross-browser compatibility
-      if (videoCodec === 'h264') {
-        if (c.sdpFmtpLine && c.sdpFmtpLine.includes('profile-level-id=42e01f')) {
-          matched.push(c);
-        } else {
-          partialMatched.push(c);
-        }
-        return;
-      }
-
-      matched.push(c);
-    });
-
-    if (supportsSetCodecPreferences(transceiver)) {
-      transceiver.setCodecPreferences(matched.concat(partialMatched, unmatched));
-    }
-  }
 
   async createSender(
     track: LocalTrack,
@@ -800,6 +770,10 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       streams.push(track.mediaStream);
     }
 
+    if (track instanceof LocalVideoTrack) {
+      track.codec = opts.videoCodec;
+    }
+
     const transceiverInit: RTCRtpTransceiverInit = { direction: 'sendonly', streams };
     if (encodings) {
       transceiverInit.sendEncodings = encodings;
@@ -810,10 +784,6 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       transceiverInit,
     );
 
-    if (track.kind === Track.Kind.Video && opts.videoCodec) {
-      this.setPreferredCodec(transceiver, track.kind, opts.videoCodec);
-      track.codec = opts.videoCodec;
-    }
     return transceiver.sender;
   }
 
@@ -838,7 +808,6 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
     if (!opts.videoCodec) {
       return;
     }
-    this.setPreferredCodec(transceiver, track.kind, opts.videoCodec);
     track.setSimulcastTrackSender(opts.videoCodec, transceiver.sender);
     return transceiver.sender;
   }
@@ -1165,7 +1134,7 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
         this.disconnectStartTimeSecondary = 0
         this.firstReconnectAttempt = true
       }
-      }
+      } 
     } catch (e: any) {
       // TODO do we need a `failed` state here for the PC?
       this.pcState = PCState.Disconnected;
@@ -1237,11 +1206,21 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       throw new ConnectionError(`${transportName} connection not set`);
     }
 
+    let needNegotiation = false;
+    if (!subscriber && !this.dataChannelForKind(kind, subscriber)) {
+      this.createDataChannels();
+      needNegotiation = true;
+    }
+
     if (
+      !needNegotiation &&
       !subscriber &&
       !this.pcManager.publisher.isICEConnected &&
       this.pcManager.publisher.getICEConnectionState() !== 'checking'
     ) {
+      needNegotiation = true;
+    }
+    if (needNegotiation) {
       // start negotiation
       this.negotiate();
     }
@@ -1269,7 +1248,10 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
   }
 
   private async ensurePublisherConnected(kind: DataPacket_Kind) {
-    await this.ensureDataTransportConnected(kind, false);
+    if (!this.publisherConnectionPromise) {
+      this.publisherConnectionPromise = this.ensureDataTransportConnected(kind, false);
+    }
+    await this.publisherConnectionPromise;
   }
 
   /* @internal */
@@ -1299,6 +1281,14 @@ export default class RTCEngine extends (EventEmitter as new () => TypedEventEmit
       }
 
       this.pcManager.requirePublisher();
+      // don't negotiate without any transceivers or data channel, it will generate sdp without ice frag then negotiate failed
+      if (
+        this.pcManager.publisher.getTransceivers().length == 0 &&
+        !this.lossyDC &&
+        !this.reliableDC
+      ) {
+        this.createDataChannels();
+      }
 
       const abortController = new AbortController();
 
@@ -1491,6 +1481,7 @@ export type EngineEventCallbacks = {
   ) => void;
   activeSpeakersUpdate: (speakers: Array<SpeakerInfo>) => void;
   dataPacketReceived: (userPacket: UserPacket, kind: DataPacket_Kind) => void;
+  transcriptionReceived: (transcription: Transcription) => void;
   transportsCreated: (publisher: PCTransport, subscriber: PCTransport) => void;
   primaryDelay: (delay: number) => void;
   secondaryDelay: (delay: number) => void;
@@ -1510,3 +1501,7 @@ export type EngineEventCallbacks = {
   remoteMute: (trackSid: string, muted: boolean) => void;
   offline: () => void;
 };
+
+function supportOptionalDatachannel(protocol: number | undefined): boolean {
+  return protocol !== undefined && protocol > 13;
+}

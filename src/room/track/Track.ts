@@ -1,5 +1,6 @@
 import {
   VideoQuality as ProtoQuality,
+  AudioTrackFeature,
   TrackSource,
   TrackType
 } from '../../proto/livekit_models_pb';
@@ -52,6 +53,9 @@ export abstract class Track<
    */
   streamState: Track.StreamState = Track.StreamState.Active;
 
+  /** @internal */
+  rtpTimestamp: number | undefined;
+
   protected _mediaStreamTrack: MediaStreamTrack;
 
   protected _mediaStreamID: string;
@@ -61,6 +65,8 @@ export abstract class Track<
   private backgroundTimeout: ReturnType<typeof setTimeout> | undefined;
 
   private loggerContextCb: LoggerOptions['loggerContextCb'];
+
+  protected timeSyncHandle: number | undefined;
 
   protected _currentBitrate: number = 0;
 
@@ -254,6 +260,9 @@ export abstract class Track<
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
     }
+    if (this.timeSyncHandle) {
+      cancelAnimationFrame(this.timeSyncHandle);
+    }
   }
 
   /** @internal */
@@ -300,6 +309,17 @@ export abstract class Track<
 
   protected async handleAppVisibilityChanged() {
     this.isInBackground = document.visibilityState === 'hidden';
+    if (!this.isInBackground && this.kind === Track.Kind.Video) {
+      setTimeout(
+        () =>
+          this.attachedElements.forEach((el) =>
+            el.play().catch(() => {
+              /** catch clause necessary for Safari */
+            }),
+          ),
+        0,
+      );
+    }
   }
 
   protected addAppVisibilityListener() {
@@ -504,4 +524,6 @@ export type TrackEventCallbacks = {
   upstreamPaused: (track: any) => void;
   upstreamResumed: (track: any) => void;
   trackProcessorUpdate: (processor?: TrackProcessor<Track.Kind, any>) => void;
+  audioTrackFeatureUpdate: (track: any, feature: AudioTrackFeature, enabled: boolean) => void;
+  timeSyncUpdate: (update: { timestamp: number; rtpTimestamp: number }) => void;
 };

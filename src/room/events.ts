@@ -35,6 +35,14 @@ export enum RoomEvent {
    * - ROOM_DELETED: the room has ended via DeleteRoom API
    *
    * args: ([[DisconnectReason]])
+   * when an unrecoverable connection issue had occured.
+   *
+   * DisconnectReason can be used to determine why the participant was disconnected. Notable reasons are
+   * - DUPLICATE_IDENTITY: another client with the same identity has joined the room
+   * - PARTICIPANT_REMOVED: participant was removed by RemoveParticipant API
+   * - ROOM_DELETED: the room has ended via DeleteRoom API
+   *
+   * args: ([[DisconnectReason]])
    */
   Disconnected = 'disconnected',
 
@@ -198,6 +206,12 @@ export enum RoomEvent {
   DataReceived = 'dataReceived',
 
   /**
+   * Transcription received from a participant's track.
+   * @beta
+   */
+  TranscriptionReceived = 'transcriptionReceived',
+
+  /**
    * Connection quality was changed for a Participant. It'll receive updates
    * from the local participant, as well as any [[RemoteParticipant]]s that we are
    * subscribed to.
@@ -225,6 +239,7 @@ export enum RoomEvent {
    * be emitted.
    *
    * args: (pub: [[RemoteTrackPublication]],
+   *        status: [[TrackPublication.PermissionStatus]],
    *        status: [[TrackPublication.PermissionStatus]],
    *        participant: [[RemoteParticipant]])
    */
@@ -406,6 +421,12 @@ export enum ParticipantEvent {
   DataReceived = 'dataReceived',
 
   /**
+   * Transcription received from this participant as data source.
+   * @beta
+   */
+  TranscriptionReceived = 'transcriptionReceived',
+
+  /**
    * Has speaking status changed for the current participant
    *
    * args: (speaking: boolean)
@@ -484,6 +505,7 @@ export enum EngineEvent {
   DataPacketReceived = 'dataPacketReceived',
   PrimaryDelay = 'primaryDelay',
   SecondaryDelay = 'secondaryDelay',
+  TranscriptionReceived = 'transcriptionReceived',
   RTPVideoMapUpdate = 'rtpVideoMapUpdate',
   DCBufferStatusChanged = 'dcBufferStatusChanged',
   ParticipantUpdate = 'participantUpdate',
@@ -562,4 +584,19 @@ export enum TrackEvent {
    * @internal
    */
   TrackProcessorUpdate = 'trackProcessorUpdate',
+
+  /**
+   * @internal
+   */
+  AudioTrackFeatureUpdate = 'audioTrackFeatureUpdate',
+
+  /**
+   * @beta
+   */
+  TranscriptionReceived = 'transcriptionReceived',
+
+  /**
+   * @experimental
+   */
+  TimeSyncUpdate = 'timeSyncUpdate',
 }

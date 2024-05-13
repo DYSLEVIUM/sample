@@ -42,9 +42,9 @@ import {
 import type { DataPublishOptions } from '../types';
 import {
   Future,
+  isE2EESimulcastSupported,
   isFireFox,
   isSVCCodec,
-  isSafari,
   isSafari17,
   isWeb,
   supportsAV1,
@@ -212,7 +212,7 @@ export default class LocalParticipant extends Participant {
    * @param metadata
    */
   setMetadata(metadata: string): void {
-   super.setMetadata(metadata);
+    super.setMetadata(metadata);
     this.engine.client.sendUpdateLocalMetadata(metadata, this.name ?? '');
   }
 
@@ -658,10 +658,9 @@ export default class LocalParticipant extends Participant {
       ...options,
     };
 
-    // disable simulcast if e2ee is set on safari
-    if (isSafari() && this.roomOptions.e2ee) {
+    if (!isE2EESimulcastSupported() && this.roomOptions.e2ee) {
       this.log.info(
-        `End-to-end encryption is set up, simulcast publishing will be disabled on Safari`,
+        `End-to-end encryption is set up, simulcast publishing will be disabled on Safari versions and iOS browsers running iOS < v17.2`,
         {
           ...this.logContext,
         },
@@ -722,6 +721,7 @@ export default class LocalParticipant extends Participant {
     track.on(TrackEvent.Ended, this.handleTrackEnded);
     track.on(TrackEvent.UpstreamPaused, this.onTrackUpstreamPaused);
     track.on(TrackEvent.UpstreamResumed, this.onTrackUpstreamResumed);
+    track.on(TrackEvent.AudioTrackFeatureUpdate, this.onTrackFeatureUpdate);
 
     // create track publication from track
     const req = new AddTrackRequest({
@@ -839,7 +839,7 @@ export default class LocalParticipant extends Participant {
         req.height,
         opts,
       );
-      req.layers = videoLayersFromEncodings(req.width, req.height,encodings,isSVCCodec(opts.videoCodec),);
+            (req.width, req.height,encodings,isSVCCodec(opts.videoCodec));
       if(encodings.length==1) { //single layer encoding returned 
         videoEncoding=determineAppropriateEncoding(track.source === Track.Source.ScreenShare,req.width, req.height, opts.videoCodec);
         encodings = [
@@ -848,7 +848,12 @@ export default class LocalParticipant extends Participant {
             maxFramerate:videoEncoding.maxFramerate,
             active: true,
           },
-        ];
+        ];req.layers = videoLayersFromEncodings(
+        req.width,
+        req.height,
+        encodings,
+        isSVCCodec(opts.videoCodec),
+      );
       }
     } else if (track.kind === Track.Kind.Audio && opts.audioBitrate) {
       encodings = [
@@ -881,7 +886,6 @@ export default class LocalParticipant extends Participant {
           ...getLogContextFromTrack(track),
           codec: updatedCodec,
         });
-        /* @ts-ignore */
         opts.videoCodec = updatedCodec;
 
         // recompute encodings since bitrates/etc could have changed
@@ -1092,6 +1096,7 @@ export default class LocalParticipant extends Participant {
     track.off(TrackEvent.Ended, this.handleTrackEnded);
     track.off(TrackEvent.UpstreamPaused, this.onTrackUpstreamPaused);
     track.off(TrackEvent.UpstreamResumed, this.onTrackUpstreamResumed);
+    track.off(TrackEvent.AudioTrackFeatureUpdate, this.onTrackFeatureUpdate);
 
     const trackSender = track.sender;
     track.sender = undefined;
@@ -1286,10 +1291,10 @@ export default class LocalParticipant extends Participant {
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
     // the server's copy
-    // console.log('AudioMute Flage is: '+this.audioMuted+'VideoMute Flage is: '+this.videoMuted);
     info.tracks.forEach((ti) => {
       const pub = this.trackPublications.get(ti.sid);
-      if (pub) {
+
+            if (pub) {
         // const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
         // console.log('mutedOnServer flage is: '+mutedOnServer)
         console.log('Track type is: '+pub.kind+' & Sid is: '+ti.sid+' & Mute value is: '+ti.muted);
@@ -1437,6 +1442,18 @@ export default class LocalParticipant extends Participant {
       ...getLogContextFromTrack(track),
     });
     this.onTrackMuted(track, track.isMuted);
+  };
+
+  private onTrackFeatureUpdate = (track: LocalAudioTrack) => {
+    const pub = this.audioTrackPublications.get(track.sid!);
+    if (!pub) {
+      this.log.warn(
+        `Could not update local audio track settings, missing publication for track ${track.sid}`,
+        this.logContext,
+      );
+      return;
+    }
+    this.engine.client.sendUpdateLocalAudioTrack(pub.trackSid, pub.getTrackFeatures());
   };
 
   private handleSubscribedQualityUpdate = async (update: SubscribedQualityUpdate) => {

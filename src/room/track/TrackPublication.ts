@@ -11,7 +11,7 @@ import { EventEmitter } from 'events';
 import type TypedEventEmitter from 'typed-emitter';
 import log, { LoggerNames, getLogger } from '../../logger';
 import { TrackEvent } from '../events';
-import type { LoggerOptions } from '../types';
+import type { LoggerOptions, TranscriptionSegment } from '../types';
 import LocalAudioTrack from './LocalAudioTrack';
 import LocalVideoTrack from './LocalVideoTrack';
 import RemoteAudioTrack from './RemoteAudioTrack';
@@ -176,4 +176,6 @@ export type PublicationEventCallbacks = {
     prevStatus: TrackPublication.SubscriptionStatus,
   ) => void;
   subscriptionFailed: (error: SubscriptionError) => void;
+  transcriptionReceived: (transcription: TranscriptionSegment[]) => void;
+  timeSyncUpdate: (timestamp: number) => void;
 };

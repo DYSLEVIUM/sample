@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-
 ## Badges
 
 Add badges from somewhere like: [shields.io](https://shields.io/)
@@ -8,10 +6,6 @@ Add badges from somewhere like: [shields.io](https://shields.io/)
 [![GPLv3 License](https://img.shields.io/badge/License-GPL%20v3-yellow.svg)](https://opensource.org/licenses/)
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 
-# JavaScript/TypeScript client SDK for LiveKit
-
-`livekit-client` is the official client SDK for [LiveKit](https://github.com/livekit/livekit-server). With it, you can add real time video and audio to your web apps.
-=======
 <!--BEGIN_BANNER_IMAGE-->
 
 <picture>
@@ -29,7 +23,6 @@ Add badges from somewhere like: [shields.io](https://shields.io/)
 Use this SDK to add real-time video, audio and data features to your JavaScript/TypeScript app. By connecting to a self- or cloud-hosted <a href="https://livekit.io/">LiveKit</a> server, you can quickly build applications like interactive live streaming or video calls with just a few lines of code.
 
 <!--END_DESCRIPTION-->
->>>>>>> v2.0.10
 
 ## Docs
 
@@ -37,13 +30,10 @@ Docs and guides at [https://docs.livekit.io](https://docs.livekit.io)
 
 [SDK reference](https://docs.livekit.io/client-sdk-js/)
 
-<<<<<<< HEAD
-=======
 > [!NOTE]
 > This is v2 of `livekit-client`. When migrating from v1.x to v2.x you might encounter a small set of breaking changes.
 > Read the [migration guide](https://docs.livekit.io/guides/migrate-from-v1/) for a detailed overview of what has changed.
 
->>>>>>> v2.0.10
 ## Installation
 
 ### Yarn
@@ -58,8 +48,6 @@ yarn add livekit-client
 npm install livekit-client --save
 ```
 
-<<<<<<< HEAD
-=======
 ### Minified JS
 
 To use the SDK without a package manager, you can include it with a script tag:
@@ -72,7 +60,6 @@ The module will be exported under `LivekitClient` in the global namespace. When
 accessing symbols from the class, you'd need to prefix them with `LivekitClient.`.
 For example, `Room` becomes `LivekitClient.Room`.
 
->>>>>>> v2.0.10
 ## Usage
 
 Examples below are in TypeScript, if using JS/CommonJS imports replace import with:
@@ -81,13 +68,10 @@ Examples below are in TypeScript, if using JS/CommonJS imports replace import wi
 const livekit = require('livekit-client');
 
 const room = new livekit.Room(...);
-<<<<<<< HEAD
-=======
 
 // call this some time before actually connecting to speed up the actual connection
 room.prepareConnection(url, token);
 
->>>>>>> v2.0.10
 await room.connect(...);
 ```
 
@@ -95,22 +79,12 @@ await room.connect(...);
 
 ```typescript
 import {
-<<<<<<< HEAD
-  connect,
-  Room,
-  RoomEvent,
-  RemoteParticipant,
-  RemoteTrackPublication,
-  RemoteTrack,
-  Participant,
-=======
   Participant,
   RemoteParticipant,
   RemoteTrack,
   RemoteTrackPublication,
   Room,
   RoomEvent,
->>>>>>> v2.0.10
 } from 'livekit-client';
 
 // creates a new room with options
@@ -127,12 +101,9 @@ const room = new Room({
   },
 });
 
-<<<<<<< HEAD
-=======
 // pre-warm connection, this can be called as early as your page is loaded
 room.prepareConnection(url, token);
 
->>>>>>> v2.0.10
 // set up event listeners
 room
   .on(RoomEvent.TrackSubscribed, handleTrackSubscribed)
@@ -169,18 +140,12 @@ function handleTrackUnsubscribed(
   track.detach();
 }
 
-<<<<<<< HEAD
-function handleLocalTrackUnpublished(track: LocalTrackPublication, participant: LocalParticipant) {
-  // when local tracks are ended, update UI to remove them from rendering
-  track.detach();
-=======
 function handleLocalTrackUnpublished(
   publication: LocalTrackPublication,
   participant: LocalParticipant,
 ) {
   // when local tracks are ended, update UI to remove them from rendering
   publication.track.detach();
->>>>>>> v2.0.10
 }
 
 function handleActiveSpeakerChange(speakers: Participant[]) {
@@ -218,16 +183,6 @@ await p.setCameraEnabled(false);
 Similarly, you can access these common track types on the other participants' end.
 
 ```typescript
-<<<<<<< HEAD
-// get a RemoteParticipant by their sid
-const p = room.participants.get('participant-sid');
-if (p) {
-  // if the other user has enabled their camera, attach it to a new HTMLVideoElement
-  if (p.isCameraEnabled) {
-    const track = p.getTrack(Track.Source.Camera);
-    if (track?.isSubscribed) {
-      const videoElement = track.videoTrack?.attach();
-=======
 // get a RemoteParticipant by their identity
 const p = room.remoteParticipants.get('participant-identity');
 if (p) {
@@ -236,7 +191,6 @@ if (p) {
     const publication = p.getTrackPublication(Track.Source.Camera);
     if (publication?.isSubscribed) {
       const videoElement = publication.videoTrack?.attach();
->>>>>>> v2.0.10
       // do something with the element
     }
   }
@@ -322,21 +276,13 @@ You could also retrieve the last error with `LocalParticipant.lastCameraError` a
 
 Browsers can be restrictive with regards to audio playback that is not initiated by user interaction. What each browser considers as user interaction can vary by vendor (for example, Safari on iOS is very restrictive).
 
-<<<<<<< HEAD
-LiveKit will attempt to autoplay all audio tracks when you attach them to audio elements. However, if that fails, we'll notify you via `RoomEvent.AudioPlaybackStatusChanged`. `Room.canPlayAudio` will indicate if audio playback is permitted. LiveKit takes an optimistic approach so it's possible for this value to change from `true` to `false` when we encounter a browser error.
-=======
 LiveKit will attempt to autoplay all audio tracks when you attach them to audio elements. However, if that fails, we'll notify you via `RoomEvent.AudioPlaybackStatusChanged`. `Room.canPlaybackAudio` will indicate if audio playback is permitted. LiveKit takes an optimistic approach so it's possible for this value to change from `true` to `false` when we encounter a browser error.
->>>>>>> v2.0.10
 
 In the case user interaction is required, LiveKit provides `Room.startAudio` to start audio playback. This function must be triggered in an onclick or ontap event handler. In the same session, once audio playback is successful, additional audio tracks can be played without further user interactions.
 
 ```typescript
 room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
-<<<<<<< HEAD
-  if (!room.canPlayAudio) {
-=======
   if (!room.canPlaybackAudio) {
->>>>>>> v2.0.10
     // UI is necessary.
     ...
     button.onclick = () => {
@@ -368,11 +314,7 @@ setLogExtension((level: LogLevel, msg: string, context: object) => {
 
 ### SDK Sample
 
-<<<<<<< HEAD
-[example/sample.ts](example/sample.ts) contains a demo webapp that uses the SDK. Run it with `yarn sample`
-=======
 [example/sample.ts](example/sample.ts) contains a demo webapp that uses the SDK. Run it with `pnpm install && pnpm sample`
->>>>>>> v2.0.10
 
 ## Browser Support
 
@@ -392,7 +334,8 @@ You can have a look at the `"browerslist"` section of `package.json` for more de
 
 If you are targeting legacy browsers, but still want adaptiveStream functionality you'll likely need to use polyfills for [ResizeObserver](https://www.npmjs.com/package/resize-observer-polyfill) and [IntersectionObserver](https://www.npmjs.com/package/intersection-observer).
 
-<<<<<<< HEAD
+Also when targeting legacy browsers, older than the ones specified in our browserslist target, make sure to transpile the library code to your desired target and include required polyfills with babel and/or corejs.
+
 ### SDK build and publish process for ECPRT
  - Execute "npm run install" command to install required dependencies to node module of the project.
  - Execute "npm install -g typescript" command to install tsc globally.
@@ -401,6 +344,7 @@ If you are targeting legacy browsers, but still want adaptiveStream functionalit
  - Execute "npm run clean" command to clean the project.
  - Execute "npm run build" command to build the project.
  - Execute "npm run publish" command to publish the build to the provided registry.
+
 
 ## Build Service
 
@@ -414,22 +358,4 @@ This step will tar only the `*.map` files from dist folder.
 
 ### publish-files
 
-Tar file from the previous step will be published to [cgbu_ecprt-release-generic-local](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-release-generic-local/ecprt-livekit-client-sdk-js/)
-=======
-Also when targeting legacy browsers, older than the ones specified in our browserslist target, make sure to transpile the library code to your desired target and include required polyfills with babel and/or corejs.
-
-<!--BEGIN_REPO_NAV-->
-
-<br/><table>
-
-<thead><tr><th colspan="2">LiveKit Ecosystem</th></tr></thead>
-<tbody>
-<tr><td>Real-time SDKs</td><td><a href="https://github.com/livekit/components-js">React Components</a> · <b>JavaScript</b> · <a href="https://github.com/livekit/client-sdk-swift">iOS/macOS</a> · <a href="https://github.com/livekit/client-sdk-android">Android</a> · <a href="https://github.com/livekit/client-sdk-flutter">Flutter</a> · <a href="https://github.com/livekit/client-sdk-react-native">React Native</a> · <a href="https://github.com/livekit/client-sdk-rust">Rust</a> · <a href="https://github.com/livekit/client-sdk-python">Python</a> · <a href="https://github.com/livekit/client-sdk-unity-web">Unity (web)</a> · <a href="https://github.com/livekit/client-sdk-unity">Unity (beta)</a></td></tr><tr></tr>
-<tr><td>Server APIs</td><td><a href="https://github.com/livekit/server-sdk-js">Node.js</a> · <a href="https://github.com/livekit/server-sdk-go">Golang</a> · <a href="https://github.com/livekit/server-sdk-ruby">Ruby</a> · <a href="https://github.com/livekit/server-sdk-kotlin">Java/Kotlin</a> · <a href="https://github.com/livekit/client-sdk-python">Python</a> · <a href="https://github.com/livekit/client-sdk-rust">Rust</a> · <a href="https://github.com/agence104/livekit-server-sdk-php">PHP (community)</a></td></tr><tr></tr>
-<tr><td>Agents Frameworks</td><td><a href="https://github.com/livekit/agents">Python</a> · <a href="https://github.com/livekit/agent-playground">Playground</a></td></tr><tr></tr>
-<tr><td>Services</td><td><a href="https://github.com/livekit/livekit">Livekit server</a> · <a href="https://github.com/livekit/egress">Egress</a> · <a href="https://github.com/livekit/ingress">Ingress</a> · <a href="https://github.com/livekit/sip">SIP</a></td></tr><tr></tr>
-<tr><td>Resources</td><td><a href="https://docs.livekit.io">Docs</a> · <a href="https://github.com/livekit-examples">Example apps</a> · <a href="https://livekit.io/cloud">Cloud</a> · <a href="https://docs.livekit.io/oss/deployment">Self-hosting</a> · <a href="https://github.com/livekit/livekit-cli">CLI</a></td></tr>
-</tbody>
-</table>
-<!--END_REPO_NAV-->
->>>>>>> v2.0.10
+Tar file from the previous step will be published to [cgbu_ecprt-dev-generic-local](https://artifactory-builds.oci.oraclecorp.com/cgbu_ecprt-dev-generic-local/ecprt-livekit-client-sdk-js/)

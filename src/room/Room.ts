@@ -11,18 +11,21 @@ import {
   TrackInfo,
   TrackSource,
   TrackType,
+  Transcription as TranscriptionModel,
+  TranscriptionSegment as TranscriptionSegmentModel,
   UserPacket,
 } from '../proto/livekit_models_pb';
 import {
   ConnectionQualityUpdate,
   JoinResponse,
   LeaveRequest,
+  LeaveRequest_Action,
   SimulateScenario,
   StreamStateUpdate,
   SubscriptionPermissionUpdate,
   SubscriptionResponse,
-  protoInt64,
 } from '../proto/livekit_rtc_pb'
+import { protoInt64 } from '@bufbuild/protobuf';
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import 'webrtc-adapter';
@@ -63,11 +66,12 @@ import type { TrackPublication } from './track/TrackPublication';
 import type { TrackProcessor } from './track/processor/types';
 import type { AdaptiveStreamSettings } from './track/types';
 import { getNewAudioContext, sourceToKind } from './track/utils';
-import type { SimulationOptions, SimulationScenario } from './types';
+import type { SimulationOptions, SimulationScenario, TranscriptionSegment } from './types';
 import {
   Future,
   Mutex,
   createDummyVideoStreamTrack,
+  extractTranscriptionSegments,
   getEmptyAudioStreamTrack,
   isBrowserSupported,
   isCloud,
@@ -335,6 +339,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       })
       .on(EngineEvent.ActiveSpeakersUpdate, this.handleActiveSpeakersUpdate)
       .on(EngineEvent.DataPacketReceived, this.handleDataPacket)
+      .on(EngineEvent.TranscriptionReceived, this.handleTranscription)
       .on(EngineEvent.Resuming, () => {
         this.clearConnectionReconcile();
         this.isResuming = true;
@@ -877,7 +882,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
             onLeave(
               new LeaveRequest({
                 reason: DisconnectReason.CLIENT_INITIATED,
-                canReconnect: true,
+                action: LeaveRequest_Action.RECONNECT,
               }),
             );
           }
@@ -909,11 +914,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     let token = sessionStorage.getItem('token') as string;
     let isAudioMuted = sessionStorage.getItem('isAudioMuted') as string;
     let isVideoMuted = sessionStorage.getItem('isVideoMuted') as string;
-    this.disconnect();
+    await this.disconnect();
     sessionStorage.setItem('token',token);
     sessionStorage.setItem('isAudioMuted',isAudioMuted);
     sessionStorage.setItem('isVideoMuted',isVideoMuted);
-
   };
 
   /**
@@ -1499,6 +1503,23 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
     // also emit on the participant
     participant?.emit(ParticipantEvent.DataReceived, userPacket.payload, kind);
+  };
+
+  bufferedSegments: Map<string, TranscriptionSegmentModel> = new Map();
+
+  private handleTranscription = (transcription: TranscriptionModel) => {
+    // find the participant
+    const participant =
+      transcription.participantIdentity === this.localParticipant.identity
+        ? this.localParticipant
+        : this.remoteParticipants.get(transcription.participantIdentity);
+    const publication = participant?.trackPublications.get(transcription.trackId);
+
+    const segments = extractTranscriptionSegments(transcription);
+
+    publication?.emit(TrackEvent.TranscriptionReceived, segments);
+    participant?.emit(ParticipantEvent.TranscriptionReceived, segments, publication);
+    this.emit(RoomEvent.TranscriptionReceived, segments, participant, publication);
   };
 
   private handleAudioPlaybackStarted = () => {
@@ -2100,6 +2121,11 @@ export type RoomEventCallbacks = {
     participant?: RemoteParticipant,
     kind?: DataPacket_Kind,
     topic?: string,
+  ) => void;
+  transcriptionReceived: (
+    transcription: TranscriptionSegment[],
+    participant?: Participant,
+    publication?: TrackPublication,
   ) => void;
   connectionQualityChanged: (quality: ConnectionQuality, participant: Participant) => void;
   mediaDevicesError: (error: Error) => void;

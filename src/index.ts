@@ -20,6 +20,7 @@ import { TrackPublication } from './room/track/TrackPublication';
 import type { LiveKitReactNativeInfo } from './room/types';
 import type { AudioAnalyserOptions } from './room/utils';
 import {
+  Mutex,
   createAudioAnalyser,
   getEmptyAudioStreamTrack,
   getEmptyVideoStreamTrack,
@@ -32,6 +33,7 @@ import {
 import { getBrowser } from './utils/browserParser';
 
 export * from './connectionHelper/ConnectionCheck';
+export * from './connectionHelper/checks/Checker';
 export * from './e2ee';
 export * from './options';
 export * from './room/errors';
@@ -42,7 +44,7 @@ export { facingModeFromDeviceLabel, facingModeFromLocalTrack } from './room/trac
 export * from './room/track/options';
 export * from './room/track/processor/types';
 export * from './room/track/types';
-export type { DataPublishOptions, SimulationScenario } from './room/types';
+export type { DataPublishOptions, SimulationScenario, TranscriptionSegment } from './room/types';
 export * from './version';
 export {
   ConnectionQuality,
@@ -79,6 +81,7 @@ export {
   supportsAdaptiveStream,
   supportsDynacast,
   supportsVP9,
+  Mutex,
 };
 export type {
   AudioAnalyserOptions,

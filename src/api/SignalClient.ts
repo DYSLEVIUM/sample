@@ -3,6 +3,7 @@ import {
   ConnectionQualityUpdate,
   JoinResponse,
   LeaveRequest,
+  LeaveRequest_Action,
   MuteTrackRequest,
   Ping,
   ReconnectResponse,
@@ -25,9 +26,10 @@ import {
   UpdateSubscription,
   UpdateTrackSettings,
   UpdateVideoLayers,
-  protoInt64,
+  UpdateLocalAudioTrack,
 } from '../proto/livekit_rtc_pb';
 import {
+  AudioTrackFeature,
   ClientInfo,
   DisconnectReason,
   ParticipantInfo,
@@ -36,6 +38,7 @@ import {
   Room,
   SpeakerInfo,
 } from '../proto/livekit_models_pb';
+import { protoInt64 } from '@bufbuild/protobuf';
 import log, { LoggerNames, getLogger } from '../logger';
 import { ConnectionError, ConnectionErrorReason } from '../room/errors';
 import CriticalTimers from '../room/timers';
@@ -504,7 +507,7 @@ export class SignalClient {
     });
   }
 
-  sendAddTrack(req: AddTrackRequest){
+  sendAddTrack(req: AddTrackRequest) {
     this.log.debug('sending Add Track req to server', { ...this.logContext,req:req});
     return this.sendRequest({
       case: 'addTrack',
@@ -594,6 +597,13 @@ export class SignalClient {
     ]);
   }
 
+  sendUpdateLocalAudioTrack(trackSid: string, features: AudioTrackFeature[]) {
+    return this.sendRequest({
+      case: 'updateAudioTrack',
+      value: new UpdateLocalAudioTrack({ trackSid, features }),
+    });
+  }
+
   sendLeave() {
     this.log.debug('sending leave req to server', this.logContext);
     return this.sendRequest({
@@ -601,6 +611,8 @@ export class SignalClient {
       value: new LeaveRequest({
         canReconnect: false,
         reason: DisconnectReason.CLIENT_INITIATED,
+        // server doesn't process this field, keeping it here to indicate the intent of a full disconnect
+        action: LeaveRequest_Action.DISCONNECT,
       }),
     });
   }

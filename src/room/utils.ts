@@ -1,4 +1,4 @@
-import { ClientInfo, ClientInfo_SDK } from '../proto/livekit_models_pb';
+import { ClientInfo, ClientInfo_SDK, Transcription as TranscriptionModel} from '../proto/livekit_models_pb';
 import type { DetectableBrowser } from '../utils/browserParser';
 import { getBrowser } from '../utils/browserParser';
 import { protocolVersion, version } from '../version';
@@ -7,7 +7,7 @@ import type LocalAudioTrack from './track/LocalAudioTrack';
 import type RemoteAudioTrack from './track/RemoteAudioTrack';
 import { VideoCodec, videoCodecs } from './track/options';
 import { getNewAudioContext } from './track/utils';
-import type { LiveKitReactNativeInfo } from './types';
+import type { LiveKitReactNativeInfo, TranscriptionSegment } from './types';
 
 const separator = '|';
 export const ddExtensionURI =
@@ -158,7 +158,35 @@ export function isSafari17(): boolean {
 
 export function isMobile(): boolean {
   if (!isWeb()) return false;
-  return /Tablet|iPad|Mobile|Android|BlackBerry/.test(navigator.userAgent);
+
+  return (
+    // @ts-expect-error `userAgentData` is not yet part of typescript
+    navigator.userAgentData?.mobile ??
+    /Tablet|iPad|Mobile|Android|BlackBerry/.test(navigator.userAgent)
+  );
+}
+
+export function isE2EESimulcastSupported() {
+  const browser = getBrowser();
+  const supportedSafariVersion = '17.2'; // see https://bugs.webkit.org/show_bug.cgi?id=257803
+  if (browser) {
+    if (browser.name !== 'Safari' && browser.os !== 'iOS') {
+      return true;
+    } else if (
+      browser.os === 'iOS' &&
+      browser.osVersion &&
+      compareVersions(supportedSafariVersion, browser.osVersion) >= 0
+    ) {
+      return true;
+    } else if (
+      browser.name === 'Safari' &&
+      compareVersions(supportedSafariVersion, browser.version) >= 0
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
 export function isWeb(): boolean {
@@ -447,6 +475,9 @@ export function createAudioAnalyser(
   return { calculateVolume, analyser, cleanup };
 }
 
+/**
+ * @internal
+ */
 export class Mutex {
   private _locking: Promise<void>;
 
@@ -521,4 +552,19 @@ export function toHttpUrl(url: string): string {
     return url.replace(/^(ws)/, 'http');
   }
   return url;
+}
+
+export function extractTranscriptionSegments(
+  transcription: TranscriptionModel,
+): TranscriptionSegment[] {
+  return transcription.segments.map(({ id, text, startTime, endTime, final, language }) => {
+    return {
+      id,
+      text,
+      startTime: Number.parseInt(startTime.toString()),
+      endTime: Number.parseInt(endTime.toString()),
+      final,
+      language,
+    };
+  });
 }

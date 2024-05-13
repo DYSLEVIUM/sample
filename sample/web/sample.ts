@@ -29,8 +29,10 @@ import {
   setLogLevel,
   supportsAV1,
   supportsVP9,
-} from 'ecprt-client-sdk';
-import type { SimulationScenario } from 'ecprt-client-sdk';
+} from '../../src/index';
+import { ScalabilityMode } from '../../src/room/track/options';
+import type { SimulationScenario } from '../../src/room/types';
+import { isSVCCodec } from '../../src/room/utils';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -48,7 +50,9 @@ let startTime: number;
 
 const searchParams = new URLSearchParams(window.location.search);
 const storedUrl = searchParams.get('url') ?? 'ws://localhost:7880';
+const storedToken = searchParams.get('token') ?? '';
 (<HTMLInputElement>$('url')).value = storedUrl;
+(<HTMLInputElement>$('token')).value = storedToken;
 let storedKey = searchParams.get('key');
 if (!storedKey) {
   (<HTMLSelectElement>$('crypto-key')).value = 'password';
@@ -78,10 +82,11 @@ const appActions = {
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
     const preferredCodec = 'vp8' as VideoCodec;
-      const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
+    //const scalabilityMode = (<HTMLSelectElement>$('scalability-mode')).value;
+    const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
-      //const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
+    //const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
     const audioOutputId = (<HTMLSelectElement>$('audio-output')).value;
     setLogLevel(LogLevel.debug);
     updateSearchParams(url, token, cryptoKey);
@@ -103,7 +108,7 @@ const appActions = {
       },
       videoCaptureDefaults: {
         resolution: VideoPresets.h720.resolution,
-      }
+      },
       /*e2ee: e2eeEnabled
         ? { keyProvider: state.e2eeKeyProvider, worker: new E2EEWorker() }
         : undefined,*/
@@ -113,6 +118,9 @@ const appActions = {
       roomOpts.publishDefaults?.videoCodec === 'vp9'
     ) {
       roomOpts.publishDefaults.backupCodec = true;
+      //if (scalabilityMode !== '') {
+      //  roomOpts.publishDefaults.scalabilityMode = scalabilityMode as ScalabilityMode;
+      //}
     }
 
     const connectOpts: RoomConnectOptions = {
@@ -251,7 +259,7 @@ const appActions = {
     currentRoom = room;
     window.currentRoom = room;
     setButtonsForState(true);
-    updateButtonsForPublishState();
+	updateButtonsForPublishState();
     room.remoteParticipants.forEach((participant) => {
       participantConnected(participant);
     });
@@ -864,11 +872,9 @@ function populateSelect(
   devices: MediaDeviceInfo[],
   selectedDeviceId?: string,
 ) {
-  /*if(element != null)
-  {
   // clear all elements
   element.innerHTML = '';
-  }*/
+
   for (const device of devices) {
     const option = document.createElement('option');
     option.text = device.label;
@@ -876,7 +882,7 @@ function populateSelect(
     if (device.deviceId === selectedDeviceId) {
       option.selected = true;
     }
-    //element.appendChild(option);
+    element.appendChild(option);
   }
 }
 
@@ -885,6 +891,7 @@ function updateButtonsForPublishState() {
     return;
   }
   const lp = currentRoom.localParticipant;
+
   // video
   setButtonState(
     'toggle-video-button',
@@ -905,6 +912,7 @@ function updateButtonsForPublishState() {
     lp.isScreenShareEnabled ? 'Stop Screen Share' : 'Share Screen',
     lp.isScreenShareEnabled,
   );
+
   // e2ee
   setButtonState(
     'toggle-e2ee-button',
@@ -947,5 +955,52 @@ function populateSupportedCodecs() {
   }
 }
 
+function populateScalabilityModes() {
+  const modeSelect = $('scalability-mode');
+  const modes: string[] = [
+    'L1T1',
+    'L1T2',
+    'L1T3',
+    'L2T1',
+    'L2T1h',
+    'L2T1_KEY',
+    'L2T2',
+    'L2T2h',
+    'L2T2_KEY',
+    'L2T3',
+    'L2T3h',
+    'L2T3_KEY',
+    'L3T1',
+    'L3T1h',
+    'L3T1_KEY',
+    'L3T2',
+    'L3T2h',
+    'L3T2_KEY',
+    'L3T3',
+    'L3T3h',
+    'L3T3_KEY',
+  ];
+  let n = document.createElement('option');
+  n.value = '';
+  n.text = 'ScalabilityMode';
+  modeSelect.appendChild(n);
+  for (const mode of modes) {
+    n = document.createElement('option');
+    n.value = mode;
+    n.text = mode;
+    modeSelect.appendChild(n);
+  }
+
+  const codecSelect = <HTMLSelectElement>$('preferred-codec');
+  codecSelect.onchange = () => {
+    if (isSVCCodec(codecSelect.value)) {
+      modeSelect.removeAttribute('disabled');
+    } else {
+      modeSelect.setAttribute('disabled', 'true');
+    }
+  };
+}
+
 acquireDeviceList();
 populateSupportedCodecs();
+populateScalabilityModes();
