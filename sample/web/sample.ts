@@ -28,10 +28,10 @@ import {
   setLogLevel,
   supportsAV1,
   supportsVP9,
-} from '../../src/index';
-import { ScalabilityMode } from '../../src/room/track/options';
-import type { SimulationScenario } from '../../src/room/types';
-import { isSVCCodec } from '../../src/room/utils';
+} from 'ecprt-client-sdk';
+import { ScalabilityMode } from 'ecprt-client-sdk';
+import type { SimulationScenario } from 'ecprt-client-sdk';
+import { isSVCCodec } from 'ecprt-client-sdk';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -49,9 +49,7 @@ let startTime: number;
 
 const searchParams = new URLSearchParams(window.location.search);
 const storedUrl = searchParams.get('url') ?? 'ws://localhost:7880';
-const storedToken = searchParams.get('token') ?? '';
 (<HTMLInputElement>$('url')).value = storedUrl;
-(<HTMLInputElement>$('token')).value = storedToken;
 let storedKey = searchParams.get('key');
 if (!storedKey) {
   (<HTMLSelectElement>$('crypto-key')).value = 'password';
@@ -80,15 +78,16 @@ const appActions = {
     const shouldPublish = (<HTMLInputElement>$('publish-option')).checked;
     //const shouldPublish = true;
     //const preferredCodec = (<HTMLSelectElement>$('preferred-codec')).value as VideoCodec;
-    let preferredCodec = 'vp8' as VideoCodec;
-    //const scalabilityMode = (<HTMLSelectElement>$('scalability-mode')).value;
+    const preferredCodec = 'vp8' as VideoCodec;
+    let q = VideoPresets.h720.resolution;
+    const quality = (<HTMLSelectElement>$('preferred-quality')).value;
     const cryptoKey = (<HTMLSelectElement>$('crypto-key')).value;
     const autoSubscribe = (<HTMLInputElement>$('auto-subscribe')).checked;
     //const autoSubscribe = true;
-    //const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
+      //const e2eeEnabled = (<HTMLInputElement>$('e2ee')).checked;
     const audioOutputId = (<HTMLSelectElement>$('audio-output')).value;
-    let q = VideoPresets.h720.resolution;
-    const quality = (<HTMLSelectElement>$('preferred-quality')).value;
+    setLogLevel(LogLevel.debug);
+    updateSearchParams(url, token, cryptoKey);
     switch (quality) {
       case '1080':
         q = VideoPresets.h1080.resolution;
@@ -108,22 +107,6 @@ const appActions = {
       default:
         break;
     }
-
-    let codecChosen = (<HTMLSelectElement>$('preferred-codec')).value;
-    switch (codecChosen) {
-      case 'vp8':
-        preferredCodec = 'vp8';
-        break;
-      case 'h264':
-        preferredCodec = 'h264';
-        break;
-      default:
-        break;
-    }
-
-    setLogLevel(LogLevel.debug);
-    updateSearchParams(url, token, cryptoKey);
-
     const roomOpts: RoomOptions = {
       adaptiveStream,
       dynacast,
@@ -141,7 +124,7 @@ const appActions = {
       },
       videoCaptureDefaults: {
         resolution: q,
-      },
+      }
       /*e2ee: e2eeEnabled
         ? { keyProvider: state.e2eeKeyProvider, worker: new E2EEWorker() }
         : undefined,*/
@@ -295,7 +278,7 @@ const appActions = {
     currentRoom = room;
     window.currentRoom = room;
     setButtonsForState(true);
-	updateButtonsForPublishState();
+    updateButtonsForPublishState();
     room.remoteParticipants.forEach((participant) => {
       participantConnected(participant);
     });
@@ -908,9 +891,11 @@ function populateSelect(
   devices: MediaDeviceInfo[],
   selectedDeviceId?: string,
 ) {
+  /*if(element != null)
+  {
   // clear all elements
   element.innerHTML = '';
-
+  }*/
   for (const device of devices) {
     const option = document.createElement('option');
     option.text = device.label;
@@ -918,7 +903,7 @@ function populateSelect(
     if (device.deviceId === selectedDeviceId) {
       option.selected = true;
     }
-    element.appendChild(option);
+    //element.appendChild(option);
   }
 }
 
@@ -927,7 +912,6 @@ function updateButtonsForPublishState() {
     return;
   }
   const lp = currentRoom.localParticipant;
-
   // video
   setButtonState(
     'toggle-video-button',
@@ -948,7 +932,6 @@ function updateButtonsForPublishState() {
     lp.isScreenShareEnabled ? 'Stop Screen Share' : 'Share Screen',
     lp.isScreenShareEnabled,
   );
-
   // e2ee
   setButtonState(
     'toggle-e2ee-button',
