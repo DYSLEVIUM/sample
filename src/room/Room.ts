@@ -914,7 +914,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     let token = sessionStorage.getItem('token') as string;
     let isAudioMuted = sessionStorage.getItem('isAudioMuted') as string;
     let isVideoMuted = sessionStorage.getItem('isVideoMuted') as string;
-    await this.disconnect();
+    this.disconnect();
     sessionStorage.setItem('token',token);
     sessionStorage.setItem('isAudioMuted',isAudioMuted);
     sessionStorage.setItem('isVideoMuted',isVideoMuted);

@@ -249,7 +249,7 @@ export default class Participant extends (EventEmitter as new () => TypedEmitter
     this.permissions = permissions;
 
     if (changed) {
-      this.emit(ParticipantEvent.ParticipantPermissionsChanged, prevPermissions);
+      this.emit(ParticipantEvent.ParticipantPermissionsChanged, prevPermissions,permissions);
     }
     return changed;
   }

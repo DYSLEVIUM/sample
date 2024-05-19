@@ -212,7 +212,7 @@ export default class LocalParticipant extends Participant {
    * @param metadata
    */
   setMetadata(metadata: string): void {
-    super.setMetadata(metadata);
+   super.setMetadata(metadata);
     this.engine.client.sendUpdateLocalMetadata(metadata, this.name ?? '');
   }
 
@@ -839,7 +839,7 @@ export default class LocalParticipant extends Participant {
         req.height,
         opts,
       );
-            (req.width, req.height,encodings,isSVCCodec(opts.videoCodec));
+      req.layers = videoLayersFromEncodings(req.width, req.height,encodings,isSVCCodec(opts.videoCodec),);
       if(encodings.length==1) { //single layer encoding returned 
         videoEncoding=determineAppropriateEncoding(track.source === Track.Source.ScreenShare,req.width, req.height, opts.videoCodec);
         encodings = [
@@ -848,12 +848,7 @@ export default class LocalParticipant extends Participant {
             maxFramerate:videoEncoding.maxFramerate,
             active: true,
           },
-        ];req.layers = videoLayersFromEncodings(
-        req.width,
-        req.height,
-        encodings,
-        isSVCCodec(opts.videoCodec),
-      );
+        ];
       }
     } else if (track.kind === Track.Kind.Audio && opts.audioBitrate) {
       encodings = [
@@ -886,6 +881,7 @@ export default class LocalParticipant extends Participant {
           ...getLogContextFromTrack(track),
           codec: updatedCodec,
         });
+        /* @ts-ignore */
         opts.videoCodec = updatedCodec;
 
         // recompute encodings since bitrates/etc could have changed
@@ -1291,10 +1287,10 @@ export default class LocalParticipant extends Participant {
     // reconcile track mute status.
     // if server's track mute status doesn't match actual, we'll have to update
     // the server's copy
+    // console.log('AudioMute Flage is: '+this.audioMuted+'VideoMute Flage is: '+this.videoMuted);
     info.tracks.forEach((ti) => {
       const pub = this.trackPublications.get(ti.sid);
-
-            if (pub) {
+      if (pub) {
         // const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
         // console.log('mutedOnServer flage is: '+mutedOnServer)
         console.log('Track type is: '+pub.kind+' & Sid is: '+ti.sid+' & Mute value is: '+ti.muted);
