@@ -1499,10 +1499,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     // find the participant
     const participant = this.remoteParticipants.get(userPacket.participantIdentity);
 
-    this.emit(RoomEvent.DataReceived, userPacket.payload, participant, kind, userPacket.topic);
+    this.emit(RoomEvent.DataReceived, userPacket.payload, participant, userPacket.destinationSids);
 
     // also emit on the participant
-    participant?.emit(ParticipantEvent.DataReceived, userPacket.payload, kind);
+    participant?.emit(ParticipantEvent.DataReceived, userPacket.payload, kind, userPacket.destinationSids);
   };
 
   bufferedSegments: Map<string, TranscriptionSegmentModel> = new Map();
@@ -2119,8 +2119,7 @@ export type RoomEventCallbacks = {
   dataReceived: (
     payload: Uint8Array,
     participant?: RemoteParticipant,
-    kind?: DataPacket_Kind,
-    topic?: string,
+    destination_sids?: string[],
   ) => void;
   transcriptionReceived: (
     transcription: TranscriptionSegment[],
