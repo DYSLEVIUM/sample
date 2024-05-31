@@ -2119,8 +2119,7 @@ export type RoomEventCallbacks = {
   dataReceived: (
     payload: Uint8Array,
     participant?: RemoteParticipant,
-    kind?: DataPacket_Kind,
-    topic?: string,
+    destination_sids?: string[],
     destination_sids?: string[],
   ) => void;
   transcriptionReceived: (
