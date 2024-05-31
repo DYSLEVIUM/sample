@@ -328,7 +328,7 @@ export type ParticipantEventCallbacks = {
   localTrackUnpublished: (publication: LocalTrackPublication) => void;
   participantMetadataChanged: (prevMetadata: string | undefined, participant?: any) => void;
   participantNameChanged: (name: string) => void;
-  dataReceived: (payload: Uint8Array, kind: DataPacket_Kind) => void;
+  dataReceived: (payload: Uint8Array, kind: DataPacket_Kind, destinationSids: string[]) => void;
   transcriptionReceived: (
     transcription: TranscriptionSegment[],
     publication?: TrackPublication,

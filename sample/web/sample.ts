@@ -46,6 +46,7 @@ const state = {
 let currentRoom: Room | undefined;
 
 let startTime: number;
+let participantToData: string
 
 const searchParams = new URLSearchParams(window.location.search);
 const storedUrl = searchParams.get('url') ?? 'ws://localhost:7880';
@@ -378,9 +379,18 @@ const appActions = {
     const textField = <HTMLInputElement>$('entry');
     if (textField.value) {
       const msg = state.encoder.encode(textField.value);
-      currentRoom.localParticipant.publishData(msg, { reliable: true });
+      if (participantToData != null && participantToData != 'Everyone') {
+        appendLog('sending message to participant', participantToData);
+        const participants: string[] = [participantToData];
+        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: participants });
+      } else {
+        appendLog('sending message to all the participant');
+        currentRoom.localParticipant.publishData(msg, { reliable: true });
+      }
+
+      const localUser = currentRoom.localParticipant.name ? currentRoom.localParticipant.name : currentRoom.localParticipant.identity;
       (<HTMLTextAreaElement>$('chat')).value +=
-        `${currentRoom.localParticipant.identity} (me): ${textField.value}\n`;
+        `${localUser} (me): ${textField.value}\n`;
       textField.value = '';
     }
   },
@@ -393,6 +403,12 @@ const appActions = {
     if (state.bitrateInterval) {
       clearInterval(state.bitrateInterval);
     }
+  },
+
+  handleParticipantSelected: async (e: Event) => {
+    const participantId = (<HTMLSelectElement>e.target).value;
+    participantToData = participantId;
+    appendLog('selected participant', participantToData);
   },
 
   handleScenario: (e: Event) => {
@@ -476,14 +492,23 @@ window.appActions = appActions;
 
 // --------------------------- event handlers ------------------------------- //
 
-function handleData(msg: Uint8Array, participant?: RemoteParticipant) {
+function handleData(msg: Uint8Array, participant?: RemoteParticipant, destination_sids?: string[]) {
+  console.log("handleData received ....")
   const str = state.decoder.decode(msg);
   const chat = <HTMLTextAreaElement>$('chat');
   let from = 'server';
+  let notion = 'Everyone'
   if (participant) {
-    from = participant.identity;
+    if (participant.name) {
+      from = participant.name;
+    }
+    else {
+      from = participant.identity;
+    }
   }
-  chat.value += `${from}: ${str}\n`;
+  if (!currentRoom) return;
+  notion = destination_sids?.includes(currentRoom.localParticipant.sid) ? 'Me (Direct message)' : 'Everyone'
+  chat.value += `${from} to ${notion}: ${str}\n`;
 }
 
 function participantConnected(participant: Participant) {
@@ -528,12 +553,14 @@ function participantConnected(participant: Participant) {
       */
     }
     });
+    addParticipantToTheList(participant);
 }
 
 function participantDisconnected(participant: RemoteParticipant) {
   appendLog('participant', participant.sid, 'disconnected');
 
   renderParticipant(participant, true);
+  removeParticipantFromTheList(participant);
 }
 
 function handleRoomDisconnect(reason?: DisconnectReason) {
@@ -733,6 +760,40 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
     default:
       signalElm.innerHTML = '';
     // do nothing
+  }
+}
+
+function addParticipantToTheList(participant: Participant) {
+  if (!currentRoom || currentRoom.state !== ConnectionState.Connected) {
+    return;
+  }
+  const videoElm = <HTMLSelectElement>$('participant-list');
+  if (participant != currentRoom?.localParticipant) {
+    const option = document.createElement('option');
+    if (participant.name) {
+      option.text = participant.name;
+    }
+    else {
+      option.text = participant.identity;
+    }
+    option.value = participant.sid;
+    videoElm.appendChild(option);
+  }
+}
+
+function removeParticipantFromTheList(participant: Participant) {
+  if (!currentRoom || currentRoom.state !== ConnectionState.Connected) {
+    return;
+  }
+  const videoElm = <HTMLSelectElement>$('participant-list');
+  if (participant != currentRoom?.localParticipant) {
+    let index = videoElm.options.length;
+    while (index--) {
+      let option = videoElm.options[index];
+      if (option.value == participant.sid) {
+        videoElm.remove(index);
+      }
+    }
   }
 }
 

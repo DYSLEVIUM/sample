@@ -1237,6 +1237,7 @@ export default class LocalParticipant extends Participant {
           participantIdentity: this.identity,
           payload: data,
           destinationIdentities,
+          destinationSids: destinationIdentities,
           topic,
         }),
       },
