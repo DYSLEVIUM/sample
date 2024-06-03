@@ -30,7 +30,7 @@ import {
   supportsVP9,
 } from 'ecprt-client-sdk';
 import { ScalabilityMode } from 'ecprt-client-sdk';
-import type { SimulationScenario } from 'ecprt-client-sdk';
+import type { DataPacket_Kind, SimulationScenario } from 'ecprt-client-sdk';
 import { isSVCCodec } from 'ecprt-client-sdk';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -492,7 +492,7 @@ window.appActions = appActions;
 
 // --------------------------- event handlers ------------------------------- //
 
-function handleData(msg: Uint8Array, participant?: RemoteParticipant, destination_sids?: string[]) {
+function handleData(msg: Uint8Array, participant?: RemoteParticipant, kind?: DataPacket_Kind, topic?: string,destination_sids?: string[]) {
   console.log("handleData received ....")
   const str = state.decoder.decode(msg);
   const chat = <HTMLTextAreaElement>$('chat');
