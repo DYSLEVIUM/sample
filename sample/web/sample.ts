@@ -46,7 +46,6 @@ const state = {
 let currentRoom: Room | undefined;
 
 let startTime: number;
-let participantToData: string
 
 const searchParams = new URLSearchParams(window.location.search);
 const storedUrl = searchParams.get('url') ?? 'ws://localhost:7880';
@@ -377,12 +376,22 @@ const appActions = {
   enterText: () => {
     if (!currentRoom) return;
     const textField = <HTMLInputElement>$('entry');
+    var selObj = <HTMLSelectElement>$('participant-list');
+    var selectedArray = new Array();
+    var i;
+    var count = 0;
+    for (i = 0; i < selObj.options.length; i++) {
+      if (selObj.options[i].selected) {
+        selectedArray[count] = selObj.options[i].value;
+        count++;
+      }
+    }
+
     if (textField.value) {
       const msg = state.encoder.encode(textField.value);
-      if (participantToData != null && participantToData != 'Everyone') {
-        appendLog('sending message to participant', participantToData);
-        const participants: string[] = [participantToData];
-        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: participants });
+      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+        appendLog('sending message to participant(s)', selectedArray);
+        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray });
       } else {
         appendLog('sending message to all the participant');
         currentRoom.localParticipant.publishData(msg, { reliable: true });
@@ -403,12 +412,6 @@ const appActions = {
     if (state.bitrateInterval) {
       clearInterval(state.bitrateInterval);
     }
-  },
-
-  handleParticipantSelected: async (e: Event) => {
-    const participantId = (<HTMLSelectElement>e.target).value;
-    participantToData = participantId;
-    appendLog('selected participant', participantToData);
   },
 
   handleScenario: (e: Event) => {
@@ -496,7 +499,7 @@ function handleData(msg: Uint8Array, participant?: RemoteParticipant, kind?: Dat
   console.log("handleData received ....")
   const str = state.decoder.decode(msg);
   const chat = <HTMLTextAreaElement>$('chat');
-  let from = 'server';
+  let from = 'Server';
   let notion = 'Everyone'
   if (participant) {
     if (participant.name) {
