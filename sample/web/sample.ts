@@ -30,7 +30,7 @@ import {
   supportsVP9,
 } from 'ecprt-client-sdk';
 import { ScalabilityMode } from 'ecprt-client-sdk';
-import type { SimulationScenario } from 'ecprt-client-sdk';
+import type { DataPacket_Kind, SimulationScenario } from 'ecprt-client-sdk';
 import { isSVCCodec } from 'ecprt-client-sdk';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -376,11 +376,42 @@ const appActions = {
   enterText: () => {
     if (!currentRoom) return;
     const textField = <HTMLInputElement>$('entry');
+    var selObj = <HTMLSelectElement>$('participant-list');
+    var selectedArray = new Array();
+    var i;
+    var count = 0;
+    for (i = 0; i < selObj.options.length; i++) {
+      if (selObj.options[i].selected) {
+        selectedArray[count] = selObj.options[i].value;
+        count++;
+      }
+    }
+
     if (textField.value) {
       const msg = state.encoder.encode(textField.value);
-      currentRoom.localParticipant.publishData(msg, { reliable: true });
+      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+        appendLog('sending message to participant(s)', selectedArray);
+        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray });
+      } else {
+        appendLog('sending message to all the participant');
+        currentRoom.localParticipant.publishData(msg, { reliable: true });
+      }
+      let participantIndication = "Everyone";
+      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+        if (selectedArray.length == 1) {
+          currentRoom.remoteParticipants.forEach((p) => {
+            if (p.sid == selectedArray[0]) {
+              participantIndication = p.name ? p.name : p.identity;
+            }
+          })
+        } else {
+          participantIndication = "Specific Participants"
+        }
+      }
+
+      const localUser = currentRoom.localParticipant.name ? currentRoom.localParticipant.name : currentRoom.localParticipant.identity;
       (<HTMLTextAreaElement>$('chat')).value +=
-        `${currentRoom.localParticipant.identity} (me): ${textField.value}\n`;
+        `${localUser} (me) to ${participantIndication}: ${textField.value}\n`;
       textField.value = '';
     }
   },
@@ -476,14 +507,23 @@ window.appActions = appActions;
 
 // --------------------------- event handlers ------------------------------- //
 
-function handleData(msg: Uint8Array, participant?: RemoteParticipant) {
+function handleData(msg: Uint8Array, participant?: RemoteParticipant, kind?: DataPacket_Kind, topic?: string,destination_sids?: string[]) {
+  console.log("handleData received ....")
   const str = state.decoder.decode(msg);
   const chat = <HTMLTextAreaElement>$('chat');
-  let from = 'server';
+  let from = 'Server';
+  let notion = 'Everyone'
   if (participant) {
-    from = participant.identity;
+    if (participant.name) {
+      from = participant.name;
+    }
+    else {
+      from = participant.identity;
+    }
   }
-  chat.value += `${from}: ${str}\n`;
+  if (!currentRoom) return;
+  notion = destination_sids?.includes(currentRoom.localParticipant.sid) ? 'Me (Direct message)' : 'Everyone'
+  chat.value += `${from} to ${notion}: ${str}\n`;
 }
 
 function participantConnected(participant: Participant) {
@@ -528,12 +568,14 @@ function participantConnected(participant: Participant) {
       */
     }
     });
+    addParticipantToTheList(participant);
 }
 
 function participantDisconnected(participant: RemoteParticipant) {
   appendLog('participant', participant.sid, 'disconnected');
 
   renderParticipant(participant, true);
+  removeParticipantFromTheList(participant);
 }
 
 function handleRoomDisconnect(reason?: DisconnectReason) {
@@ -733,6 +775,40 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
     default:
       signalElm.innerHTML = '';
     // do nothing
+  }
+}
+
+function addParticipantToTheList(participant: Participant) {
+  if (!currentRoom || currentRoom.state !== ConnectionState.Connected) {
+    return;
+  }
+  const videoElm = <HTMLSelectElement>$('participant-list');
+  if (participant != currentRoom?.localParticipant) {
+    const option = document.createElement('option');
+    if (participant.name) {
+      option.text = participant.name;
+    }
+    else {
+      option.text = participant.identity;
+    }
+    option.value = participant.sid;
+    videoElm.appendChild(option);
+  }
+}
+
+function removeParticipantFromTheList(participant: Participant) {
+  if (!currentRoom || currentRoom.state !== ConnectionState.Connected) {
+    return;
+  }
+  const videoElm = <HTMLSelectElement>$('participant-list');
+  if (participant != currentRoom?.localParticipant) {
+    let index = videoElm.options.length;
+    while (index--) {
+      let option = videoElm.options[index];
+      if (option.value == participant.sid) {
+        videoElm.remove(index);
+      }
+    }
   }
 }
 
