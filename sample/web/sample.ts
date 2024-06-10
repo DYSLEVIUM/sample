@@ -396,10 +396,22 @@ const appActions = {
         appendLog('sending message to all the participant');
         currentRoom.localParticipant.publishData(msg, { reliable: true });
       }
+      let participantIndication = "Everyone";
+      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+        if (selectedArray.length == 1) {
+          currentRoom.remoteParticipants.forEach((p) => {
+            if (p.sid == selectedArray[0]) {
+              participantIndication = p.name ? p.name : p.identity;
+            }
+          })
+        } else {
+          participantIndication = "Specific Participants"
+        }
+      }
 
       const localUser = currentRoom.localParticipant.name ? currentRoom.localParticipant.name : currentRoom.localParticipant.identity;
       (<HTMLTextAreaElement>$('chat')).value +=
-        `${localUser} (me): ${textField.value}\n`;
+        `${localUser} (me) to ${participantIndication}: ${textField.value}\n`;
       textField.value = '';
     }
   },
