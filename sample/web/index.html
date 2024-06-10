@@ -32,6 +32,12 @@
             <div>
               <input type="text" class="form-control" id="token" />
             </div>
+            <div>
+              <b>E2EE key</b>
+            </div>
+            <div>
+              <input type="text" class="form-control" id="crypto-key" />
+            </div>
           </div>
 
           <!-- connect options -->
@@ -60,8 +66,16 @@
               <input type="checkbox" class="form-check-input" id="auto-subscribe" checked />
               <label for="auto-subscribe" class="form-check-label"> Auto Subscribe </label>
             </div>
-            <label for="qulaity" class="form-check-label"> PreferredQuality </label>
-            <select
+             <div>
+              <input type="checkbox" class="form-check-input" id="e2ee" />
+              <label for="e2ee" class="form-check-label"> E2E Encryption </label>
+            </div>
+            <div>
+              <select id="preferred-codec" class="custom-select" style="width: auto"></select>
+            </div>
+            <div>
+              <label for="qulaity" class="form-check-label"> PreferredQuality </label>
+              <select
               id="preferred-quality"
               class="custom-select"
               style="width: auto"
@@ -72,13 +86,14 @@
               <option value="360">360</option>
               <option value="180">180</option>
             </select>
-            <div>
+            </div>
+            <!--<div>
               <select id="preferred-codec" class="custom-select" style="width: auto">
                 <option value="vp8" selected>VP8</option>
                 <option value="h264">H.264</option>
-                <!-- <option value="av1">AV1</option> -->
+                <option value="av1">AV1</option>
               </select>
-            </div>
+            </div>-->
           </div>
 
           <!-- actions -->
@@ -130,6 +145,24 @@
               >
                 Share Screen
               </button>
+              <button
+                id="toggle-e2ee-button"
+                class="btn btn-secondary mt-1"
+                disabled
+                type="button"
+                onclick="appActions.toggleE2EE()"
+              >
+                Enable E2EE
+              </button>
+              <button
+                id="e2ee-ratchet-button"
+                class="btn btn-secondary mt-1"
+                disabled
+                type="button"
+                onclick="appActions.ratchetE2EEKey()"
+              >
+                Ratchet Key
+              </button>
               <select
                 id="simulate-scenario"
                 class="custom-select"
@@ -138,6 +171,12 @@
               >
                 <option value="" selected>Simulate</option>
                 <option value="signal-reconnect">Signal reconnect</option>
+                <option value="full-reconnect">Full reconnect</option>
+                <option value="resume-reconnect">Resume reconnect</option>
+                <option value="disconnect-signal-on-resume">Signal disconnect on resume</option>
+                <option value="disconnect-signal-on-resume-no-messages">
+                  Signal disconnect on resume no msgs
+                </option>
                 <option value="speaker">Speaker update</option>
                 <option value="node-failure">Node failure</option>
                 <option value="server-leave">Server booted</option>
@@ -190,8 +229,8 @@
             </div>
           </div>
 
-          <!--<div id="inputs-area">
-            <div>
+          <div id="inputs-area">
+           <!-- <div>
               <select
                 id="video-input"
                 class="custom-select"
@@ -208,7 +247,7 @@
               >
                 <option selected>Audio Input (default)</option>
               </select>
-            </div>
+            </div>-->
             <div>
               <select
                 id="audio-output"
@@ -218,7 +257,7 @@
                 <option selected>Audio Output (default)</option>
               </select>
             </div>
-          </div>-->
+          </div>
         </div>
        <!-- <div class="col-md-4">
           <h3>Chat</h3>

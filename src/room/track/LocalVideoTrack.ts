@@ -1,14 +1,22 @@
+import {
+  VideoQuality as ProtoVideoQuality,
+  VideoLayer,
+} from '../../proto/livekit_models_pb';
+import {
+  SubscribedCodec,
+  SubscribedQuality,
+} from '../../proto/livekit_rtc_pb';
 import type { SignalClient } from '../../api/SignalClient';
-import log from '../../logger';
-import { VideoLayer, VideoQuality } from '../../proto/livekit_models_pb';
-import  { SubscribedCodec, SubscribedQuality } from '../../proto/livekit_rtc_pb';
+import type { StructuredLogger } from '../../logger';
 import { ScalabilityMode } from '../participant/publishUtils';
-import { computeBitrate, monitorFrequency } from '../stats';
 import type { VideoSenderStats } from '../stats';
-import { isFireFox, isMobile, isWeb, Mutex } from '../utils';
+import { computeBitrate, monitorFrequency } from '../stats';
+import type { LoggerOptions } from '../types';
+import { Mutex, isFireFox, isMobile, isWeb, unwrapConstraint } from '../utils';
 import LocalTrack from './LocalTrack';
+import { Track, VideoQuality } from './Track';
 import type { VideoCaptureOptions, VideoCodec } from './options';
-import { Track } from './Track';
+import type { TrackProcessor } from './processor/types';
 import { constraintsForOptions } from './utils';
 
 export class SimulcastTrackInfo {
@@ -28,7 +36,7 @@ export class SimulcastTrackInfo {
 
 const refreshSubscribedCodecAfterNewCodec = 5000;
 
-export default class LocalVideoTrack extends LocalTrack {
+export default class LocalVideoTrack extends LocalTrack<Track.Kind.Video> {
   /* @internal */
   signalClient?: SignalClient;
 
@@ -57,8 +65,9 @@ export default class LocalVideoTrack extends LocalTrack {
     mediaTrack: MediaStreamTrack,
     constraints?: MediaTrackConstraints,
     userProvidedTrack = true,
+    loggerOptions?: LoggerOptions,
   ) {
-    super(mediaTrack, Track.Kind.Video, constraints, userProvidedTrack);
+    super(mediaTrack, Track.Kind.Video, constraints, userProvidedTrack, loggerOptions);
     this.senderLock = new Mutex();
   }
 
@@ -98,11 +107,30 @@ export default class LocalVideoTrack extends LocalTrack {
     super.stop();
   }
 
-  async mute(): Promise<LocalVideoTrack> {
+  async pauseUpstream() {
+    await super.pauseUpstream();
+    for await (const sc of this.simulcastCodecs.values()) {
+      await sc.sender?.replaceTrack(null);
+    }
+  }
+
+  async resumeUpstream() {
+    await super.resumeUpstream();
+    for await (const sc of this.simulcastCodecs.values()) {
+      await sc.sender?.replaceTrack(sc.mediaStreamTrack);
+    }
+  }
+
+  async mute(): Promise<typeof this> {
     const unlock = await this.muteLock.lock();
     try {
+      if (this.isMuted) {
+        this.log.debug('Track already muted', this.logContext);
+        return this;
+      }
+
       if (this.source === Track.Source.Camera && !this.isUserProvided) {
-        log.debug('stopping camera track');
+        this.log.debug('stopping camera track', this.logContext);
         // also stop the track, so that camera indicator is turned off
         this._mediaStreamTrack.stop();
       }
@@ -113,17 +141,29 @@ export default class LocalVideoTrack extends LocalTrack {
     }
   }
 
-  async unmute(): Promise<LocalVideoTrack> {
+  async unmute(): Promise<typeof this> {
     const unlock = await this.muteLock.lock();
     try {
+      if (!this.isMuted) {
+        this.log.debug('Track already unmuted', this.logContext);
+        return this;
+      }
+
       if (this.source === Track.Source.Camera && !this.isUserProvided) {
-        log.debug('reacquiring camera track');
+        this.log.debug('reacquiring camera track', this.logContext);
         await this.restartTrack();
       }
       await super.unmute();
       return this;
     } finally {
       unlock();
+    }
+  }
+
+  protected setTrackMuted(muted: boolean) {
+    super.setTrackMuted(muted);
+    for (const sc of this.simulcastCodecs.values()) {
+      sc.mediaStreamTrack.enabled = !muted;
     }
   }
 
@@ -142,20 +182,23 @@ export default class LocalVideoTrack extends LocalTrack {
           streamId: v.id,
           frameHeight: v.frameHeight,
           frameWidth: v.frameWidth,
+          framesPerSecond: v.framesPerSecond,
+          framesSent: v.framesSent,
           firCount: v.firCount,
           pliCount: v.pliCount,
           nackCount: v.nackCount,
           packetsSent: v.packetsSent,
           bytesSent: v.bytesSent,
-          framesSent: v.framesSent,
-          timestamp: v.timestamp,
+          qualityLimitationReason: v.qualityLimitationReason,
+          qualityLimitationDurations: v.qualityLimitationDurations,
+          qualityLimitationResolutionChanges: v.qualityLimitationResolutionChanges,
           rid: v.rid ?? v.id,
           retransmittedPacketsSent: v.retransmittedPacketsSent,
-          qualityLimitationReason: v.qualityLimitationReason,
-          qualityLimitationResolutionChanges: v.qualityLimitationResolutionChanges,
+          targetBitrate: v.targetBitrate,
+          timestamp: v.timestamp,
         };
 
-        // locate the appropriate remote-inbound-rtp item
+        // locate the appropriate remote-inbound-rtp item
         const r = stats.get(v.remoteId);
         if (r) {
           vs.jitter = r.jitter;
@@ -167,6 +210,8 @@ export default class LocalVideoTrack extends LocalTrack {
       }
     });
 
+    // make sure highest res layer is always first
+    items.sort((a, b) => (b.frameWidth ?? 0) - (a.frameWidth ?? 0));
     return items;
   }
 
@@ -180,20 +225,26 @@ export default class LocalVideoTrack extends LocalTrack {
         }),
       );
     }
-    log.debug(`setting publishing quality. max quality ${maxQuality}`);
+    this.log.debug(`setting publishing quality. max quality ${maxQuality}`, this.logContext);
     this.setPublishingLayers(qualities);
   }
 
-  async setDeviceId(deviceId: ConstrainDOMString) {
-    if (this.constraints.deviceId === deviceId) {
-      return;
+  async setDeviceId(deviceId: ConstrainDOMString): Promise<boolean> {
+    if (
+      this._constraints.deviceId === deviceId &&
+      this._mediaStreamTrack.getSettings().deviceId === unwrapConstraint(deviceId)
+    ) {
+      return true;
     }
-    this.constraints.deviceId = deviceId;
+    this._constraints.deviceId = deviceId;
     // when video is muted, underlying media stream track is stopped and
     // will be restarted later
     if (!this.isMuted) {
       await this.restartTrack();
     }
+    return (
+      this.isMuted || unwrapConstraint(deviceId) === this._mediaStreamTrack.getSettings().deviceId
+    );
   }
 
   async restartTrack(options?: VideoCaptureOptions) {
@@ -205,11 +256,32 @@ export default class LocalVideoTrack extends LocalTrack {
       }
     }
     await this.restart(constraints);
+
+    for await (const sc of this.simulcastCodecs.values()) {
+      if (sc.sender) {
+        sc.mediaStreamTrack = this.mediaStreamTrack.clone();
+        await sc.sender.replaceTrack(sc.mediaStreamTrack);
+      }
+    }
   }
 
-  addSimulcastTrack(codec: VideoCodec, encodings?: RTCRtpEncodingParameters[]): SimulcastTrackInfo {
+  async setProcessor(processor: TrackProcessor<Track.Kind>, showProcessedStreamLocally = true) {
+    await super.setProcessor(processor, showProcessedStreamLocally);
+
+    if (this.processor?.processedTrack) {
+      for await (const sc of this.simulcastCodecs.values()) {
+        await sc.sender?.replaceTrack(this.processor.processedTrack);
+      }
+    }
+  }
+
+  addSimulcastTrack(
+    codec: VideoCodec,
+    encodings?: RTCRtpEncodingParameters[],
+  ): SimulcastTrackInfo | undefined {
     if (this.simulcastCodecs.has(codec)) {
-      throw new Error(`${codec} already added`);
+      this.log.error(`${codec} already added, skipping adding simulcast codec`, this.logContext);
+      return;
     }
     const simulcastCodecInfo: SimulcastTrackInfo = {
       codec,
@@ -239,10 +311,12 @@ export default class LocalVideoTrack extends LocalTrack {
 
   /**
    * @internal
-   * Sets codecs that should be publishing
+   * Sets codecs that should be publishing, returns new codecs that have not yet
+   * been published
    */
   async setPublishingCodecs(codecs: SubscribedCodec[]): Promise<VideoCodec[]> {
-    log.debug('setting publishing codecs', {
+    this.log.debug('setting publishing codecs', {
+      ...this.logContext,
       codecs,
       currentCodec: this.codec,
     });
@@ -260,7 +334,10 @@ export default class LocalVideoTrack extends LocalTrack {
         await this.setPublishingLayers(codec.qualities);
       } else {
         const simulcastCodecInfo = this.simulcastCodecs.get(codec.codec as VideoCodec);
-        log.debug(`try setPublishingCodec for ${codec.codec}`, simulcastCodecInfo);
+        this.log.debug(`try setPublishingCodec for ${codec.codec}`, {
+          ...this.logContext,
+          simulcastCodecInfo,
+        });
         if (!simulcastCodecInfo || !simulcastCodecInfo.sender) {
           for (const q of codec.qualities) {
             if (q.enabled) {
@@ -269,12 +346,14 @@ export default class LocalVideoTrack extends LocalTrack {
             }
           }
         } else if (simulcastCodecInfo.encodings) {
-          log.debug(`try setPublishingLayersForSender ${codec.codec}`);
+          this.log.debug(`try setPublishingLayersForSender ${codec.codec}`, this.logContext);
           await setPublishingLayersForSender(
             simulcastCodecInfo.sender,
             simulcastCodecInfo.encodings!,
             codec.qualities,
             this.senderLock,
+            this.log,
+            this.logContext,
           );
         }
       }
@@ -287,12 +366,19 @@ export default class LocalVideoTrack extends LocalTrack {
    * Sets layers that should be publishing
    */
   async setPublishingLayers(qualities: SubscribedQuality[]) {
-    log.debug('setting publishing layers', qualities);
+    this.log.debug('setting publishing layers', { ...this.logContext, qualities });
     if (!this.sender || !this.encodings) {
       return;
     }
 
-    await setPublishingLayersForSender(this.sender, this.encodings, qualities, this.senderLock);
+    await setPublishingLayersForSender(
+      this.sender,
+      this.encodings,
+      qualities,
+      this.senderLock,
+      this.log,
+      this.logContext,
+    );
   }
 
   protected monitorSender = async () => {
@@ -305,7 +391,7 @@ export default class LocalVideoTrack extends LocalTrack {
     try {
       stats = await this.getSenderStats();
     } catch (e) {
-      log.error('could not get audio sender stats', { error: e });
+      this.log.error('could not get audio sender stats', { ...this.logContext, error: e });
       return;
     }
     const statsMap = new Map<string, VideoSenderStats>(stats.map((s) => [s.rid, s]));
@@ -336,9 +422,11 @@ async function setPublishingLayersForSender(
   senderEncodings: RTCRtpEncodingParameters[],
   qualities: SubscribedQuality[],
   senderLock: Mutex,
+  log: StructuredLogger,
+  logContext: Record<string, unknown>,
 ) {
   const unlock = await senderLock.lock();
-  log.debug('setPublishingLayersForSender', { sender, qualities, senderEncodings });
+  log.debug('setPublishingLayersForSender', { ...logContext, sender, qualities, senderEncodings });
   try {
     const params = sender.getParameters();
     const { encodings } = params;
@@ -347,26 +435,35 @@ async function setPublishingLayersForSender(
     }
 
     if (encodings.length !== senderEncodings.length) {
-      log.warn('cannot set publishing layers, encodings mismatch');
+      log.warn('cannot set publishing layers, encodings mismatch', {
+        ...logContext,
+        encodings,
+        senderEncodings,
+      });
       return;
     }
 
     let hasChanged = false;
 
+    /* disable closable spatial layer as it has video blur / frozen issue with current server / client
+    1. chrome 113: when switching to up layer with scalability Mode change, it will generate a
+          low resolution frame and recover very quickly, but noticable
+    2. livekit sfu: additional pli request cause video frozen for a few frames, also noticable */
+    const closableSpatial = false;
     /* @ts-ignore */
-    if (encodings.length === 1 && encodings[0].scalabilityMode) {
+    if (closableSpatial && encodings[0].scalabilityMode) {
       // svc dynacast encodings
       const encoding = encodings[0];
       /* @ts-ignore */
       // const mode = new ScalabilityMode(encoding.scalabilityMode);
-      let maxQuality = VideoQuality.OFF;
+      let maxQuality = ProtoVideoQuality.OFF;
       qualities.forEach((q) => {
-        if (q.enabled && (maxQuality === VideoQuality.OFF || q.quality > maxQuality)) {
+        if (q.enabled && (maxQuality === ProtoVideoQuality.OFF || q.quality > maxQuality)) {
           maxQuality = q.quality;
         }
       });
 
-      if (maxQuality === VideoQuality.OFF) {
+      if (maxQuality === ProtoVideoQuality.OFF) {
         if (encoding.active) {
           encoding.active = false;
           hasChanged = true;
@@ -374,10 +471,7 @@ async function setPublishingLayersForSender(
       } else if (!encoding.active /* || mode.spatial !== maxQuality + 1*/) {
         hasChanged = true;
         encoding.active = true;
-        /* disable closable spatial layer as it has video blur/frozen issue with current server/client
-          1. chrome 113: when switching to up layer with scalability Mode change, it will generate a 
-          low resolution frame and recover very quickly, but noticable
-          2. livekit sfu: additional pli request cause video frozen for a few frames, also noticable
+        /*
         @ts-ignore
         const originalMode = new ScalabilityMode(senderEncodings[0].scalabilityMode)
         mode.spatial = maxQuality + 1;
@@ -389,52 +483,52 @@ async function setPublishingLayersForSender(
         @ts-ignore
         encoding.scalabilityMode = mode.toString();
         encoding.scaleResolutionDownBy = 2 ** (2 - maxQuality);
-      */          
+      */
+      }
+    } else {
+      // simulcast dynacast encodings
+      encodings.forEach((encoding, idx) => {
+        let rid = encoding.rid ?? '';
+        if (rid === '') {
+          rid = 'q';
         }
-      } else {
-        // simulcast dynacast encodings
-        encodings.forEach((encoding, idx) => {
-          let rid = encoding.rid ?? '';
-          if (rid === '') {
-            rid = 'q';
-          }
-          const quality = videoQualityForRid(rid);
-          const subscribedQuality = qualities.find((q) => q.quality === quality);
-          if (!subscribedQuality) {
-            return;
-          }
-          if (encoding.active !== subscribedQuality.enabled) {
-            hasChanged = true;
-            encoding.active = subscribedQuality.enabled;
-            log.debug(
-              `setting layer ${subscribedQuality.quality} to ${
-                encoding.active ? 'enabled' : 'disabled'
-              }`,
-            );
-  
-            // FireFox does not support setting encoding.active to false, so we
-            // have a workaround of lowering its bitrate and resolution to the min.
-            if (isFireFox()) {
-              if (subscribedQuality.enabled) {
-                encoding.scaleResolutionDownBy = senderEncodings[idx].scaleResolutionDownBy;
-                encoding.maxBitrate = senderEncodings[idx].maxBitrate;
-                /* @ts-ignore */
-                encoding.maxFrameRate = senderEncodings[idx].maxFrameRate;
-              } else {
-                encoding.scaleResolutionDownBy = 4;
-                encoding.maxBitrate = 10;
-                /* @ts-ignore */
-                encoding.maxFrameRate = 2;
-              }
+        const quality = videoQualityForRid(rid);
+        const subscribedQuality = qualities.find((q) => q.quality === quality);
+        if (!subscribedQuality) {
+          return;
+        }
+        if (encoding.active !== subscribedQuality.enabled) {
+          hasChanged = true;
+          encoding.active = subscribedQuality.enabled;
+          log.debug(
+            `setting layer ${subscribedQuality.quality} to ${
+              encoding.active ? 'enabled' : 'disabled'
+            }`,
+            logContext,
+          );
+
+          // FireFox does not support setting encoding.active to false, so we
+          // have a workaround of lowering its bitrate and resolution to the min.
+          if (isFireFox()) {
+            if (subscribedQuality.enabled) {
+              encoding.scaleResolutionDownBy = senderEncodings[idx].scaleResolutionDownBy;
+              encoding.maxBitrate = senderEncodings[idx].maxBitrate;
+              /* @ts-ignore */
+              encoding.maxFrameRate = senderEncodings[idx].maxFrameRate;
+            } else {
+              encoding.scaleResolutionDownBy = 4;
+              encoding.maxBitrate = 10;
+              /* @ts-ignore */
+              encoding.maxFrameRate = 2;
             }
           }
-        });
-      }
-    
+        }
+      });
+    }
 
     if (hasChanged) {
       params.encodings = encodings;
-      log.debug(`setting encodings`, params.encodings);
+      log.debug(`setting encodings`, { ...logContext, encodings: params.encodings });
       await sender.setParameters(params);
     }
   } finally {
@@ -459,6 +553,7 @@ export function videoLayersFromEncodings(
   width: number,
   height: number,
   encodings?: RTCRtpEncodingParameters[],
+  svc?: boolean,
 ): VideoLayer[] {
   // default to a single layer, HQ
   if (!encodings) {
@@ -472,33 +567,38 @@ export function videoLayersFromEncodings(
       }),
     ];
   }
-  
-  /* @ts-ignore */
-  if (encodings.length === 1 && encodings[0].scalabilityMode) {
+
+  if (svc) {
     // svc layers
     /* @ts-ignore */
-    const sm = new ScalabilityMode(encodings[0].scalabilityMode);
+    const encodingSM = encodings[0].scalabilityMode as string;
+    const sm = new ScalabilityMode(encodingSM);
     const layers = [];
+    const resRatio = sm.suffix == 'h' ? 1.5 : 2;
+    const bitratesRatio = sm.suffix == 'h' ? 2 : 3;
     for (let i = 0; i < sm.spatial; i += 1) {
       layers.push(
         new VideoLayer({
           quality: VideoQuality.HIGH - i,
-          width: Math.ceil(width / 2 ** i),
-          height: Math.ceil(height / 2 ** i),
-          bitrate: encodings[0].maxBitrate ? Math.ceil(encodings[0].maxBitrate / 3 ** i) : 0,
+          width: Math.ceil(width / resRatio ** i),
+          height: Math.ceil(height / resRatio ** i),
+          bitrate: encodings[0].maxBitrate
+            ? Math.ceil(encodings[0].maxBitrate / bitratesRatio ** i)
+            : 0,
           ssrc: 0,
         }),
       );
     }
     return layers;
   }
+
   return encodings.map((encoding) => {
     const scale = encoding.scaleResolutionDownBy ?? 1;
     let quality = videoQualityForRid(encoding.rid ?? '');
     return new VideoLayer({
       quality,
-      width: width / scale,
-      height: height / scale,
+      width: Math.ceil(width / scale),
+      height: Math.ceil(height / scale),
       bitrate: encoding.maxBitrate ?? 0,
       ssrc: 0,
     });

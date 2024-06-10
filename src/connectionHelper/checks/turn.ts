@@ -11,6 +11,8 @@ export class TURNCheck extends Checker {
     const joinRes = await signalClient.join(this.url, this.token, {
       autoSubscribe: true,
       maxRetries: 0,
+      e2eeEnabled: false,
+      websocketTimeout: 15_000,
     });
 
     let hasTLS = false;

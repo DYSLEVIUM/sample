@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import type TypedEmitter from 'typed-emitter';
 import type { RoomConnectOptions, RoomOptions } from '../../options';
-import Room, { ConnectionState } from '../../room/Room';
 import type RTCEngine from '../../room/RTCEngine';
+import Room, { ConnectionState } from '../../room/Room';
 
 type LogMessage = {
   level: 'info' | 'warning' | 'error';
@@ -68,7 +68,6 @@ export abstract class Checker extends (EventEmitter as new () => TypedEmitter<Ch
       throw Error('check is running already');
     }
     this.setStatus(CheckStatus.RUNNING);
-    this.appendMessage(`${this.name} started.`);
 
     try {
       await this.perform();

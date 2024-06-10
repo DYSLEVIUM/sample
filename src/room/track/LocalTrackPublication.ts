@@ -1,11 +1,12 @@
-import type { TrackInfo } from '../../proto/livekit_models_pb';
+import { AudioTrackFeature, TrackInfo } from '../../proto/livekit_models_pb';
 import { TrackEvent } from '../events';
-import type LocalAudioTrack from './LocalAudioTrack';
+import type { LoggerOptions } from '../types';
+import LocalAudioTrack from './LocalAudioTrack';
 import type LocalTrack from './LocalTrack';
 import type LocalVideoTrack from './LocalVideoTrack';
-import type { TrackPublishOptions } from './options';
 import type { Track } from './Track';
 import { TrackPublication } from './TrackPublication';
+import type { TrackPublishOptions } from './options';
 
 export default class LocalTrackPublication extends TrackPublication {
   track?: LocalTrack = undefined;
@@ -16,8 +17,8 @@ export default class LocalTrackPublication extends TrackPublication {
     return this.track?.isUpstreamPaused;
   }
 
-  constructor(kind: Track.Kind, ti: TrackInfo, track?: LocalTrack) {
-    super(kind, ti.sid, ti.name);
+  constructor(kind: Track.Kind, ti: TrackInfo, track?: LocalTrack, loggerOptions?: LoggerOptions) {
+    super(kind, ti.sid, ti.name, loggerOptions);
 
     this.updateInfo(ti);
     this.setTrack(track);
@@ -79,6 +80,32 @@ export default class LocalTrackPublication extends TrackPublication {
    */
   async resumeUpstream() {
     await this.track?.resumeUpstream();
+  }
+
+  getTrackFeatures() {
+    if (this.track instanceof LocalAudioTrack) {
+      const settings = this.track!.mediaStreamTrack.getSettings();
+      const features: Set<AudioTrackFeature> = new Set();
+      if (settings.autoGainControl) {
+        features.add(AudioTrackFeature.TF_AUTO_GAIN_CONTROL);
+      }
+      if (settings.echoCancellation) {
+        features.add(AudioTrackFeature.TF_ECHO_CANCELLATION);
+      }
+      if (settings.noiseSuppression) {
+        features.add(AudioTrackFeature.TF_NOISE_SUPPRESSION);
+      }
+      if (settings.channelCount && settings.channelCount > 1) {
+        features.add(AudioTrackFeature.TF_STEREO);
+      }
+      if (!this.options?.dtx) {
+        features.add(AudioTrackFeature.TF_STEREO);
+      }
+      if (this.track.enhancedNoiseCancellation) {
+        features.add(AudioTrackFeature.TF_ENHANCED_NOISE_CANCELLATION);
+      }
+      return Array.from(features.values());
+    } else return [];
   }
 
   handleTrackEnded = () => {

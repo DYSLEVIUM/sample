@@ -1,37 +1,50 @@
+import type {
+  UpdateSubscription,
+  UpdateTrackSettings
+} from '../../proto/livekit_rtc_pb';
+import type {
+  ParticipantInfo,
+  SubscriptionError
+} from '../../proto/livekit_models_pb';
 import type { SignalClient } from '../../api/SignalClient';
-import log from '../../logger';
-import type { ParticipantInfo,SubscriptionError} from '../../proto/livekit_models_pb';
-import type { UpdateSubscription, UpdateTrackSettings } from '../../proto/livekit_rtc_pb';
 import { ParticipantEvent, TrackEvent } from '../events';
-import type { AudioOutputOptions } from '../track/options';
 import RemoteAudioTrack from '../track/RemoteAudioTrack';
 import type RemoteTrack from '../track/RemoteTrack';
 import RemoteTrackPublication from '../track/RemoteTrackPublication';
 import RemoteVideoTrack from '../track/RemoteVideoTrack';
 import { Track } from '../track/Track';
 import type { TrackPublication } from '../track/TrackPublication';
+import type { AudioOutputOptions } from '../track/options';
 import type { AdaptiveStreamSettings } from '../track/types';
+import { getLogContextFromTrack } from '../track/utils';
+import type { LoggerOptions } from '../types';
 import Participant from './Participant';
 import type { ParticipantEventCallbacks } from './Participant';
 
 export default class RemoteParticipant extends Participant {
-  audioTracks: Map<string, RemoteTrackPublication>;
+  audioTrackPublications: Map<string, RemoteTrackPublication>;
 
-  videoTracks: Map<string, RemoteTrackPublication>;
+  videoTrackPublications: Map<string, RemoteTrackPublication>;
 
-  tracks: Map<string, RemoteTrackPublication>;
+  trackPublications: Map<string, RemoteTrackPublication>;
 
   signalClient: SignalClient;
 
-  private volume?: number;
-
-  private audioContext?: AudioContext;
+  private volumeMap: Map<Track.Source, number>;
 
   private audioOutput?: AudioOutputOptions;
 
   /** @internal */
   static fromParticipantInfo(signalClient: SignalClient, pi: ParticipantInfo): RemoteParticipant {
     return new RemoteParticipant(signalClient, pi.sid, pi.identity, pi.name, pi.metadata);
+  }
+
+  protected get logContext() {
+    return {
+      ...super.logContext,
+      rpID: this.sid,
+      remoteParticipant: this.identity,
+    };
   }
 
   /** @internal */
@@ -41,12 +54,14 @@ export default class RemoteParticipant extends Participant {
     identity?: string,
     name?: string,
     metadata?: string,
+    loggerOptions?: LoggerOptions,
   ) {
-    super(sid, identity || '', name, metadata);
+    super(sid, identity || '', name, metadata, loggerOptions);
     this.signalClient = signalClient;
-    this.tracks = new Map();
-    this.audioTracks = new Map();
-    this.videoTracks = new Map();
+    this.trackPublications = new Map();
+    this.audioTrackPublications = new Map();
+    this.videoTrackPublications = new Map();
+    this.volumeMap = new Map();
   }
 
   protected addTrackPublication(publication: RemoteTrackPublication) {
@@ -54,7 +69,10 @@ export default class RemoteParticipant extends Participant {
 
     // register action events
     publication.on(TrackEvent.UpdateSettings, (settings: UpdateTrackSettings) => {
-      log.debug('send update settings', settings);
+      this.log.debug('send update settings', {
+        ...this.logContext,
+        ...getLogContextFromTrack(publication),
+      });
       this.signalClient.sendUpdateTrackSettings(settings);
     });
     publication.on(TrackEvent.UpdateSubscription, (sub: UpdateSubscription) => {
@@ -86,27 +104,32 @@ export default class RemoteParticipant extends Participant {
     });
   }
 
-  getTrack(source: Track.Source): RemoteTrackPublication | undefined {
-    const track = super.getTrack(source);
+  getTrackPublication(source: Track.Source): RemoteTrackPublication | undefined {
+    const track = super.getTrackPublication(source);
     if (track) {
       return track as RemoteTrackPublication;
     }
   }
 
-  getTrackByName(name: string): RemoteTrackPublication | undefined {
-    const track = super.getTrackByName(name);
+  getTrackPublicationByName(name: string): RemoteTrackPublication | undefined {
+    const track = super.getTrackPublicationByName(name);
     if (track) {
       return track as RemoteTrackPublication;
     }
   }
 
   /**
-   * sets the volume on the participant's microphone track
+   * sets the volume on the participant's audio track
+   * by default, this affects the microphone publication
+   * a different source can be passed in as a second argument
    * if no track exists the volume will be applied when the microphone track is added
    */
-  setVolume(volume: number) {
-    this.volume = volume;
-    const audioPublication = this.getTrack(Track.Source.Microphone);
+  setVolume(
+    volume: number,
+    source: Track.Source.Microphone | Track.Source.ScreenShareAudio = Track.Source.Microphone,
+  ) {
+    this.volumeMap.set(source, volume);
+    const audioPublication = this.getTrackPublication(source);
     if (audioPublication && audioPublication.track) {
       (audioPublication.track as RemoteAudioTrack).setVolume(volume);
     }
@@ -115,12 +138,14 @@ export default class RemoteParticipant extends Participant {
   /**
    * gets the volume on the participant's microphone track
    */
-  getVolume() {
-    const audioPublication = this.getTrack(Track.Source.Microphone);
+  getVolume(
+    source: Track.Source.Microphone | Track.Source.ScreenShareAudio = Track.Source.Microphone,
+  ) {
+    const audioPublication = this.getTrackPublication(source);
     if (audioPublication && audioPublication.track) {
       return (audioPublication.track as RemoteAudioTrack).getVolume();
     }
-    return this.volume;
+    return this.volumeMap.get(source);
   }
 
   /** @internal */
@@ -134,14 +159,14 @@ export default class RemoteParticipant extends Participant {
   ) {
     // find the track publication
     // it's possible for the media track to arrive before participant info
-    let publication = this.getTrackPublication(sid);
+    let publication = this.getTrackPublicationBySid(sid);
 
     // it's also possible that the browser didn't honor our original track id
     // FireFox would use its own local uuid instead of server track id
     if (!publication) {
       if (!sid.startsWith('TR')) {
         // find the first track that matches type
-        this.tracks.forEach((p) => {
+        this.trackPublications.forEach((p) => {
           if (!publication && mediaTrack.kind === p.kind.toString()) {
             publication = p;
           }
@@ -153,7 +178,10 @@ export default class RemoteParticipant extends Participant {
     // yet arrived. Wait a bit longer for it to arrive, or fire an error
     if (!publication) {
       if (triesLeft === 0) {
-        log.error('could not find published track', { participant: this.sid, trackSid: sid });
+        this.log.error('could not find published track', {
+          ...this.logContext,
+          trackSid: sid,
+        });
         this.emit(ParticipantEvent.TrackSubscriptionFailed, sid);
         return;
       }
@@ -173,9 +201,9 @@ export default class RemoteParticipant extends Participant {
     }
 
     if (mediaTrack.readyState === 'ended') {
-      log.error(
+      this.log.error(
         'unable to subscribe because MediaStreamTrack is ended. Do not call MediaStreamTrack.stop()',
-        { participant: this.sid, trackSid: sid },
+        { ...this.logContext, ...getLogContextFromTrack(publication) },
       );
       this.emit(ParticipantEvent.TrackSubscriptionFailed, sid);
       return;
@@ -197,13 +225,9 @@ export default class RemoteParticipant extends Participant {
     track.start();
 
     publication.setTrack(track);
-    // set participant volume on new microphone tracks
-    if (
-      this.volume !== undefined &&
-      track instanceof RemoteAudioTrack &&
-      track.source === Track.Source.Microphone
-    ) {
-      track.setVolume(this.volume);
+    // set participant volumes on new audio tracks
+    if (this.volumeMap.has(publication.source) && track instanceof RemoteAudioTrack) {
+      track.setVolume(this.volumeMap.get(publication.source)!);
     }
 
     return publication;
@@ -214,8 +238,11 @@ export default class RemoteParticipant extends Participant {
     return !!this.participantInfo;
   }
 
-  getTrackPublication(sid: Track.SID): RemoteTrackPublication | undefined {
-    return this.tracks.get(sid);
+  /**
+   * @internal
+   */
+  getTrackPublicationBySid(sid: Track.SID): RemoteTrackPublication | undefined {
+    return this.trackPublications.get(sid);
   }
 
   /** @internal */
@@ -233,7 +260,7 @@ export default class RemoteParticipant extends Participant {
     const newTracks = new Map<string, RemoteTrackPublication>();
 
     info.tracks.forEach((ti) => {
-      let publication = this.getTrackPublication(ti.sid);
+      let publication = this.getTrackPublicationBySid(ti.sid);
       if (!publication) {
         // new publication
         const kind = Track.kindFromProto(ti.type);
@@ -244,20 +271,20 @@ export default class RemoteParticipant extends Participant {
           kind,
           ti,
           this.signalClient.connectOptions?.autoSubscribe,
+          { loggerContextCb: () => this.logContext, loggerName: this.loggerOptions?.loggerName },
         );
         publication.updateInfo(ti);
         newTracks.set(ti.sid, publication);
-        const existingTrackOfSource = Array.from(this.tracks.values()).find(
+        const existingTrackOfSource = Array.from(this.trackPublications.values()).find(
           (publishedTrack) => publishedTrack.source === publication?.source,
         );
         if (existingTrackOfSource && publication.source !== Track.Source.Unknown) {
-          log.debug(
+          this.log.debug(
             `received a second track publication for ${this.identity} with the same source: ${publication.source}`,
             {
-              oldTrack: existingTrackOfSource,
-              newTrack: publication,
-              participant: this,
-              participantInfo: info,
+              ...this.logContext,
+              oldTrack: getLogContextFromTrack(existingTrackOfSource),
+              newTrack: getLogContextFromTrack(publication),
             },
           );
         }
@@ -269,11 +296,11 @@ export default class RemoteParticipant extends Participant {
     });
 
     // detect removed tracks
-    this.tracks.forEach((publication) => {
+    this.trackPublications.forEach((publication) => {
       if (!validTracks.has(publication.trackSid)) {
-        log.trace('detected removed track on remote participant, unpublishing', {
-          publication,
-          participantSid: this.sid,
+        this.log.trace('detected removed track on remote participant, unpublishing', {
+          ...this.logContext,
+          ...getLogContextFromTrack(publication),
         });
         this.unpublishTrack(publication.trackSid, true);
       }
@@ -288,28 +315,28 @@ export default class RemoteParticipant extends Participant {
 
   /** @internal */
   unpublishTrack(sid: Track.SID, sendUnpublish?: boolean) {
-    const publication = <RemoteTrackPublication>this.tracks.get(sid);
+    const publication = <RemoteTrackPublication>this.trackPublications.get(sid);
     if (!publication) {
       return;
     }
 
-       // also send unsubscribe, if track is actively subscribed
-       const { track } = publication;
-       if (track) {
-         track.stop();
-         publication.setTrack(undefined);
-       }
-   
-       // remove track from maps only after unsubscribed has been fired
-    this.tracks.delete(sid);
+    // also send unsubscribe, if track is actively subscribed
+    const { track } = publication;
+    if (track) {
+      track.stop();
+      publication.setTrack(undefined);
+    }
+
+    // remove track from maps only after unsubscribed has been fired
+    this.trackPublications.delete(sid);
 
     // remove from the right type map
     switch (publication.kind) {
       case Track.Kind.Audio:
-        this.audioTracks.delete(sid);
+        this.audioTrackPublications.delete(sid);
         break;
       case Track.Kind.Video:
-        this.videoTracks.delete(sid);
+        this.videoTrackPublications.delete(sid);
         break;
       default:
         break;
@@ -323,20 +350,10 @@ export default class RemoteParticipant extends Participant {
   /**
    * @internal
    */
-  setAudioContext(ctx: AudioContext | undefined) {
-    this.audioContext = ctx;
-    this.audioTracks.forEach(
-      (track) => track.track instanceof RemoteAudioTrack && track.track.setAudioContext(ctx),
-    );
-  }
-
-  /**
-   * @internal
-   */
   async setAudioOutput(output: AudioOutputOptions) {
     this.audioOutput = output;
     const promises: Promise<void>[] = [];
-    this.audioTracks.forEach((pub) => {
+    this.audioTrackPublications.forEach((pub) => {
       if (pub.track instanceof RemoteAudioTrack) {
         promises.push(pub.track.setSinkId(output.deviceId ?? 'default'));
       }
@@ -349,7 +366,7 @@ export default class RemoteParticipant extends Participant {
     event: E,
     ...args: Parameters<ParticipantEventCallbacks[E]>
   ): boolean {
-    log.trace('participant event', { participant: this.sid, event, args });
+    this.log.trace('participant event', { ...this.logContext, event, args });
     return super.emit(event, ...args);
   }
 }

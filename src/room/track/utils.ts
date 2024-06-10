@@ -1,5 +1,16 @@
-import { sleep } from '../utils';
-import type { AudioCaptureOptions, CreateLocalTracksOptions, VideoCaptureOptions } from './options';
+import { TrackPublishedResponse } from '../../proto/livekit_rtc_pb';
+import { cloneDeep } from '../../utils/cloneDeep';
+import { isSafari, sleep } from '../utils';
+import { Track } from './Track';
+import type { TrackPublication } from './TrackPublication';
+import {
+  type AudioCaptureOptions,
+  type CreateLocalTracksOptions,
+  type ScreenShareCaptureOptions,
+  type VideoCaptureOptions,
+  VideoCodec,
+  videoCodecs,
+} from './options';
 import type { AudioTrack } from './types';
 
 export function mergeDefaultOptions(
@@ -7,9 +18,7 @@ export function mergeDefaultOptions(
   audioDefaults?: AudioCaptureOptions,
   videoDefaults?: VideoCaptureOptions,
 ): CreateLocalTracksOptions {
-  const opts: CreateLocalTracksOptions = {
-    ...options,
-  };
+  const opts: CreateLocalTracksOptions = cloneDeep(options) ?? {};
   if (opts.audio === true) opts.audio = {};
   if (opts.video === true) opts.video = {};
 
@@ -110,5 +119,123 @@ export function getNewAudioContext(): AudioContext | void {
     typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
   if (AudioContext) {
     return new AudioContext({ latencyHint: 'interactive' });
+  }
+}
+
+/**
+ * @internal
+ */
+export function kindToSource(kind: MediaDeviceKind) {
+  if (kind === 'audioinput') {
+    return Track.Source.Microphone;
+  } else if (kind === 'videoinput') {
+    return Track.Source.Camera;
+  } else {
+    return Track.Source.Unknown;
+  }
+}
+
+/**
+ * @internal
+ */
+export function sourceToKind(source: Track.Source): MediaDeviceKind | undefined {
+  if (source === Track.Source.Microphone) {
+    return 'audioinput';
+  } else if (source === Track.Source.Camera) {
+    return 'videoinput';
+  } else {
+    return undefined;
+  }
+}
+
+/**
+ * @internal
+ */
+export function screenCaptureToDisplayMediaStreamOptions(
+  options: ScreenShareCaptureOptions,
+): DisplayMediaStreamOptions {
+  let videoConstraints: MediaTrackConstraints | boolean = options.video ?? true;
+  // treat 0 as uncapped
+  if (options.resolution && options.resolution.width > 0 && options.resolution.height > 0) {
+    videoConstraints = typeof videoConstraints === 'boolean' ? {} : videoConstraints;
+    if (isSafari()) {
+      videoConstraints = {
+        ...videoConstraints,
+        width: { max: options.resolution.width },
+        height: { max: options.resolution.height },
+        frameRate: options.resolution.frameRate,
+      };
+    } else {
+      videoConstraints = {
+        ...videoConstraints,
+        width: { ideal: options.resolution.width },
+        height: { ideal: options.resolution.height },
+        frameRate: options.resolution.frameRate,
+      };
+    }
+  }
+
+  return {
+    audio: options.audio ?? false,
+    video: videoConstraints,
+    // @ts-expect-error support for experimental display media features
+    controller: options.controller,
+    selfBrowserSurface: options.selfBrowserSurface,
+    surfaceSwitching: options.surfaceSwitching,
+    systemAudio: options.systemAudio,
+    preferCurrentTab: options.preferCurrentTab,
+  };
+}
+
+export function mimeTypeToVideoCodecString(mimeType: string) {
+  const codec = mimeType.split('/')[1].toLowerCase() as VideoCodec;
+  if (!videoCodecs.includes(codec)) {
+    throw Error(`Video codec not supported: ${codec}`);
+  }
+  return codec;
+}
+
+export function getTrackPublicationInfo<T extends TrackPublication>(
+  tracks: T[],
+): TrackPublishedResponse[] {
+  const infos: TrackPublishedResponse[] = [];
+  tracks.forEach((track: TrackPublication) => {
+    if (track.track !== undefined) {
+      infos.push(
+        new TrackPublishedResponse({
+          cid: track.track.mediaStreamID,
+          track: track.trackInfo,
+        }),
+      );
+    }
+  });
+  return infos;
+}
+
+export function getLogContextFromTrack(track: Track | TrackPublication): Record<string, unknown> {
+  if (track instanceof Track) {
+    return {
+      trackID: track.sid,
+      source: track.source,
+      muted: track.isMuted,
+      enabled: track.mediaStreamTrack.enabled,
+      kind: track.kind,
+      streamID: track.mediaStreamID,
+      streamTrackID: track.mediaStreamTrack.id,
+    };
+  } else {
+    return {
+      trackID: track.trackSid,
+      enabled: track.isEnabled,
+      muted: track.isMuted,
+      trackInfo: {
+        mimeType: track.mimeType,
+        name: track.trackName,
+        encrypted: track.isEncrypted,
+        kind: track.kind,
+        source: track.source,
+        ...(track.track ? getLogContextFromTrack(track.track) : {}),
+      },
+    };
   }
 }
