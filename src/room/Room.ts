@@ -2122,7 +2122,6 @@ export type RoomEventCallbacks = {
     kind?: DataPacket_Kind,
     topic?: string,
     destination_sids?: string[],
-    destination_sids?: string[],
   ) => void;
   transcriptionReceived: (
     transcription: TranscriptionSegment[],
