@@ -1295,6 +1295,12 @@ export default class LocalParticipant extends Participant {
         // const mutedOnServer = pub.isMuted || (pub.track?.isUpstreamPaused ?? false);
         // console.log('mutedOnServer flage is: '+mutedOnServer)
         console.log('Track type is: '+pub.kind+' & Sid is: '+ti.sid+' & Mute value is: '+ti.muted);
+
+        const regex = /^TR_VS.*/;
+        if (regex.test(ti.sid)) {
+          return; // Skip further operations if the pattern matches
+        }
+
         const localTrack = pub.track;
         if(pub.kind == Track.Kind.Audio)
         {
@@ -1339,6 +1345,7 @@ export default class LocalParticipant extends Participant {
               sid: ti.sid,
               muted: true,
             });
+           
             this.engine.client.sendMuteTrack(ti.sid, true);
             this.videoMuted = true;
           }
