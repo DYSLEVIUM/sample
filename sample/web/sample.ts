@@ -182,6 +182,7 @@ const appActions = {
         const track = pub.track as LocalAudioTrack;
 
         if (track instanceof LocalAudioTrack) {
+          console.log('room recording is inprogress: '+room.isRecording)
           const { calculateVolume } = createAudioAnalyser(track);
 
           setInterval(() => {
@@ -244,6 +245,9 @@ const appActions = {
       })
       .on(RoomEvent.ParticipantEncryptionStatusChanged, () => {
         updateButtonsForPublishState();
+      })
+      .on(RoomEvent.RecordingStatusChanged, (isactive: boolean) => {
+        console.log("room recording is inprogress: "+isactive);
       })
       .on(RoomEvent.TrackStreamStateChanged, (pub, streamState, participant) => {
         appendLog(
