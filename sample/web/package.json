@@ -16,7 +16,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ecprt-client-sdk": "file:../../ecprt-client-sdk-2.1.3.tgz",
     "typescript": "4.9.5"
   },
   "workspaces": {
