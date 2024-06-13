@@ -1,4 +1,3 @@
-import E2EEWorker from 'ecprt-client-sdk';
 import {
   ConnectionQuality,
   ConnectionState,
@@ -28,10 +27,8 @@ import {
   setLogLevel,
   supportsAV1,
   supportsVP9,
-} from 'ecprt-client-sdk';
-import { ScalabilityMode } from 'ecprt-client-sdk';
-import type { DataPacket_Kind, SimulationScenario } from 'ecprt-client-sdk';
-import { isSVCCodec } from 'ecprt-client-sdk';
+} from '../../src/index';
+import type { DataPacket_Kind, SimulationScenario } from '../../src/index';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -395,13 +392,13 @@ const appActions = {
       const msg = state.encoder.encode(textField.value);
       if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
         appendLog('sending message to participant(s)', selectedArray);
-        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray });
+        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray, topic: 'lk-chat-topic' });
       } else {
         appendLog('sending message to all the participant');
-        currentRoom.localParticipant.publishData(msg, { reliable: true });
+        currentRoom.localParticipant.publishData(msg, { reliable: true, topic: 'lk-chat-topic' });
       }
       let participantIndication = "Everyone";
-      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {  
         if (selectedArray.length == 1) {
           currentRoom.remoteParticipants.forEach((p) => {
             if (p.sid == selectedArray[0]) {
