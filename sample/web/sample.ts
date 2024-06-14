@@ -395,13 +395,13 @@ const appActions = {
       const msg = state.encoder.encode(textField.value);
       if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
         appendLog('sending message to participant(s)', selectedArray);
-        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray });
+        currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray, topic: 'lk-chat-topic' });
       } else {
         appendLog('sending message to all the participant');
-        currentRoom.localParticipant.publishData(msg, { reliable: true });
+        currentRoom.localParticipant.publishData(msg, { reliable: true, topic: 'lk-chat-topic' });
       }
       let participantIndication = "Everyone";
-      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {  
         if (selectedArray.length == 1) {
           currentRoom.remoteParticipants.forEach((p) => {
             if (p.sid == selectedArray[0]) {
