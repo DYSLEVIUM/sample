@@ -526,7 +526,7 @@ function handleData(msg: Uint8Array, participant?: RemoteParticipant, kind?: Dat
     }
   }
   if (!currentRoom) return;
-  notion = destination_sids?.includes(currentRoom.localParticipant.sid) ? 'Me (Direct message)' : 'Everyone'
+  notion = destination_sids && destination_sids?.length > 0 ? 'Me (Direct message)' : 'Everyone'
   chat.value += `${from} to ${notion}: ${str}\n`;
 }
 
