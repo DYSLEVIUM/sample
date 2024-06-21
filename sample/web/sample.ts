@@ -379,6 +379,15 @@ const appActions = {
 
   enterText: () => {
     if (!currentRoom) return;
+    const infoElm = $('chat-error')!;
+    infoElm.style.display = 'none';
+    if (!currentRoom.localParticipant.permissions?.canPublishData) {
+      const infoElm = $('chat-error')!;
+      infoElm.innerHTML = `You are not permitted to use Chat feature. Please contact admin.`;
+      infoElm.style.display = 'block';
+      infoElm.style.color = 'red';
+      return;
+    }
     const textField = <HTMLInputElement>$('entry');
     var selObj = <HTMLSelectElement>$('participant-list');
     var selectedArray = new Array();
@@ -598,8 +607,18 @@ function handleRoomDisconnect(reason?: DisconnectReason) {
   }
 
   // clear the chat area on disconnect
-  //const chat = <HTMLTextAreaElement>$('chat');
-  //chat.value = '';
+  const chat = <HTMLTextAreaElement>$('chat');
+  chat.value = '';
+
+  // clear the chat participants
+  const videoElm = <HTMLSelectElement>$('participant-list');
+  let index = videoElm.options.length;
+  while (index--) {
+    let option = videoElm.options[index];
+    if (option.value != "everyone") {
+      videoElm.remove(index);
+    }
+  }
 
   currentRoom = undefined;
   window.currentRoom = undefined;
