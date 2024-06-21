@@ -402,7 +402,7 @@ const appActions = {
 
     if (textField.value) {
       const msg = state.encoder.encode(textField.value);
-      if (selectedArray.length > 0 && !selectedArray.includes('Everyone')) {
+      if (selectedArray.length > 0 && !selectedArray.includes('everyone')) {
         appendLog('sending message to participant(s)', selectedArray);
         currentRoom.localParticipant.publishData(msg, { reliable: true, destinationIdentities: selectedArray, topic: 'lk-chat-topic' });
       } else {
