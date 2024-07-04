@@ -1296,9 +1296,10 @@ export default class LocalParticipant extends Participant {
         // console.log('mutedOnServer flage is: '+mutedOnServer)
         console.log('Track type is: '+pub.kind+' & Sid is: '+ti.sid+' & Mute value is: '+ti.muted);
 
-        const regex = /^TR_VS.*/;
-        if (regex.test(ti.sid)) {
-          return; // Skip further operations if the pattern matches
+        const regex_ss = /^TR_VS.*/;
+        const regex_ss_audio = /^TR_As.*/;
+        if (regex_ss.test(ti.sid) || regex_ss_audio.test(ti.sid)) {
+          return; // Skip further operations. 
         }
 
         const localTrack = pub.track;
