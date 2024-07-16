@@ -229,6 +229,11 @@ const appActions = {
         renderParticipant(participant);
         renderScreenShare(room);
       })
+      .on(RoomEvent.TrackUnpublished, (pub, participant) => {
+        appendLog('TrackUnpublished from track', pub.trackSid);
+        renderParticipant(participant);
+        renderScreenShare(room);
+      })
       .on(RoomEvent.SignalConnected, async () => {
         const signalConnectionTime = Date.now() - startTime;
         appendLog(`signal connection established in ${signalConnectionTime}ms`);
