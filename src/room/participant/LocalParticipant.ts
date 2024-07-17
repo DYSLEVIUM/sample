@@ -1339,6 +1339,7 @@ export default class LocalParticipant extends Participant {
         }
         else
         {
+          if(!pub.track?.isUpstreamPaused){
           if(sessionStorage.getItem("isVideoMuted") && sessionStorage.getItem("isVideoMuted")==="true")
           {
             this.log.debug('updating server video mute state after reloading', {
@@ -1346,7 +1347,6 @@ export default class LocalParticipant extends Participant {
               sid: ti.sid,
               muted: true,
             });
-           
             this.engine.client.sendMuteTrack(ti.sid, true);
             this.videoMuted = true;
           }
@@ -1371,6 +1371,7 @@ export default class LocalParticipant extends Participant {
             this.videoMuted = false;
           }
         }
+      }
       }
       
     });
