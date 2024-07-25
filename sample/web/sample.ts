@@ -899,7 +899,7 @@ function renderScreenShare(room: Room) {
       console.log(videoElm.videoWidth + ":" + videoElm.videoHeight)
       videoElm.onwaiting= () => {
         console.log("Inside onwaiting")
-        infoElm.innerHTML = `Waiting for the good signal...`;
+        infoElm.innerHTML = `Waiting for the good signal... If the issue persists for long, please refresh the browser to reconnect to the room.`;
       };
     videoElm.onresize = () => {
       console.log("Inside onresize")
