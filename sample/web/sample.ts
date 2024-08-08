@@ -711,16 +711,7 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
   }
 
   // update properties
-  let partipantData = '';
-    if (participant) {
-      if (participant.name) {
-        partipantData = participant.name;
-      }
-      else {
-        partipantData = participant.identity;
-      }
-    }
-  $(`name-${identity}`)!.innerHTML = partipantData;
+  $(`name-${identity}`)!.innerHTML = participant.identity;
   if (participant instanceof LocalParticipant) {
     $(`name-${identity}`)!.innerHTML += ' (you)';
   }
@@ -881,15 +872,6 @@ function renderScreenShare(room: Room) {
 
   if (screenSharePub && participant) {
     div.style.display = 'block';
-    let from = '';
-    if (participant) {
-      if (participant.name) {
-        from = participant.name;
-      }
-      else {
-        from = participant.identity;
-      }
-    }
     const videoElm = <HTMLVideoElement>$('screenshare-video');
     screenSharePub.videoTrack?.attach(videoElm);
     if (screenShareAudioPub) {
@@ -908,10 +890,10 @@ function renderScreenShare(room: Room) {
     };
     videoElm.onplaying = () => {
       console.log("Inside onplay")
-      infoElm.innerHTML = `Screenshare from ${from}`;
+      infoElm.innerHTML = `Screenshare from ${participant.identity}`;
     };
     const infoElm = $('screenshare-info')!;
-    infoElm.innerHTML = `Screenshare from ${from}`;
+    infoElm.innerHTML = `Screenshare from ${participant.identity}`;
   } else {
     div.style.display = 'none';
   }
