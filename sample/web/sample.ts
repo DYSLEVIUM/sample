@@ -711,16 +711,7 @@ function renderParticipant(participant: Participant, remove: boolean = false) {
   }
 
   // update properties
-  let partipantData = '';
-    if (participant) {
-      if (participant.name) {
-        partipantData = participant.name;
-      }
-      else {
-        partipantData = participant.identity;
-      }
-    }
-  $(`name-${identity}`)!.innerHTML = partipantData;
+  $(`name-${identity}`)!.innerHTML = participant.identity;
   if (participant instanceof LocalParticipant) {
     $(`name-${identity}`)!.innerHTML += ' (you)';
   }
