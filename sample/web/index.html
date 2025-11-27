@@ -74,6 +74,14 @@
               <select id="preferred-codec" class="custom-select" style="width: auto"></select>
             </div>
             <div>
+              <label for="denoiser-type" class="form-check-label">Denoiser</label>
+              <select id="denoiser-type" class="custom-select" style="width: auto">
+                <option value="none">None</option>
+                <option value="deepfilternet" selected>DeepFilterNet</option>
+                <option value="rnnoise">RNNoise</option>
+              </select>
+            </div>
+            <div>
               <label for="qulaity" class="form-check-label"> PreferredQuality </label>
               <select
               id="preferred-quality"

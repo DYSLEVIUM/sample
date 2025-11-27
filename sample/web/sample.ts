@@ -2,6 +2,7 @@ import {
   ConnectionQuality,
   ConnectionState,
   DataPacket_Kind,
+  DenoiserType,
   DisconnectReason,
   ExternalE2EEKeyProvider,
   LocalAudioTrack,
@@ -17,6 +18,7 @@ import {
   RoomConnectOptions,
   RoomEvent,
   RoomOptions,
+  RuntimeLoader,
   ScreenSharePresets,
   SimulationScenario,
   Track,
@@ -55,8 +57,57 @@ const state = {
   defaultDevices: new Map<MediaDeviceKind, string>(),
   bitrateInterval: undefined as any,
   e2eeKeyProvider: new ExternalE2EEKeyProvider(),
+  currentDenoiserType: 'deepfilternet' as string,
 };
 let currentRoom: Room | undefined;
+
+// Handle denoiser type changes
+async function handleDenoiserChange(denoiserType: string) {
+  state.currentDenoiserType = denoiserType;
+  
+  if (denoiserType === 'none') {
+    RuntimeLoader.reset();
+    appendLog('Denoiser disabled');
+    return;
+  }
+  
+  const type = denoiserType === 'rnnoise' ? DenoiserType.RNNOISE : DenoiserType.DEEP_FILTER_NET;
+  const assetsPath = denoiserType === 'rnnoise' ? './rnnoise/' : './deepfilternet/';
+  
+  try {
+    RuntimeLoader.reset();
+    await RuntimeLoader.load(assetsPath, type);
+    appendLog(`Denoiser switched to: ${denoiserType}`);
+  } catch (err) {
+    console.error('Failed to load denoiser:', err);
+    appendLog(`Failed to load ${denoiserType} denoiser: ${err}`);
+  }
+}
+
+// Initialize denoiser selector and load default denoiser
+document.addEventListener('DOMContentLoaded', async () => {
+  const denoiserSelect = $<HTMLSelectElement>('denoiser-type');
+  if (denoiserSelect) {
+    // Load the initially selected denoiser
+    const initialDenoiser = denoiserSelect.value;
+    if (initialDenoiser !== 'none') {
+      const type = initialDenoiser === 'rnnoise' ? DenoiserType.RNNOISE : DenoiserType.DEEP_FILTER_NET;
+      const assetsPath = initialDenoiser === 'rnnoise' ? './rnnoise/' : './deepfilternet/';
+      try {
+        await RuntimeLoader.load(assetsPath, type);
+        console.log(`Denoiser initialized: ${initialDenoiser}`);
+      } catch (err) {
+        console.error('Failed to initialize denoiser:', err);
+      }
+    }
+    
+    // Handle denoiser changes
+    denoiserSelect.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      handleDenoiserChange(target.value);
+    });
+  }
+});
 
 let startTime: number;
 

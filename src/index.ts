@@ -10,7 +10,6 @@ import {
   setLogExtension,
   setLogLevel,
 } from './logger';
-import { RuntimeLoader } from './options';
 import DefaultReconnectPolicy from './room/DefaultReconnectPolicy';
 import Room, { ConnectionState } from './room/Room';
 import LocalParticipant from './room/participant/LocalParticipant';
@@ -112,6 +111,6 @@ export type {
   ParticipantTrackPermission
 };
 
-//! do not remove, this is for reference only
-RuntimeLoader.load();
-// RuntimeLoader.load('/rnnoise', DenoiserType.RNNOISE);
+// Denoiser can be loaded by the application:
+// RuntimeLoader.load('./deepfilternet/', DenoiserType.DEEP_FILTER_NET);
+// RuntimeLoader.load('./rnnoise/', DenoiserType.RNNOISE);
