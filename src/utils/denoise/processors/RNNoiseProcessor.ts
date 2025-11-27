@@ -68,10 +68,10 @@ class RNNoiseWasmLoader {
     
     const module = await loadRnnoiseModule({
       locateFile: (path: string, prefix: string) => {
-        // Default to /rnnoise/ folder
+        // Default to ./rnnoise/ folder (relative path for subdirectory deployments)
         let finalPrefix = config.assetsPath 
           ? (config.assetsPath.endsWith('/') ? config.assetsPath : config.assetsPath + '/')
-          : '/rnnoise/';
+          : './rnnoise/';
 
         let finalPath = config.wasmFileName ?? (useSimd ? 'rnnoise_simd.wasm' : 'rnnoise.wasm');
 

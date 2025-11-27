@@ -65,9 +65,8 @@ class DeepFilterNetLoader {
   static getBasePath(): string {
     // Default paths in order of preference:
     // 1. User-set basePath
-    // 2. /deepfilternet/ (for served apps)
-    // 3. ./deepfilternet/ (relative path)
-    return this.basePath ?? '/deepfilternet/';
+    // 2. ./deepfilternet/ (relative path - works with subdirectory deployments)
+    return this.basePath ?? './deepfilternet/';
   }
 
   static async loadWasmData(): Promise<WasmData> {

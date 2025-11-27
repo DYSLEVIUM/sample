@@ -150,7 +150,8 @@ export class RuntimeLoader {
     console.debug('[RuntimeLoader] Loading runtime modules...', "assetPath", assetsPath, "denoiserType", denoiserType);
     
     // Set default assets path based on denoiser type
-    const defaultPath = denoiserType === DenoiserType.RNNOISE ? '/rnnoise/' : '/deepfilternet/';
+    // Use relative paths to support subdirectory deployments (e.g., GitHub Pages)
+    const defaultPath = denoiserType === DenoiserType.RNNOISE ? './rnnoise/' : './deepfilternet/';
     const effectivePath = assetsPath ?? defaultPath;
     
     try {
