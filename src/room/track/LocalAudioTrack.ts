@@ -294,74 +294,74 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
     return trackIsSilent;
   }
 
-  static async ProcessAudioWithRnnoise(
-    audioTrack: LocalTrack
+  /**
+   * Process audio with noise suppression (DeepFilterNet or RNNoise)
+   * 
+   * @param audioTrack - The audio track to process
+   * @param assetsPath - Path to WASM assets (default: '/deepfilternet/')
+   * @returns A new LocalAudioTrack with noise suppression applied
+   * 
+   * @example
+   * ```typescript
+   * const processedTrack = await LocalAudioTrack.processWithDenoise(localAudioTrack);
+   * // Or with custom path:
+   * const processedTrack = await LocalAudioTrack.processWithDenoise(localAudioTrack, '/wasm/deepfilternet/');
+   * ```
+   */
+  static async processWithDenoise(
+    audioTrack: LocalTrack,
+    assetsPath = '/deepfilternet/'
   ): Promise<LocalTrack> {
+    const log = '[LocalAudioTrack.processWithDenoise]';
+    
     try {
-      const noiseSuppressionProcessor = RuntimeLoader.NoiseSuppressionProcessor;
+      const denoiser = await RuntimeLoader.getAudioTrackDenoiser(assetsPath);
+      
+      if (!denoiser) {
+        throw new Error('AudioTrackDenoiser not available');
+      }
 
-      console.log('Noise Suppression Processor initialized');
+      console.debug(`${log} Denoiser ready:`, denoiser.getDenoiser()?.name);
 
-      // Create an AudioContext for audio processing
-      const audioContext = new AudioContext();
-
-      // Check if the mediaStream is defined and get the MediaStreamAudioTrack
       const mediaStream = audioTrack.mediaStream;
       if (!mediaStream) {
-        throw new Error(`media stream is undefined`);
+        throw new Error('Media stream is undefined');
       }
 
-      const mediaStreamAudioTrack = mediaStream.getAudioTracks()[0];
-
-      // Ensure that mediaStreamAudioTrack is defined
-      /*if (!mediaStreamAudioTrack) {
-      console.error('MediaStreamAudioTrack is undefined. Unable to process audio track.');
-      return; // Exit if the audio track is not available
-    }*/
-
-      // Ensure that mediaStreamAudioTrack is defined and is of the correct type
-      if (!mediaStreamAudioTrack || mediaStreamAudioTrack.kind !== 'audio') {
-        throw new Error(`media stream audio track is undefined`);
+      const audioStreamTrack = mediaStream.getAudioTracks()[0];
+      if (!audioStreamTrack || audioStreamTrack.kind !== 'audio') {
+        throw new Error('Audio track is undefined or invalid');
       }
 
-      // Create a source node from the MediaStreamAudioTrack
-      const sourceNode = audioContext.createMediaStreamSource(
-        new MediaStream([mediaStreamAudioTrack])
+      console.debug(`${log} Starting denoising`, { trackId: audioStreamTrack.id });
+
+      const processedTrack = await denoiser.startProcessing(
+        audioStreamTrack as MediaStreamAudioTrack
       );
 
-      // Create a script processor for audio processing
-      const scriptProcessor = audioContext.createScriptProcessor(1024, 1, 1);
-
-      // Connect nodes
-      sourceNode.connect(scriptProcessor);
-      scriptProcessor.connect(audioContext.destination); // Connect to output
-
-      // Handle audio processing
-     // if(noiseSuppressionProcessor)
-      //  {
-      const processedAudioTrack =
-        await noiseSuppressionProcessor.startProcessing(
-          mediaStreamAudioTrack as MediaStreamAudioTrack
-        );
-     // }
-      //  else{
-       //   console.log("//SHAH:NS not initialized")
-       // }
-      console.log('//SHAHrnnoise processing started');
-      console.log('noiseSuppressionProcessor: ', noiseSuppressionProcessor);
-      // Wrap the processed MediaStreamAudioTrack back into a LocalAudioTrack
-      if (processedAudioTrack) {
-        const newLocalAudioTrack = new LocalAudioTrack(processedAudioTrack);
-        console.log('processedTrack:', newLocalAudioTrack);
-        newLocalAudioTrack.source = Track.Source.Microphone;
-
-        return newLocalAudioTrack;
-      } else {
-        throw new Error(`processed audio track is undefined`);
+      if (!processedTrack) {
+        throw new Error('Processed track is undefined');
       }
+
+      const newTrack = new LocalAudioTrack(processedTrack);
+      newTrack.source = Track.Source.Microphone;
+
+      console.debug(`${log} Denoising started`, {
+        original: audioStreamTrack.id,
+        processed: processedTrack.id,
+      });
+
+      return newTrack;
     } catch (err) {
-      console.error('error in noise suppression');
+      console.error(`${log} Error:`, err);
       throw err;
     }
+  }
+
+  /**
+   * @deprecated Use processWithDenoise instead
+   */
+  static async ProcessAudioWithRnnoise(audioTrack: LocalTrack): Promise<LocalTrack> {
+    return this.processWithDenoise(audioTrack);
   }
 }

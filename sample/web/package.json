@@ -2,22 +2,19 @@
   "name": "livekit-sample",
   "version": "1.0.0",
   "private": true,
-  "description": "",
+  "description": "ECPRT LiveKit Sample Web Application",
   "devDependencies": {
     "typescript": "^4.9.5",
     "vite": "^4.3.9"
   },
   "scripts": {
     "bootstrap": "npm install",
-    "clean": "tsc --build --clean",
-    "build": "tsc --build",
+    "clean": "rm -rf dist && tsc --build --clean",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "sample": "vite serve --port 8080 --open"
   },
   "author": "",
-  "license": "ISC",
-  "workspaces": {
-    "packages": [
-      "/*"
-    ]
-  }
+  "license": "ISC"
 }

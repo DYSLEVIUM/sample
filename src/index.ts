@@ -43,26 +43,29 @@ import {
 } from './room/utils';
 import { getBrowser } from './utils/browserParser';
 
+// Noise Suppression Module Exports
+export * from './utils/denoise';
+
 export * from './connectionHelper/ConnectionCheck';
 export * from './connectionHelper/checks/Checker';
 export * from './e2ee';
 export * from './options';
+export * from './room/Room';
 export * from './room/errors';
 export * from './room/events';
 export * from './room/track/Track';
 export * from './room/track/create';
 export {
   facingModeFromDeviceLabel,
-  facingModeFromLocalTrack,
+  facingModeFromLocalTrack
 } from './room/track/facingMode';
 export * from './room/track/options';
 export * from './room/track/processor/types';
 export * from './room/track/types';
-export * from './room/Room';
 export type {
   DataPublishOptions,
   SimulationScenario,
-  TranscriptionSegment,
+  TranscriptionSegment
 } from './room/types';
 export * from './version';
 export {
@@ -100,13 +103,15 @@ export {
   supportsAV1,
   supportsAdaptiveStream,
   supportsDynacast,
-  supportsVP9,
+  supportsVP9
 };
 export type {
   AudioAnalyserOptions,
   ElementInfo,
   LiveKitReactNativeInfo,
-  ParticipantTrackPermission,
+  ParticipantTrackPermission
 };
 
+//! do not remove, this is for reference only
 RuntimeLoader.load();
+// RuntimeLoader.load('/rnnoise', DenoiserType.RNNOISE);

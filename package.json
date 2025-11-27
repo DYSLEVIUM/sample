@@ -39,13 +39,17 @@
   "author": "",
   "license": "Apache-2.0",
   "scripts": {
-    "generate-wasm": "./scripts/build-rnnoise.sh",
-    "copy-wasm": "cp ./wasm_dist/rnnoise.wasm ./dist/rnnoise.wasm && rm -rf ./wasm_dist",
+    "build:rnnoise": "./scripts/build-rnnoise.sh",
+    "build:deepfilternet": "./scripts/build-deepfilternet.sh",
+    "copy:deepfilternet": "./scripts/copy-deepfilternet.sh",
+    "copy-wasm": "mkdir -p ./dist && cp ./wasm_dist/rnnoise.wasm ./dist/ && cp ./wasm_dist/rnnoise_simd.wasm ./dist/ && mkdir -p ./dist/deepfilternet && cp -r ./wasm_dist/deepfilternet/* ./dist/deepfilternet/ 2>/dev/null || true",
+    "generate-wasm": "npm run build:rnnoise && npm run copy:deepfilternet",
     "build": "npm run generate-wasm && rollup --config --bundleConfigAsCjs && rollup --config rollup.config.worker.js --bundleConfigAsCjs && npm run copy-wasm",
     "build:watch": "rollup --watch --config --bundleConfigAsCjs",
     "build:worker:watch": "rollup --watch --config rollup.config.worker.js --bundleConfigAsCjs",
+    "build:wasm:all": "npm run build:rnnoise && npm run build:deepfilternet",
     "build-docs": "typedoc",
-    "clean": "tsc --build --clean",
+    "clean": "tsc --build --clean && rm -rf wasm_dist",
     "publish": "tsc --build tsconfig.json && npm publish",
     "proto": "protoc --es_out src/proto --es_opt target=ts -I./protocol/protobufs ./protocol/protobufs/livekit_rtc.proto ./protocol/protobufs/livekit_models.proto",
     "sample": "vite example -c vite.config.mjs",
@@ -61,6 +65,7 @@
   "dependencies": {
     "emscripten": "^0.0.2-beta",
     "events": "^3.3.0",
+    "fflate": "^0.8.2",
     "loglevel": "^1.8.0",
     "sdp-transform": "^2.14.1",
     "ts-debounce": "^4.0.0",
@@ -106,7 +111,7 @@
     "size-limit": "^8.2.4",
     "typedoc": "0.25.13",
     "typedoc-plugin-no-inherit": "1.4.0",
-    "typescript": "5.4.5",
+    "typescript": "^5.4.5",
     "vite": "^5.4.9",
     "vitest": "^1.0.0"
   }

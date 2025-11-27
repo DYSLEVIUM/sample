@@ -28,9 +28,22 @@ import {
   createAudioAnalyser,
   setLogLevel,
   supportsAV1,
-  supportsVP9,
+  supportsVP9
 } from '../../src';
 // } from '../../dist/ecprt-client-sdk.esm.mjs';
+
+/*
+ * Noise Suppression Examples (see src/utils/denoise for full API):
+ * 
+ * // Using DeepFilterNet directly:
+ * import { DeepFilterNetProcessor } from 'ecprt-client-sdk';
+ * const denoiser = new DeepFilterNetProcessor({ wasmBasePath: '/wasm' });
+ * await denoiser.initialize();
+ * denoiser.processFrame(audioFrame);
+ * 
+ * // Using track-level denoising:
+ * const processed = await LocalAudioTrack.processWithDenoise(audioTrack);
+ */
 
 const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -944,12 +957,13 @@ function renderScreenShare(room: Room) {
       console.log(videoElm.videoWidth + ':' + videoElm.videoHeight);
       updateVideoSize(videoElm, <HTMLSpanElement>$('screenshare-resolution'));
     };
+    const infoElm = $('screenshare-info')!;
+    const participantIdentity = participant.identity;
     videoElm.onplaying = () => {
       console.log('Inside onplay');
-      infoElm.innerHTML = `Screenshare from ${participant.identity}`;
+      infoElm.innerHTML = `Screenshare from ${participantIdentity}`;
     };
-    const infoElm = $('screenshare-info')!;
-    infoElm.innerHTML = `Screenshare from ${participant.identity}`;
+    infoElm.innerHTML = `Screenshare from ${participantIdentity}`;
   } else {
     div.style.display = 'none';
   }

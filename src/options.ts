@@ -7,7 +7,7 @@ import type {
   VideoCaptureOptions,
 } from './room/track/options';
 import type { AdaptiveStreamSettings } from './room/track/types';
-import { NoiseSuppressionProcessor } from './utils/NoiseSuppressionProcessor';
+import { AudioTrackDenoiser, DenoiserType } from './utils/denoise';
 
 export interface WebAudioSettings {
   audioContext: AudioContext;
@@ -129,13 +129,66 @@ export interface InternalRoomConnectOptions {
 export interface RoomConnectOptions
   extends Partial<InternalRoomConnectOptions> { }
 
+/**
+ * Runtime loader for lazy-loaded modules
+ */
 export class RuntimeLoader {
-  static NoiseSuppressionProcessor: NoiseSuppressionProcessor;
+  static AudioTrackDenoiser: AudioTrackDenoiser | null = null;
 
-  static async load() {
-    console.log('@PUSHPA RuntimeLoader.load()');
-    const assetsPath = '/';
-    this.NoiseSuppressionProcessor = await
-      NoiseSuppressionProcessor.build(assetsPath);
+  /**
+   * Load runtime modules (noise suppression, etc.)
+   * 
+   * @param assetsPath - Base path for WASM assets
+   * @param denoiserType - Which denoiser to use (default: DEEP_FILTER_NET)
+   * @param debug - Enable debug logging
+   */
+  static async load(
+    assetsPath?: string, 
+    denoiserType: DenoiserType = DenoiserType.DEEP_FILTER_NET,
+    debug = false
+  ): Promise<void> {
+    console.debug('[RuntimeLoader] Loading runtime modules...', "assetPath", assetsPath, "denoiserType", denoiserType);
+    
+    // Set default assets path based on denoiser type
+    const defaultPath = denoiserType === DenoiserType.RNNOISE ? '/rnnoise/' : '/deepfilternet/';
+    const effectivePath = assetsPath ?? defaultPath;
+    
+    try {
+      this.AudioTrackDenoiser = await AudioTrackDenoiser.create({
+        assetsPath: effectivePath,
+        denoiserType,
+        debug,
+      });
+      console.debug(`[RuntimeLoader] AudioTrackDenoiser (${denoiserType}) loaded successfully`);
+    } catch (error) {
+      console.error('[RuntimeLoader] Failed to load AudioTrackDenoiser:', error);
+      this.AudioTrackDenoiser = null;
+    }
+  }
+
+  /**
+   * Get the audio track denoiser, loading if necessary
+   * 
+   * @param assetsPath - Base path for WASM assets
+   * @param denoiserType - Which denoiser to use
+   */
+  static async getAudioTrackDenoiser(
+    assetsPath?: string,
+    denoiserType: DenoiserType = DenoiserType.DEEP_FILTER_NET
+  ): Promise<AudioTrackDenoiser | null> {
+    if (!this.AudioTrackDenoiser) {
+      await this.load(assetsPath, denoiserType);
+    }
+    return this.AudioTrackDenoiser;
+  }
+
+  /**
+   * Reset the denoiser (allows switching denoiser type)
+   */
+  static reset(): void {
+    if (this.AudioTrackDenoiser) {
+      AudioTrackDenoiser.reset();
+      this.AudioTrackDenoiser = null;
+    }
   }
 }
