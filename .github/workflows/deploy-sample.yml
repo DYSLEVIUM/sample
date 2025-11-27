@@ -1,10 +1,13 @@
-# Deploy to GitHub Pages
-name: Deploy to GitHub Pages
+# Deploy sample/web to GitHub Pages
+name: Deploy Sample to GitHub Pages
 
 on:
   # Runs on pushes targeting the default branch
   push:
     branches: ['main', 'master', 'develop']
+    paths:
+      - 'sample/web/**'
+      - '.github/workflows/deploy-sample.yml'
   
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -33,14 +36,17 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: 'sample/web/package-lock.json'
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
+        working-directory: sample/web
         run: npm ci
 
       - name: Build
+        working-directory: sample/web
         env:
           # Automatically set base path from repo name
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
@@ -49,7 +55,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'dist'
+          path: 'sample/web/dist'
 
   # Deployment job
   deploy:
