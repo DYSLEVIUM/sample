@@ -1,3 +1,16 @@
+import { protoInt64 } from '@bufbuild/protobuf';
+import { EventEmitter } from 'events';
+import type TypedEmitter from 'typed-emitter';
+import 'webrtc-adapter';
+import { EncryptionEvent } from '../e2ee';
+import { E2EEManager } from '../e2ee/E2eeManager';
+import log, { LoggerNames, getLogger } from '../logger';
+import type {
+  InternalRoomConnectOptions,
+  InternalRoomOptions,
+  RoomConnectOptions,
+  RoomOptions,
+} from '../options';
 import {
   DataPacket_Kind,
   DisconnectReason,
@@ -24,20 +37,7 @@ import {
   StreamStateUpdate,
   SubscriptionPermissionUpdate,
   SubscriptionResponse,
-} from '../proto/livekit_rtc_pb'
-import { protoInt64 } from '@bufbuild/protobuf';
-import { EventEmitter } from 'events';
-import type TypedEmitter from 'typed-emitter';
-import 'webrtc-adapter';
-import { EncryptionEvent } from '../e2ee';
-import { E2EEManager } from '../e2ee/E2eeManager';
-import log, { LoggerNames, getLogger } from '../logger';
-import type {
-  InternalRoomConnectOptions,
-  InternalRoomOptions,
-  RoomConnectOptions,
-  RoomOptions,
-} from '../options';
+} from '../proto/livekit_rtc_pb';
 import { getBrowser } from '../utils/browserParser';
 import DeviceManager from './DeviceManager';
 import RTCEngine from './RTCEngine';
@@ -49,7 +49,11 @@ import {
   roomOptionDefaults,
   videoDefaults,
 } from './defaults';
-import { ConnectionError, ConnectionErrorReason, UnsupportedServer } from './errors';
+import {
+  ConnectionError,
+  ConnectionErrorReason,
+  UnsupportedServer,
+} from './errors';
 import { EngineEvent, ParticipantEvent, RoomEvent, TrackEvent } from './events';
 import LocalParticipant from './participant/LocalParticipant';
 import type Participant from './participant/Participant';
@@ -66,7 +70,11 @@ import type { TrackPublication } from './track/TrackPublication';
 import type { TrackProcessor } from './track/processor/types';
 import type { AdaptiveStreamSettings } from './track/types';
 import { getNewAudioContext, sourceToKind } from './track/utils';
-import type { SimulationOptions, SimulationScenario, TranscriptionSegment } from './types';
+import type {
+  SimulationOptions,
+  SimulationScenario,
+  TranscriptionSegment,
+} from './types';
 import {
   Future,
   Mutex,
@@ -191,25 +199,35 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
     this.disconnectLock = new Mutex();
 
-    this.localParticipant = new LocalParticipant('', '', this.engine, this.options);
+    this.localParticipant = new LocalParticipant(
+      '',
+      '',
+      this.engine,
+      this.options
+    );
 
     if (this.options.videoCaptureDefaults.deviceId) {
       this.localParticipant.activeDeviceMap.set(
         'videoinput',
-        unwrapConstraint(this.options.videoCaptureDefaults.deviceId),
+        unwrapConstraint(this.options.videoCaptureDefaults.deviceId)
       );
     }
     if (this.options.audioCaptureDefaults.deviceId) {
       this.localParticipant.activeDeviceMap.set(
         'audioinput',
-        unwrapConstraint(this.options.audioCaptureDefaults.deviceId),
+        unwrapConstraint(this.options.audioCaptureDefaults.deviceId)
       );
     }
     if (this.options.audioOutput?.deviceId) {
       this.switchActiveDevice(
         'audiooutput',
-        unwrapConstraint(this.options.audioOutput.deviceId),
-      ).catch((e) => this.log.warn(`Could not set audio output: ${e.message}`, this.logContext));
+        unwrapConstraint(this.options.audioOutput.deviceId)
+      ).catch((e) =>
+        this.log.warn(
+          `Could not set audio output: ${e.message}`,
+          this.logContext
+        )
+      );
     }
 
     if (this.options.e2ee) {
@@ -224,10 +242,15 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     if (this.e2eeManager) {
       await Promise.all([this.localParticipant.setE2EEEnabled(enabled)]);
       if (this.localParticipant.identity !== '') {
-        this.e2eeManager.setParticipantCryptorEnabled(enabled, this.localParticipant.identity);
+        this.e2eeManager.setParticipantCryptorEnabled(
+          enabled,
+          this.localParticipant.identity
+        );
       }
     } else {
-      throw Error('e2ee not configured, please set e2ee settings within the room options');
+      throw Error(
+        'e2ee not configured, please set e2ee settings within the room options'
+      );
     }
   }
 
@@ -240,11 +263,15 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           if (participant instanceof LocalParticipant) {
             this.isE2EEEnabled = enabled;
           }
-          this.emit(RoomEvent.ParticipantEncryptionStatusChanged, enabled, participant);
-        },
+          this.emit(
+            RoomEvent.ParticipantEncryptionStatusChanged,
+            enabled,
+            participant
+          );
+        }
       );
       this.e2eeManager.on(EncryptionEvent.EncryptionError, (error) =>
-        this.emit(RoomEvent.EncryptionError, error),
+        this.emit(RoomEvent.EncryptionError, error)
       );
       this.e2eeManager?.setup(this);
     }
@@ -316,7 +343,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
 
     // let iceDelay = Number.MAX_VALUE
-    let iceDelay = 0
+    let iceDelay = 0;
 
     this.engine = new RTCEngine(this.options);
 
@@ -325,14 +352,24 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       .on(EngineEvent.RoomUpdate, this.handleRoomUpdate)
       .on(EngineEvent.SpeakersChanged, this.handleSpeakersChanged)
       .on(EngineEvent.StreamStateChanged, this.handleStreamStateUpdate)
-      .on(EngineEvent.ConnectionQualityUpdate, this.handleConnectionQualityUpdate)
+      .on(
+        EngineEvent.ConnectionQualityUpdate,
+        this.handleConnectionQualityUpdate
+      )
       .on(EngineEvent.SubscriptionError, this.handleSubscriptionError)
-      .on(EngineEvent.SubscriptionPermissionUpdate, this.handleSubscriptionPermissionUpdate)
+      .on(
+        EngineEvent.SubscriptionPermissionUpdate,
+        this.handleSubscriptionPermissionUpdate
+      )
       .on(
         EngineEvent.MediaTrackAdded,
-        (mediaTrack: MediaStreamTrack, stream: MediaStream, receiver?: RTCRtpReceiver) => {
+        (
+          mediaTrack: MediaStreamTrack,
+          stream: MediaStream,
+          receiver?: RTCRtpReceiver
+        ) => {
           this.onTrackAdded(mediaTrack, stream, receiver);
-        },
+        }
       )
       .on(EngineEvent.Disconnected, (reason?: DisconnectReason) => {
         this.handleDisconnect(this.options.stopLocalTrackOnUnpublish, reason);
@@ -369,12 +406,12 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         this.emit(RoomEvent.DCBufferStatusChanged, status, kind);
       })
       .on(EngineEvent.PrimaryDelay, (delay: number) => {
-        iceDelay = Math.max(iceDelay , delay)
+        iceDelay = Math.max(iceDelay, delay);
       })
       .on(EngineEvent.SecondaryDelay, (delay: number) => {
-        iceDelay = Math.max(iceDelay , delay)
-        this.emit(RoomEvent.ReconnectICEDelay , iceDelay / 1000)
-        iceDelay = 0
+        iceDelay = Math.max(iceDelay, delay);
+        this.emit(RoomEvent.ReconnectICEDelay, iceDelay / 1000);
+        iceDelay = 0;
       });
 
     if (this.localParticipant) {
@@ -395,7 +432,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
    */
   static getLocalDevices(
     kind?: MediaDeviceKind,
-    requestPermissions: boolean = true,
+    requestPermissions: boolean = true
   ): Promise<MediaDeviceInfo[]> {
     return DeviceManager.getInstance().getDevices(kind, requestPermissions);
   }
@@ -423,30 +460,41 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         if (regionUrl && this.state === ConnectionState.Disconnected) {
           this.regionUrl = regionUrl;
           await fetch(toHttpUrl(regionUrl), { method: 'HEAD' });
-          this.log.debug(`prepared connection to ${regionUrl}`, this.logContext);
+          this.log.debug(
+            `prepared connection to ${regionUrl}`,
+            this.logContext
+          );
         }
       } else {
         await fetch(toHttpUrl(url), { method: 'HEAD' });
       }
     } catch (e) {
-      this.log.warn('could not prepare connection', { ...this.logContext, error: e });
+      this.log.warn('could not prepare connection', {
+        ...this.logContext,
+        error: e,
+      });
     }
   }
 
-  connect = async (url: string, token: string, opts?: RoomConnectOptions): Promise<void> => {
+  connect = async (
+    url: string,
+    token: string,
+    opts?: RoomConnectOptions
+  ): Promise<void> => {
     if (!isBrowserSupported()) {
       if (isReactNative()) {
         throw Error("WebRTC isn't detected, have you called registerGlobals?");
       } else {
         throw Error(
-          "LiveKit doesn't seem to be supported on this browser. Try to update your browser and make sure no browser extensions are disabling webRTC.",
+          "LiveKit doesn't seem to be supported on this browser. Try to update your browser and make sure no browser extensions are disabling webRTC."
         );
       }
     }
     let refreshedToken = sessionStorage.getItem('token') as string;
-    if((!token || token.trim().length === 0) && refreshedToken != null)
-    {
-      log.info('Reload Performed, using latest token to refresh: '+refreshedToken);
+    if ((!token || token.trim().length === 0) && refreshedToken != null) {
+      log.info(
+        'Reload Performed, using latest token to refresh: ' + refreshedToken
+      );
       token = refreshedToken;
     }
 
@@ -480,14 +528,17 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       // if initial connection fails, this will speed up picking regional url
       // on subsequent runs
       this.regionUrlProvider.fetchRegionSettings().catch((e) => {
-        this.log.warn('could not fetch region settings', { ...this.logContext, error: e });
+        this.log.warn('could not fetch region settings', {
+          ...this.logContext,
+          error: e,
+        });
       });
     }
 
     const connectFn = async (
       resolve: () => void,
       reject: (reason: any) => void,
-      regionUrl?: string,
+      regionUrl?: string
     ) => {
       if (this.abortController) {
         this.abortController.abort();
@@ -501,7 +552,12 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       unlockDisconnect?.();
 
       try {
-        await this.attemptConnection(regionUrl ?? url, token, opts, abortController);
+        await this.attemptConnection(
+          regionUrl ?? url,
+          token,
+          opts,
+          abortController
+        );
         this.abortController = undefined;
         resolve();
       } catch (e) {
@@ -514,12 +570,13 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           let nextUrl: string | null = null;
           try {
             nextUrl = await this.regionUrlProvider.getNextBestRegionUrl(
-              this.abortController?.signal,
+              this.abortController?.signal
             );
           } catch (error) {
             if (
               error instanceof ConnectionError &&
-              (error.status === 401 || error.reason === ConnectionErrorReason.Cancelled)
+              (error.status === 401 ||
+                error.reason === ConnectionErrorReason.Cancelled)
             ) {
               this.handleDisconnect(this.options.stopLocalTrackOnUnpublish);
               reject(error);
@@ -529,7 +586,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           if (nextUrl) {
             this.log.info(
               `Initial connection failed with ConnectionError: ${e.message}. Retrying with another region: ${nextUrl}`,
-              this.logContext,
+              this.logContext
             );
             this.recreateEngine();
             await connectFn(resolve, reject, nextUrl);
@@ -552,7 +609,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       },
       () => {
         this.clearConnectionFutures();
-      },
+      }
     );
 
     return this.connectFuture.promise;
@@ -564,7 +621,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     engine: RTCEngine,
     connectOptions: InternalRoomConnectOptions,
     roomOptions: InternalRoomOptions,
-    abortController: AbortController,
+    abortController: AbortController
   ): Promise<JoinResponse> => {
     const joinResponse = await engine.join(
       url,
@@ -572,17 +629,22 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       {
         autoSubscribe: connectOptions.autoSubscribe,
         adaptiveStream:
-          typeof roomOptions.adaptiveStream === 'object' ? true : roomOptions.adaptiveStream,
+          typeof roomOptions.adaptiveStream === 'object'
+            ? true
+            : roomOptions.adaptiveStream,
         maxRetries: connectOptions.maxRetries,
         e2eeEnabled: !!this.e2eeManager,
         websocketTimeout: connectOptions.websocketTimeout,
       },
-      abortController.signal,
+      abortController.signal
     );
 
     let serverInfo: Partial<ServerInfo> | undefined = joinResponse.serverInfo;
     if (!serverInfo) {
-      serverInfo = { version: joinResponse.serverVersion, region: joinResponse.serverRegion };
+      serverInfo = {
+        version: joinResponse.serverVersion,
+        region: joinResponse.serverRegion,
+      };
     }
 
     this.log.debug(
@@ -593,7 +655,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         room: joinResponse.room?.name,
         roomSid: joinResponse.room?.sid,
         identity: joinResponse.participant?.identity,
-      },
+      }
     );
 
     if (!joinResponse.serverVersion) {
@@ -601,7 +663,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
 
     if (joinResponse.serverVersion === '0.15.1' && this.options.dynacast) {
-      this.log.debug('disabling dynacast due to server version', this.logContext);
+      this.log.debug(
+        'disabling dynacast due to server version',
+        this.logContext
+      );
       // dynacast has a bug in 0.15.1, so we cannot use it then
       roomOptions.dynacast = false;
     }
@@ -619,10 +684,13 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       try {
         this.e2eeManager.setSifTrailer(joinResponse.sifTrailer);
       } catch (e: any) {
-        this.log.error(e instanceof Error ? e.message : 'Could not set SifTrailer', {
-          ...this.logContext,
-          error: e,
-        });
+        this.log.error(
+          e instanceof Error ? e.message : 'Could not set SifTrailer',
+          {
+            ...this.logContext,
+            error: e,
+          }
+        );
       }
     }
 
@@ -638,14 +706,17 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     url: string,
     token: string,
     opts: RoomConnectOptions | undefined,
-    abortController: AbortController,
+    abortController: AbortController
   ) => {
     if (
       this.state === ConnectionState.Reconnecting ||
       this.isResuming ||
       this.engine?.pendingReconnect
     ) {
-      this.log.info('Reconnection attempt replaced by new connection attempt', this.logContext);
+      this.log.info(
+        'Reconnection attempt replaced by new connection attempt',
+        this.logContext
+      );
       // make sure we close and recreate the existing engine in order to get rid of any potentially ongoing reconnection attempts
       this.recreateEngine();
     } else {
@@ -658,13 +729,17 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
     this.acquireAudioContext();
 
-    this.connOptions = { ...roomConnectOptionDefaults, ...opts } as InternalRoomConnectOptions;
+    this.connOptions = {
+      ...roomConnectOptionDefaults,
+      ...opts,
+    } as InternalRoomConnectOptions;
 
     if (this.connOptions.rtcConfig) {
       this.engine.rtcConfig = this.connOptions.rtcConfig;
     }
     if (this.connOptions.peerConnectionTimeout) {
-      this.engine.peerConnectionTimeout = this.connOptions.peerConnectionTimeout;
+      this.engine.peerConnectionTimeout =
+        this.connOptions.peerConnectionTimeout;
     }
 
     try {
@@ -674,7 +749,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         this.engine,
         this.connOptions,
         this.options,
-        abortController,
+        abortController
       );
 
       this.applyJoinResponse(joinResponse);
@@ -684,7 +759,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     } catch (err) {
       await this.engine.close();
       this.recreateEngine();
-      const resultingError = new ConnectionError(`could not establish signal connection`);
+      const resultingError = new ConnectionError(
+        `could not establish signal connection`
+      );
       if (err instanceof Error) {
         resultingError.message = `${resultingError.message}: ${err.message}`;
       }
@@ -708,7 +785,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     try {
       await this.engine.waitForPCInitialConnection(
         this.connOptions.peerConnectionTimeout,
-        abortController,
+        abortController
       );
     } catch (e) {
       await this.engine.close();
@@ -724,7 +801,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
     if (isWeb()) {
       document.addEventListener('freeze', this.onPageLeave);
-      navigator.mediaDevices?.addEventListener('devicechange', this.handleDeviceChange);
+      navigator.mediaDevices?.addEventListener(
+        'devicechange',
+        this.handleDeviceChange
+      );
     }
     this.setAndEmitConnectionState(ConnectionState.Connected);
     this.emit(RoomEvent.Connected);
@@ -756,7 +836,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         this.log.warn('abort connection attempt', this.logContext);
         this.abortController?.abort();
         // in case the abort controller didn't manage to cancel the connection attempt, reject the connect promise explicitly
-        this.connectFuture?.reject?.(new ConnectionError('Client initiated disconnect'));
+        this.connectFuture?.reject?.(
+          new ConnectionError('Client initiated disconnect')
+        );
         this.connectFuture = undefined;
       }
       // send leave
@@ -883,7 +965,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
               new LeaveRequest({
                 reason: DisconnectReason.CLIENT_INITIATED,
                 action: LeaveRequest_Action.RECONNECT,
-              }),
+              })
             );
           }
         };
@@ -909,15 +991,15 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   }
 
   private onPageLeave = async () => {
-    alert("on page leave");
+    alert('on page leave');
     this.log.info('Page leave detected, disconnecting', this.logContext);
     let token = sessionStorage.getItem('token') as string;
     let isAudioMuted = sessionStorage.getItem('isAudioMuted') as string;
     let isVideoMuted = sessionStorage.getItem('isVideoMuted') as string;
     this.disconnect();
-    sessionStorage.setItem('token',token);
-    sessionStorage.setItem('isAudioMuted',isAudioMuted);
-    sessionStorage.setItem('isVideoMuted',isVideoMuted);
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('isAudioMuted', isAudioMuted);
+    sessionStorage.setItem('isVideoMuted', isVideoMuted);
   };
 
   /**
@@ -940,7 +1022,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
        * silent audio is always playing
        */
       const audioId = 'livekit-dummy-audio-el';
-      let dummyAudioEl = document.getElementById(audioId) as HTMLAudioElement | null;
+      let dummyAudioEl = document.getElementById(
+        audioId
+      ) as HTMLAudioElement | null;
       if (!dummyAudioEl) {
         dummyAudioEl = document.createElement('audio');
         dummyAudioEl.id = audioId;
@@ -959,7 +1043,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           if (!document.hidden) {
             this.log.debug(
               'page visible again, triggering startAudio to resume playback and update playback status',
-              this.logContext,
+              this.logContext
             );
             this.startAudio();
           }
@@ -1019,7 +1103,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         } else {
           this.log.warn(
             'Resuming video playback failed, make sure you call `startVideo` directly in a user gesture handler',
-            this.logContext,
+            this.logContext
           );
         }
       });
@@ -1053,7 +1137,11 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
    *  `audiooutput` to set speaker for all incoming audio tracks
    * @param deviceId
    */
-  async switchActiveDevice(kind: MediaDeviceKind, deviceId: string, exact: boolean = false) {
+  async switchActiveDevice(
+    kind: MediaDeviceKind,
+    deviceId: string,
+    exact: boolean = false
+  ) {
     let deviceHasChanged = false;
     let success = true;
     const deviceConstraint = exact ? { exact: deviceId } : deviceId;
@@ -1061,12 +1149,14 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       const prevDeviceId = this.options.audioCaptureDefaults!.deviceId;
       this.options.audioCaptureDefaults!.deviceId = deviceConstraint;
       deviceHasChanged = prevDeviceId !== deviceConstraint;
-      const tracks = Array.from(this.localParticipant.audioTrackPublications.values()).filter(
-        (track) => track.source === Track.Source.Microphone,
-      );
+      const tracks = Array.from(
+        this.localParticipant.audioTrackPublications.values()
+      ).filter((track) => track.source === Track.Source.Microphone);
       try {
         success = (
-          await Promise.all(tracks.map((t) => t.audioTrack?.setDeviceId(deviceConstraint)))
+          await Promise.all(
+            tracks.map((t) => t.audioTrack?.setDeviceId(deviceConstraint))
+          )
         ).every((val) => val === true);
       } catch (e) {
         this.options.audioCaptureDefaults!.deviceId = prevDeviceId;
@@ -1076,12 +1166,14 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       const prevDeviceId = this.options.videoCaptureDefaults!.deviceId;
       this.options.videoCaptureDefaults!.deviceId = deviceConstraint;
       deviceHasChanged = prevDeviceId !== deviceConstraint;
-      const tracks = Array.from(this.localParticipant.videoTrackPublications.values()).filter(
-        (track) => track.source === Track.Source.Camera,
-      );
+      const tracks = Array.from(
+        this.localParticipant.videoTrackPublications.values()
+      ).filter((track) => track.source === Track.Source.Camera);
       try {
         success = (
-          await Promise.all(tracks.map((t) => t.videoTrack?.setDeviceId(deviceConstraint)))
+          await Promise.all(
+            tracks.map((t) => t.videoTrack?.setDeviceId(deviceConstraint))
+          )
         ).every((val) => val === true);
       } catch (e) {
         this.options.videoCaptureDefaults!.deviceId = prevDeviceId;
@@ -1090,14 +1182,19 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     } else if (kind === 'audiooutput') {
       if (
         (!supportsSetSinkId() && !this.options.webAudioMix) ||
-        (this.options.webAudioMix && this.audioContext && !('setSinkId' in this.audioContext))
+        (this.options.webAudioMix &&
+          this.audioContext &&
+          !('setSinkId' in this.audioContext))
       ) {
         throw new Error('cannot switch audio output, setSinkId not supported');
       }
       if (this.options.webAudioMix) {
         // setting `default` for web audio output doesn't work, so we need to normalize the id before
         deviceId =
-          (await DeviceManager.getInstance().normalizeDeviceId('audiooutput', deviceId)) ?? '';
+          (await DeviceManager.getInstance().normalizeDeviceId(
+            'audiooutput',
+            deviceId
+          )) ?? '';
       }
       this.options.audioOutput ??= {};
       const prevDeviceId = this.options.audioOutput.deviceId;
@@ -1110,7 +1207,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           this.audioContext?.setSinkId(deviceId);
         } else {
           await Promise.all(
-            Array.from(this.remoteParticipants.values()).map((p) => p.setAudioOutput({ deviceId })),
+            Array.from(this.remoteParticipants.values()).map((p) =>
+              p.setAudioOutput({ deviceId })
+            )
           );
         }
       } catch (e) {
@@ -1128,18 +1227,27 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   private setupLocalParticipantEvents() {
     this.localParticipant
-      .on(ParticipantEvent.ParticipantMetadataChanged, this.onLocalParticipantMetadataChanged)
-      .on(ParticipantEvent.ParticipantNameChanged, this.onLocalParticipantNameChanged)
+      .on(
+        ParticipantEvent.ParticipantMetadataChanged,
+        this.onLocalParticipantMetadataChanged
+      )
+      .on(
+        ParticipantEvent.ParticipantNameChanged,
+        this.onLocalParticipantNameChanged
+      )
       .on(ParticipantEvent.TrackMuted, this.onLocalTrackMuted)
       .on(ParticipantEvent.TrackUnmuted, this.onLocalTrackUnmuted)
       .on(ParticipantEvent.LocalTrackPublished, this.onLocalTrackPublished)
       .on(ParticipantEvent.LocalTrackUnpublished, this.onLocalTrackUnpublished)
-      .on(ParticipantEvent.ConnectionQualityChanged, this.onLocalConnectionQualityChanged)
+      .on(
+        ParticipantEvent.ConnectionQualityChanged,
+        this.onLocalConnectionQualityChanged
+      )
       .on(ParticipantEvent.MediaDevicesError, this.onMediaDevicesError)
       .on(ParticipantEvent.AudioStreamAcquired, this.startAudio)
       .on(
         ParticipantEvent.ParticipantPermissionsChanged,
-        this.onLocalParticipantPermissionsChanged,
+        this.onLocalParticipantPermissionsChanged
       );
   }
 
@@ -1160,14 +1268,17 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   private onTrackAdded(
     mediaTrack: MediaStreamTrack,
     stream: MediaStream,
-    receiver?: RTCRtpReceiver,
+    receiver?: RTCRtpReceiver
   ) {
     // don't fire onSubscribed when connecting
     // WebRTC fires onTrack as soon as setRemoteDescription is called on the offer
     // at that time, ICE connectivity has not been established so the track is not
     // technically subscribed.
     // We'll defer these events until when the room is connected or eventually disconnected.
-    if (this.state === ConnectionState.Connecting || this.state === ConnectionState.Reconnecting) {
+    if (
+      this.state === ConnectionState.Connecting ||
+      this.state === ConnectionState.Reconnecting
+    ) {
       const reconnectedHandler = () => {
         this.onTrackAdded(mediaTrack, stream, receiver);
         cleanup();
@@ -1183,7 +1294,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       return;
     }
     if (this.state === ConnectionState.Disconnected) {
-      this.log.warn('skipping incoming track after Room disconnected', this.logContext);
+      this.log.warn(
+        'skipping incoming track after Room disconnected',
+        this.logContext
+      );
       return;
     }
     const parts = unpackStreamId(stream.id);
@@ -1195,18 +1309,21 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     if (streamId && streamId.startsWith('TR')) trackId = streamId;
 
     if (participantSid === this.localParticipant.sid) {
-      this.log.warn('tried to create RemoteParticipant for local participant', this.logContext);
+      this.log.warn(
+        'tried to create RemoteParticipant for local participant',
+        this.logContext
+      );
       return;
     }
 
     const participant = Array.from(this.remoteParticipants.values()).find(
-      (p) => p.sid === participantSid,
+      (p) => p.sid === participantSid
     ) as RemoteParticipant | undefined;
 
     if (!participant) {
       this.log.error(
         `Tried to add a track for a participant, that's not present. Sid: ${participantSid}`,
-        this.logContext,
+        this.logContext
       );
       return;
     }
@@ -1224,7 +1341,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       trackId,
       stream,
       receiver,
-      adaptiveStreamSettings,
+      adaptiveStreamSettings
     );
   }
 
@@ -1244,10 +1361,13 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   };
 
   private handleSignalRestarted = async (joinResponse: JoinResponse) => {
-    this.log.debug(`signal reconnected to server, region ${joinResponse.serverRegion}`, {
-      ...this.logContext,
-      region: joinResponse.serverRegion,
-    });
+    this.log.debug(
+      `signal reconnected to server, region ${joinResponse.serverRegion}`,
+      {
+        ...this.logContext,
+        region: joinResponse.serverRegion,
+      }
+    );
     this.bufferedEvents = [];
 
     this.applyJoinResponse(joinResponse);
@@ -1306,18 +1426,30 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       });
 
       this.localParticipant
-        .off(ParticipantEvent.ParticipantMetadataChanged, this.onLocalParticipantMetadataChanged)
-        .off(ParticipantEvent.ParticipantNameChanged, this.onLocalParticipantNameChanged)
+        .off(
+          ParticipantEvent.ParticipantMetadataChanged,
+          this.onLocalParticipantMetadataChanged
+        )
+        .off(
+          ParticipantEvent.ParticipantNameChanged,
+          this.onLocalParticipantNameChanged
+        )
         .off(ParticipantEvent.TrackMuted, this.onLocalTrackMuted)
         .off(ParticipantEvent.TrackUnmuted, this.onLocalTrackUnmuted)
         .off(ParticipantEvent.LocalTrackPublished, this.onLocalTrackPublished)
-        .off(ParticipantEvent.LocalTrackUnpublished, this.onLocalTrackUnpublished)
-        .off(ParticipantEvent.ConnectionQualityChanged, this.onLocalConnectionQualityChanged)
+        .off(
+          ParticipantEvent.LocalTrackUnpublished,
+          this.onLocalTrackUnpublished
+        )
+        .off(
+          ParticipantEvent.ConnectionQualityChanged,
+          this.onLocalConnectionQualityChanged
+        )
         .off(ParticipantEvent.MediaDevicesError, this.onMediaDevicesError)
         .off(ParticipantEvent.AudioStreamAcquired, this.startAudio)
         .off(
           ParticipantEvent.ParticipantPermissionsChanged,
-          this.onLocalParticipantPermissionsChanged,
+          this.onLocalParticipantPermissionsChanged
         );
 
       this.localParticipant.trackPublications.clear();
@@ -1335,7 +1467,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         window.removeEventListener('beforeunload', this.onPageLeave);
         window.removeEventListener('pagehide', this.onPageLeave);
         window.removeEventListener('freeze', this.onPageLeave);
-        navigator.mediaDevices?.removeEventListener('devicechange', this.handleDeviceChange);
+        navigator.mediaDevices?.removeEventListener(
+          'devicechange',
+          this.handleDeviceChange
+        );
       }
     } finally {
       this.setAndEmitConnectionState(ConnectionState.Disconnected);
@@ -1369,7 +1504,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     });
   };
 
-  private handleParticipantDisconnected(identity: string, participant?: RemoteParticipant) {
+  private handleParticipantDisconnected(
+    identity: string,
+    participant?: RemoteParticipant
+  ) {
     // remove and send event
     this.remoteParticipants.delete(identity);
     if (!participant) {
@@ -1424,7 +1562,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       lastSpeakers.set(p.sid, p);
     });
     speakerUpdates.forEach((speaker) => {
-      let p: Participant | undefined = this.getRemoteParticipantBySid(speaker.sid);
+      let p: Participant | undefined = this.getRemoteParticipantBySid(
+        speaker.sid
+      );
       if (speaker.sid === this.localParticipant.sid) {
         p = this.localParticipant;
       }
@@ -1448,7 +1588,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   private handleStreamStateUpdate = (streamStateUpdate: StreamStateUpdate) => {
     streamStateUpdate.streamStates.forEach((streamState) => {
-      const participant = this.getRemoteParticipantBySid(streamState.participantSid);
+      const participant = this.getRemoteParticipantBySid(
+        streamState.participantSid
+      );
       if (!participant) {
         return;
       }
@@ -1457,17 +1599,23 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         return;
       }
       pub.track.streamState = Track.streamStateFromProto(streamState.state);
-      participant.emit(ParticipantEvent.TrackStreamStateChanged, pub, pub.track.streamState);
+      participant.emit(
+        ParticipantEvent.TrackStreamStateChanged,
+        pub,
+        pub.track.streamState
+      );
       this.emitWhenConnected(
         RoomEvent.TrackStreamStateChanged,
         pub,
         pub.track.streamState,
-        participant,
+        participant
       );
     });
   };
 
-  private handleSubscriptionPermissionUpdate = (update: SubscriptionPermissionUpdate) => {
+  private handleSubscriptionPermissionUpdate = (
+    update: SubscriptionPermissionUpdate
+  ) => {
     const participant = this.getRemoteParticipantBySid(update.participantSid);
     if (!participant) {
       return;
@@ -1482,7 +1630,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
 
   private handleSubscriptionError = (update: SubscriptionResponse) => {
     const participant = Array.from(this.remoteParticipants.values()).find((p) =>
-      p.trackPublications.has(update.trackSid),
+      p.trackPublications.has(update.trackSid)
     );
     if (!participant) {
       return;
@@ -1495,14 +1643,31 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     pub.setSubscriptionError(update.err);
   };
 
-  private handleDataPacket = (userPacket: UserPacket, kind: DataPacket_Kind) => {
+  private handleDataPacket = (
+    userPacket: UserPacket,
+    kind: DataPacket_Kind
+  ) => {
     // find the participant
-    const participant = this.remoteParticipants.get(userPacket.participantIdentity);
+    const participant = this.remoteParticipants.get(
+      userPacket.participantIdentity
+    );
 
-    this.emit(RoomEvent.DataReceived, userPacket.payload, participant, kind, userPacket.topic, userPacket.destinationIdentities);
+    this.emit(
+      RoomEvent.DataReceived,
+      userPacket.payload,
+      participant,
+      kind,
+      userPacket.topic,
+      userPacket.destinationIdentities
+    );
 
     // also emit on the participant
-    participant?.emit(ParticipantEvent.DataReceived, userPacket.payload, kind, userPacket.destinationIdentities);
+    participant?.emit(
+      ParticipantEvent.DataReceived,
+      userPacket.payload,
+      kind,
+      userPacket.destinationIdentities
+    );
   };
 
   bufferedSegments: Map<string, TranscriptionSegmentModel> = new Map();
@@ -1513,13 +1678,24 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       transcription.participantIdentity === this.localParticipant.identity
         ? this.localParticipant
         : this.remoteParticipants.get(transcription.participantIdentity);
-    const publication = participant?.trackPublications.get(transcription.trackId);
+    const publication = participant?.trackPublications.get(
+      transcription.trackId
+    );
 
     const segments = extractTranscriptionSegments(transcription);
 
     publication?.emit(TrackEvent.TranscriptionReceived, segments);
-    participant?.emit(ParticipantEvent.TranscriptionReceived, segments, publication);
-    this.emit(RoomEvent.TranscriptionReceived, segments, participant, publication);
+    participant?.emit(
+      ParticipantEvent.TranscriptionReceived,
+      segments,
+      publication
+    );
+    this.emit(
+      RoomEvent.TranscriptionReceived,
+      segments,
+      participant,
+      publication
+    );
   };
 
   private handleAudioPlaybackStarted = () => {
@@ -1564,7 +1740,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       this.emitWhenConnected(RoomEvent.RoomMetadataChanged, room.metadata);
     }
     if (oldRoom?.activeRecording !== room.activeRecording) {
-      this.emitWhenConnected(RoomEvent.RecordingStatusChanged, room.activeRecording);
+      this.emitWhenConnected(
+        RoomEvent.RecordingStatusChanged,
+        room.activeRecording
+      );
     }
   };
 
@@ -1582,7 +1761,10 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   };
 
   private async acquireAudioContext() {
-    if (typeof this.options.webAudioMix !== 'boolean' && this.options.webAudioMix.audioContext) {
+    if (
+      typeof this.options.webAudioMix !== 'boolean' &&
+      this.options.webAudioMix.audioContext
+    ) {
       // override audio context with custom audio context if supplied by user
       this.audioContext = this.options.webAudioMix.audioContext;
     } else if (!this.audioContext || this.audioContext.state === 'closed') {
@@ -1597,13 +1779,16 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       try {
         await this.audioContext.resume();
       } catch (e: any) {
-        this.log.warn('Could not resume audio context', { ...this.logContext, error: e });
+        this.log.warn('Could not resume audio context', {
+          ...this.logContext,
+          error: e,
+        });
       }
     }
 
     if (this.options.webAudioMix) {
       this.remoteParticipants.forEach((participant) =>
-        participant.setAudioContext(this.audioContext),
+        participant.setAudioContext(this.audioContext)
       );
     }
 
@@ -1616,15 +1801,28 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
   }
 
-  private createParticipant(identity: string, info?: ParticipantInfo): RemoteParticipant {
+  private createParticipant(
+    identity: string,
+    info?: ParticipantInfo
+  ): RemoteParticipant {
     let participant: RemoteParticipant;
     if (info) {
-      participant = RemoteParticipant.fromParticipantInfo(this.engine.client, info);
+      participant = RemoteParticipant.fromParticipantInfo(
+        this.engine.client,
+        info
+      );
     } else {
-      participant = new RemoteParticipant(this.engine.client, '', identity, undefined, undefined, {
-        loggerContextCb: () => this.logContext,
-        loggerName: this.options.loggerName,
-      });
+      participant = new RemoteParticipant(
+        this.engine.client,
+        '',
+        identity,
+        undefined,
+        undefined,
+        {
+          loggerContextCb: () => this.logContext,
+          loggerName: this.options.loggerName,
+        }
+      );
     }
     if (this.options.webAudioMix) {
       participant.setAudioContext(this.audioContext);
@@ -1632,12 +1830,20 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     if (this.options.audioOutput?.deviceId) {
       participant
         .setAudioOutput(this.options.audioOutput)
-        .catch((e) => this.log.warn(`Could not set audio output: ${e.message}`, this.logContext));
+        .catch((e) =>
+          this.log.warn(
+            `Could not set audio output: ${e.message}`,
+            this.logContext
+          )
+        );
     }
     return participant;
   }
 
-  private getOrCreateParticipant(identity: string, info: ParticipantInfo): RemoteParticipant {
+  private getOrCreateParticipant(
+    identity: string,
+    info: ParticipantInfo
+  ): RemoteParticipant {
     if (this.remoteParticipants.has(identity)) {
       const existingParticipant = this.remoteParticipants.get(identity)!;
       if (info) {
@@ -1660,31 +1866,58 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     // trackPublished is only fired for tracks added after both local participant
     // and remote participant joined the room
     participant
-      .on(ParticipantEvent.TrackPublished, (trackPublication: RemoteTrackPublication) => {
-        this.emitWhenConnected(RoomEvent.TrackPublished, trackPublication, participant);
-      })
+      .on(
+        ParticipantEvent.TrackPublished,
+        (trackPublication: RemoteTrackPublication) => {
+          this.emitWhenConnected(
+            RoomEvent.TrackPublished,
+            trackPublication,
+            participant
+          );
+        }
+      )
       .on(
         ParticipantEvent.TrackSubscribed,
         (track: RemoteTrack, publication: RemoteTrackPublication) => {
           // monitor playback status
           if (track.kind === Track.Kind.Audio) {
-            track.on(TrackEvent.AudioPlaybackStarted, this.handleAudioPlaybackStarted);
-            track.on(TrackEvent.AudioPlaybackFailed, this.handleAudioPlaybackFailed);
+            track.on(
+              TrackEvent.AudioPlaybackStarted,
+              this.handleAudioPlaybackStarted
+            );
+            track.on(
+              TrackEvent.AudioPlaybackFailed,
+              this.handleAudioPlaybackFailed
+            );
           } else if (track.kind === Track.Kind.Video) {
-            track.on(TrackEvent.VideoPlaybackFailed, this.handleVideoPlaybackFailed);
-            track.on(TrackEvent.VideoPlaybackStarted, this.handleVideoPlaybackStarted);
+            track.on(
+              TrackEvent.VideoPlaybackFailed,
+              this.handleVideoPlaybackFailed
+            );
+            track.on(
+              TrackEvent.VideoPlaybackStarted,
+              this.handleVideoPlaybackStarted
+            );
           }
           this.emit(RoomEvent.TrackSubscribed, track, publication, participant);
-        },
+        }
       )
-      .on(ParticipantEvent.TrackUnpublished, (publication: RemoteTrackPublication) => {
-        this.emit(RoomEvent.TrackUnpublished, publication, participant);
-      })
+      .on(
+        ParticipantEvent.TrackUnpublished,
+        (publication: RemoteTrackPublication) => {
+          this.emit(RoomEvent.TrackUnpublished, publication, participant);
+        }
+      )
       .on(
         ParticipantEvent.TrackUnsubscribed,
         (track: RemoteTrack, publication: RemoteTrackPublication) => {
-          this.emit(RoomEvent.TrackUnsubscribed, track, publication, participant);
-        },
+          this.emit(
+            RoomEvent.TrackUnsubscribed,
+            track,
+            publication,
+            participant
+          );
+        }
       )
       .on(ParticipantEvent.TrackSubscriptionFailed, (sid: string) => {
         this.emit(RoomEvent.TrackSubscriptionFailed, sid, participant);
@@ -1695,39 +1928,70 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       .on(ParticipantEvent.TrackUnmuted, (pub: TrackPublication) => {
         this.emitWhenConnected(RoomEvent.TrackUnmuted, pub, participant);
       })
-      .on(ParticipantEvent.ParticipantMetadataChanged, (metadata: string | undefined) => {
-        this.emitWhenConnected(RoomEvent.ParticipantMetadataChanged, metadata, participant);
-      })
+      .on(
+        ParticipantEvent.ParticipantMetadataChanged,
+        (metadata: string | undefined) => {
+          this.emitWhenConnected(
+            RoomEvent.ParticipantMetadataChanged,
+            metadata,
+            participant
+          );
+        }
+      )
       .on(ParticipantEvent.ParticipantNameChanged, (name) => {
-        this.emitWhenConnected(RoomEvent.ParticipantNameChanged, name, participant);
+        this.emitWhenConnected(
+          RoomEvent.ParticipantNameChanged,
+          name,
+          participant
+        );
       })
-      .on(ParticipantEvent.ConnectionQualityChanged, (quality: ConnectionQuality) => {
-        this.emitWhenConnected(RoomEvent.ConnectionQualityChanged, quality, participant);
-      })
+      .on(
+        ParticipantEvent.ConnectionQualityChanged,
+        (quality: ConnectionQuality) => {
+          this.emitWhenConnected(
+            RoomEvent.ConnectionQualityChanged,
+            quality,
+            participant
+          );
+        }
+      )
       .on(
         ParticipantEvent.ParticipantPermissionsChanged,
         (prevPermissions?: ParticipantPermission) => {
           this.emitWhenConnected(
             RoomEvent.ParticipantPermissionsChanged,
             prevPermissions,
-            participant,
+            participant
           );
-        },
+        }
       )
       .on(ParticipantEvent.TrackSubscriptionStatusChanged, (pub, status) => {
-        this.emitWhenConnected(RoomEvent.TrackSubscriptionStatusChanged, pub, status, participant);
-      })
-      .on(ParticipantEvent.TrackSubscriptionFailed, (trackSid, error) => {
-        this.emit(RoomEvent.TrackSubscriptionFailed, trackSid, participant, error);
-      })
-      .on(ParticipantEvent.TrackSubscriptionPermissionChanged, (pub, status) => {
         this.emitWhenConnected(
-          RoomEvent.TrackSubscriptionPermissionChanged,
+          RoomEvent.TrackSubscriptionStatusChanged,
           pub,
           status,
-          participant,
+          participant
         );
-      });
+      })
+      .on(ParticipantEvent.TrackSubscriptionFailed, (trackSid, error) => {
+        this.emit(
+          RoomEvent.TrackSubscriptionFailed,
+          trackSid,
+          participant,
+          error
+        );
+      })
+      .on(
+        ParticipantEvent.TrackSubscriptionPermissionChanged,
+        (pub, status) => {
+          this.emitWhenConnected(
+            RoomEvent.TrackSubscriptionPermissionChanged,
+            pub,
+            status,
+            participant
+          );
+        }
+      );
 
     // update info at the end after callbacks have been set up
     if (info) {
@@ -1737,11 +2001,17 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   }
 
   private sendSyncState() {
-    const remoteTracks = Array.from(this.remoteParticipants.values()).reduce((acc, participant) => {
-      acc.push(...(participant.getTrackPublications() as RemoteTrackPublication[])); // FIXME would be nice to have this return RemoteTrackPublications directly instead of the type cast
-      return acc;
-    }, [] as RemoteTrackPublication[]);
-    const localTracks = this.localParticipant.getTrackPublications() as LocalTrackPublication[]; // FIXME would be nice to have this return LocalTrackPublications directly instead of the type cast
+    const remoteTracks = Array.from(this.remoteParticipants.values()).reduce(
+      (acc, participant) => {
+        acc.push(
+          ...(participant.getTrackPublications() as RemoteTrackPublication[])
+        ); // FIXME would be nice to have this return RemoteTrackPublications directly instead of the type cast
+        return acc;
+      },
+      [] as RemoteTrackPublication[]
+    );
+    const localTracks =
+      this.localParticipant.getTrackPublications() as LocalTrackPublication[]; // FIXME would be nice to have this return LocalTrackPublications directly instead of the type cast
     this.engine.sendSyncState(remoteTracks, localTracks);
   }
 
@@ -1759,7 +2029,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     }
   }
 
-  private getRemoteParticipantBySid(sid: string): RemoteParticipant | undefined {
+  private getRemoteParticipantBySid(
+    sid: string
+  ): RemoteParticipant | undefined {
     const identity = this.sidToIdentity.get(sid);
     if (identity) {
       return this.remoteParticipants.get(identity);
@@ -1791,7 +2063,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           this.recreateEngine();
           this.handleDisconnect(
             this.options.stopLocalTrackOnUnpublish,
-            DisconnectReason.STATE_MISMATCH,
+            DisconnectReason.STATE_MISMATCH
           );
         }
       } else {
@@ -1841,8 +2113,14 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     return false;
   }
 
-  private onLocalParticipantMetadataChanged = (metadata: string | undefined) => {
-    this.emit(RoomEvent.ParticipantMetadataChanged, metadata, this.localParticipant);
+  private onLocalParticipantMetadataChanged = (
+    metadata: string | undefined
+  ) => {
+    this.emit(
+      RoomEvent.ParticipantMetadataChanged,
+      metadata,
+      this.localParticipant
+    );
   };
 
   private onLocalParticipantNameChanged = (name: string) => {
@@ -1857,7 +2135,9 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     this.emit(RoomEvent.TrackUnmuted, pub, this.localParticipant);
   };
 
-  private onTrackProcessorUpdate = (processor?: TrackProcessor<Track.Kind, any>) => {
+  private onTrackProcessorUpdate = (
+    processor?: TrackProcessor<Track.Kind, any>
+  ) => {
     processor?.onPublish?.(this);
   };
 
@@ -1886,20 +2166,33 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
   };
 
   private onLocalTrackUnpublished = (pub: LocalTrackPublication) => {
-    pub.track?.off(TrackEvent.TrackProcessorUpdate, this.onTrackProcessorUpdate);
+    pub.track?.off(
+      TrackEvent.TrackProcessorUpdate,
+      this.onTrackProcessorUpdate
+    );
     this.emit(RoomEvent.LocalTrackUnpublished, pub, this.localParticipant);
   };
 
   private onLocalConnectionQualityChanged = (quality: ConnectionQuality) => {
-    this.emit(RoomEvent.ConnectionQualityChanged, quality, this.localParticipant);
+    this.emit(
+      RoomEvent.ConnectionQualityChanged,
+      quality,
+      this.localParticipant
+    );
   };
 
   private onMediaDevicesError = (e: Error) => {
     this.emit(RoomEvent.MediaDevicesError, e);
   };
 
-  private onLocalParticipantPermissionsChanged = (prevPermissions?: ParticipantPermission) => {
-    this.emit(RoomEvent.ParticipantPermissionsChanged, prevPermissions, this.localParticipant);
+  private onLocalParticipantPermissionsChanged = (
+    prevPermissions?: ParticipantPermission
+  ) => {
+    this.emit(
+      RoomEvent.ParticipantPermissionsChanged,
+      prevPermissions,
+      this.localParticipant
+    );
   };
 
   /**
@@ -1940,7 +2233,7 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       new ParticipantInfo({
         identity: 'simulated-local',
         name: 'local-name',
-      }),
+      })
     );
     this.setupLocalParticipantEvents();
     this.emit(RoomEvent.SignalConnected);
@@ -1958,19 +2251,27 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         new LocalVideoTrack(
           publishOptions.useRealTracks
             ? (
-                await window.navigator.mediaDevices.getUserMedia({ video: true })
+                await window.navigator.mediaDevices.getUserMedia({
+                  video: true,
+                })
               ).getVideoTracks()[0]
             : createDummyVideoStreamTrack(
                 160 * (participantOptions.aspectRatios[0] ?? 1),
                 160,
                 true,
-                true,
+                true
               ),
           undefined,
           false,
-          { loggerName: this.options.loggerName, loggerContextCb: () => this.logContext },
+          {
+            loggerName: this.options.loggerName,
+            loggerContextCb: () => this.logContext,
+          }
         ),
-        { loggerName: this.options.loggerName, loggerContextCb: () => this.logContext },
+        {
+          loggerName: this.options.loggerName,
+          loggerContextCb: () => this.logContext,
+        }
       );
       // @ts-ignore
       this.localParticipant.addTrackPublication(camPub);
@@ -1986,18 +2287,29 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
         }),
         new LocalAudioTrack(
           publishOptions.useRealTracks
-            ? (await navigator.mediaDevices.getUserMedia({ audio: true })).getAudioTracks()[0]
+            ? (
+                await navigator.mediaDevices.getUserMedia({ audio: true })
+              ).getAudioTracks()[0]
             : getEmptyAudioStreamTrack(),
           undefined,
           false,
           this.audioContext,
-          { loggerName: this.options.loggerName, loggerContextCb: () => this.logContext },
+          {
+            loggerName: this.options.loggerName,
+            loggerContextCb: () => this.logContext,
+          }
         ),
-        { loggerName: this.options.loggerName, loggerContextCb: () => this.logContext },
+        {
+          loggerName: this.options.loggerName,
+          loggerContextCb: () => this.logContext,
+        }
       );
       // @ts-ignore
       this.localParticipant.addTrackPublication(audioPub);
-      this.localParticipant.emit(ParticipantEvent.LocalTrackPublished, audioPub);
+      this.localParticipant.emit(
+        ParticipantEvent.LocalTrackPublished,
+        audioPub
+      );
     }
 
     for (let i = 0; i < participantOptions.count - 1; i += 1) {
@@ -2011,17 +2323,24 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
       const p = this.getOrCreateParticipant(info.identity, info);
       if (participantOptions.video) {
         const dummyVideo = createDummyVideoStreamTrack(
-          160 * (participantOptions.aspectRatios[i % participantOptions.aspectRatios.length] ?? 1),
+          160 *
+            (participantOptions.aspectRatios[
+              i % participantOptions.aspectRatios.length
+            ] ?? 1),
           160,
           false,
-          true,
+          true
         );
         const videoTrack = new TrackInfo({
           source: TrackSource.CAMERA,
           sid: Math.floor(Math.random() * 10_000).toString(),
           type: TrackType.AUDIO,
         });
-        p.addSubscribedMediaTrack(dummyVideo, videoTrack.sid, new MediaStream([dummyVideo]));
+        p.addSubscribedMediaTrack(
+          dummyVideo,
+          videoTrack.sid,
+          new MediaStream([dummyVideo])
+        );
         info.tracks = [...info.tracks, videoTrack];
       }
       if (participantOptions.audio) {
@@ -2031,7 +2350,11 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
           sid: Math.floor(Math.random() * 10_000).toString(),
           type: TrackType.AUDIO,
         });
-        p.addSubscribedMediaTrack(dummyTrack, audioTrack.sid, new MediaStream([dummyTrack]));
+        p.addSubscribedMediaTrack(
+          dummyTrack,
+          audioTrack.sid,
+          new MediaStream([dummyTrack])
+        );
         info.tracks = [...info.tracks, audioTrack];
       }
 
@@ -2047,8 +2370,14 @@ class Room extends (EventEmitter as new () => TypedEmitter<RoomEventCallbacks>) 
     // active speaker updates are too spammy
     if (event !== RoomEvent.ActiveSpeakersChanged) {
       // only extract logContext from arguments in order to avoid logging the whole object tree
-      const minimizedArgs = mapArgs(args).filter((arg: unknown) => arg !== undefined);
-      this.log.debug(`room event ${event}`, { ...this.logContext, event, args: minimizedArgs });
+      const minimizedArgs = mapArgs(args).filter(
+        (arg: unknown) => arg !== undefined
+      );
+      this.log.debug(`room event ${event}`, {
+        ...this.logContext,
+        event,
+        args: minimizedArgs,
+      });
     }
     return super.emit(event, ...args);
   }
@@ -2080,39 +2409,54 @@ export type RoomEventCallbacks = {
   mediaDevicesChanged: () => void;
   participantConnected: (participant: RemoteParticipant) => void;
   participantDisconnected: (participant: RemoteParticipant) => void;
-  trackPublished: (publication: RemoteTrackPublication, participant: RemoteParticipant) => void;
+  trackPublished: (
+    publication: RemoteTrackPublication,
+    participant: RemoteParticipant
+  ) => void;
   trackSubscribed: (
     track: RemoteTrack,
     publication: RemoteTrackPublication,
-    participant: RemoteParticipant,
+    participant: RemoteParticipant
   ) => void;
   trackSubscriptionFailed: (
     trackSid: string,
     participant: RemoteParticipant,
-    reason?: SubscriptionError,
+    reason?: SubscriptionError
   ) => void;
-  trackUnpublished: (publication: RemoteTrackPublication, participant: RemoteParticipant) => void;
+  trackUnpublished: (
+    publication: RemoteTrackPublication,
+    participant: RemoteParticipant
+  ) => void;
   trackUnsubscribed: (
     track: RemoteTrack,
     publication: RemoteTrackPublication,
-    participant: RemoteParticipant,
+    participant: RemoteParticipant
   ) => void;
   trackMuted: (publication: TrackPublication, participant: Participant) => void;
-  trackUnmuted: (publication: TrackPublication, participant: Participant) => void;
-  localTrackPublished: (publication: LocalTrackPublication, participant: LocalParticipant) => void;
+  trackUnmuted: (
+    publication: TrackPublication,
+    participant: Participant
+  ) => void;
+  localTrackPublished: (
+    publication: LocalTrackPublication,
+    participant: LocalParticipant
+  ) => void;
   localTrackUnpublished: (
     publication: LocalTrackPublication,
-    participant: LocalParticipant,
+    participant: LocalParticipant
   ) => void;
   localAudioSilenceDetected: (publication: LocalTrackPublication) => void;
   participantMetadataChanged: (
     metadata: string | undefined,
-    participant: RemoteParticipant | LocalParticipant,
+    participant: RemoteParticipant | LocalParticipant
   ) => void;
-  participantNameChanged: (name: string, participant: RemoteParticipant | LocalParticipant) => void;
+  participantNameChanged: (
+    name: string,
+    participant: RemoteParticipant | LocalParticipant
+  ) => void;
   participantPermissionsChanged: (
     prevPermissions: ParticipantPermission | undefined,
-    participant: RemoteParticipant | LocalParticipant,
+    participant: RemoteParticipant | LocalParticipant
   ) => void;
   activeSpeakersChanged: (speakers: Array<Participant>) => void;
   roomMetadataChanged: (metadata: string) => void;
@@ -2121,29 +2465,32 @@ export type RoomEventCallbacks = {
     participant?: RemoteParticipant,
     kind?: DataPacket_Kind,
     topic?: string,
-    destination_sids?: string[],
+    destination_sids?: string[]
   ) => void;
   transcriptionReceived: (
     transcription: TranscriptionSegment[],
     participant?: Participant,
-    publication?: TrackPublication,
+    publication?: TrackPublication
   ) => void;
-  connectionQualityChanged: (quality: ConnectionQuality, participant: Participant) => void;
+  connectionQualityChanged: (
+    quality: ConnectionQuality,
+    participant: Participant
+  ) => void;
   mediaDevicesError: (error: Error) => void;
   trackStreamStateChanged: (
     publication: RemoteTrackPublication,
     streamState: Track.StreamState,
-    participant: RemoteParticipant,
+    participant: RemoteParticipant
   ) => void;
   trackSubscriptionPermissionChanged: (
     publication: RemoteTrackPublication,
     status: TrackPublication.PermissionStatus,
-    participant: RemoteParticipant,
+    participant: RemoteParticipant
   ) => void;
   trackSubscriptionStatusChanged: (
     publication: RemoteTrackPublication,
     status: TrackPublication.SubscriptionStatus,
-    participant: RemoteParticipant,
+    participant: RemoteParticipant
   ) => void;
   audioPlaybackChanged: (playing: boolean) => void;
   videoPlaybackChanged: (playing: boolean) => void;
@@ -2152,7 +2499,10 @@ export type RoomEventCallbacks = {
   reconnectPrimaryDelay: (delay: number) => void;
   reconnectSecondaryDelay: (delay: number) => void;
   reconnectICEDelay: (delay: number) => void;
-  participantEncryptionStatusChanged: (encrypted: boolean, participant?: Participant) => void;
+  participantEncryptionStatusChanged: (
+    encrypted: boolean,
+    participant?: Participant
+  ) => void;
   encryptionError: (error: Error) => void;
   dcBufferStatusChanged: (isLow: boolean, kind: DataPacket_Kind) => void;
   activeDeviceChanged: (kind: MediaDeviceKind, deviceId: string) => void;

@@ -1,7 +1,8 @@
+import { RuntimeLoader } from '../../options';
 import { AudioTrackFeature } from '../../proto/livekit_models_pb';
 import { TrackEvent } from '../events';
-import { computeBitrate, monitorFrequency } from '../stats';
 import type { AudioSenderStats } from '../stats';
+import { computeBitrate, monitorFrequency } from '../stats';
 import type { LoggerOptions } from '../types';
 import { isWeb, unwrapConstraint } from '../utils';
 import LocalTrack from './LocalTrack';
@@ -18,7 +19,9 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
 
   private isKrispNoiseFilterEnabled = false;
 
-  protected processor?: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> | undefined;
+  protected declare processor?:
+    | TrackProcessor<Track.Kind.Audio, AudioProcessorOptions>
+    | undefined;
 
   /**
    * boolean indicating whether enhanced noise cancellation is currently being used on this track
@@ -38,9 +41,15 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
     constraints?: MediaTrackConstraints,
     userProvidedTrack = true,
     audioContext?: AudioContext,
-    loggerOptions?: LoggerOptions,
+    loggerOptions?: LoggerOptions
   ) {
-    super(mediaTrack, Track.Kind.Audio, constraints, userProvidedTrack, loggerOptions);
+    super(
+      mediaTrack,
+      Track.Kind.Audio,
+      constraints,
+      userProvidedTrack,
+      loggerOptions
+    );
     this.audioContext = audioContext;
     this.checkForSilence();
   }
@@ -48,7 +57,8 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
   async setDeviceId(deviceId: ConstrainDOMString): Promise<boolean> {
     if (
       this._constraints.deviceId === deviceId &&
-      this._mediaStreamTrack.getSettings().deviceId === unwrapConstraint(deviceId)
+      this._mediaStreamTrack.getSettings().deviceId ===
+        unwrapConstraint(deviceId)
     ) {
       return true;
     }
@@ -57,7 +67,9 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
       await this.restartTrack();
     }
     return (
-      this.isMuted || unwrapConstraint(deviceId) === this._mediaStreamTrack.getSettings().deviceId
+      this.isMuted ||
+      unwrapConstraint(deviceId) ===
+        this._mediaStreamTrack.getSettings().deviceId
     );
   }
 
@@ -70,7 +82,11 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
       }
 
       // disabled special handling as it will cause BT headsets to switch communication modes
-      if (this.source === Track.Source.Microphone && this.stopOnMute && !this.isUserProvided) {
+      if (
+        this.source === Track.Source.Microphone &&
+        this.stopOnMute &&
+        !this.isUserProvided
+      ) {
         this.log.debug('stopping mic track', this.logContext);
         // also stop the track, so that microphone indicator is turned off
         this._mediaStreamTrack.stop();
@@ -97,7 +113,9 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
 
       if (
         this.source === Track.Source.Microphone &&
-        (this.stopOnMute || this._mediaStreamTrack.readyState === 'ended' || deviceHasChanged) &&
+        (this.stopOnMute ||
+          this._mediaStreamTrack.readyState === 'ended' ||
+          deviceHasChanged) &&
         !this.isUserProvided
       ) {
         this.log.debug('reacquiring mic track', this.logContext);
@@ -122,7 +140,9 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
     await this.restart(constraints);
   }
 
-  protected async restart(constraints?: MediaTrackConstraints): Promise<typeof this> {
+  protected async restart(
+    constraints?: MediaTrackConstraints
+  ): Promise<typeof this> {
     const track = await super.restart(constraints);
     this.checkForSilence();
     return track;
@@ -151,7 +171,10 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
     try {
       stats = await this.getSenderStats();
     } catch (e) {
-      this.log.error('could not get audio sender stats', { ...this.logContext, error: e });
+      this.log.error('could not get audio sender stats', {
+        ...this.logContext,
+        error: e,
+      });
       return;
     }
 
@@ -169,7 +192,7 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
       TrackEvent.AudioTrackFeatureUpdate,
       this,
       AudioTrackFeature.TF_ENHANCED_NOISE_CANCELLATION,
-      true,
+      true
     );
   };
 
@@ -180,16 +203,18 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
       TrackEvent.AudioTrackFeatureUpdate,
       this,
       AudioTrackFeature.TF_ENHANCED_NOISE_CANCELLATION,
-      false,
+      false
     );
   };
 
-  async setProcessor(processor: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions>) {
+  async setProcessor(
+    processor: TrackProcessor<Track.Kind.Audio, AudioProcessorOptions>
+  ) {
     const unlock = await this.processorLock.lock();
     try {
       if (!this.audioContext) {
         throw Error(
-          'Audio context needs to be set on LocalAudioTrack in order to enable processors',
+          'Audio context needs to be set on LocalAudioTrack in order to enable processors'
         );
       }
       if (this.processor) {
@@ -201,7 +226,10 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
         track: this._mediaStreamTrack,
         audioContext: this.audioContext,
       };
-      this.log.debug(`setting up audio processor ${processor.name}`, this.logContext);
+      this.log.debug(
+        `setting up audio processor ${processor.name}`,
+        this.logContext
+      );
 
       await processor.init(processorOptions);
       this.processor = processor;
@@ -209,11 +237,11 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
         await this.sender?.replaceTrack(this.processor.processedTrack);
         this.processor.processedTrack.addEventListener(
           'enable-lk-krisp-noise-filter',
-          this.handleKrispNoiseFilterEnable,
+          this.handleKrispNoiseFilterEnable
         );
         this.processor.processedTrack.addEventListener(
           'disable-lk-krisp-noise-filter',
-          this.handleKrispNoiseFilterDisable,
+          this.handleKrispNoiseFilterDisable
         );
       }
       this.emit(TrackEvent.TrackProcessorUpdate, this.processor);
@@ -264,5 +292,76 @@ export default class LocalAudioTrack extends LocalTrack<Track.Kind.Audio> {
       this.emit(TrackEvent.AudioSilenceDetected);
     }
     return trackIsSilent;
+  }
+
+  static async ProcessAudioWithRnnoise(
+    audioTrack: LocalTrack
+  ): Promise<LocalTrack> {
+    try {
+      const noiseSuppressionProcessor = RuntimeLoader.NoiseSuppressionProcessor;
+
+      console.log('Noise Suppression Processor initialized');
+
+      // Create an AudioContext for audio processing
+      const audioContext = new AudioContext();
+
+      // Check if the mediaStream is defined and get the MediaStreamAudioTrack
+      const mediaStream = audioTrack.mediaStream;
+      if (!mediaStream) {
+        throw new Error(`media stream is undefined`);
+      }
+
+      const mediaStreamAudioTrack = mediaStream.getAudioTracks()[0];
+
+      // Ensure that mediaStreamAudioTrack is defined
+      /*if (!mediaStreamAudioTrack) {
+      console.error('MediaStreamAudioTrack is undefined. Unable to process audio track.');
+      return; // Exit if the audio track is not available
+    }*/
+
+      // Ensure that mediaStreamAudioTrack is defined and is of the correct type
+      if (!mediaStreamAudioTrack || mediaStreamAudioTrack.kind !== 'audio') {
+        throw new Error(`media stream audio track is undefined`);
+      }
+
+      // Create a source node from the MediaStreamAudioTrack
+      const sourceNode = audioContext.createMediaStreamSource(
+        new MediaStream([mediaStreamAudioTrack])
+      );
+
+      // Create a script processor for audio processing
+      const scriptProcessor = audioContext.createScriptProcessor(1024, 1, 1);
+
+      // Connect nodes
+      sourceNode.connect(scriptProcessor);
+      scriptProcessor.connect(audioContext.destination); // Connect to output
+
+      // Handle audio processing
+     // if(noiseSuppressionProcessor)
+      //  {
+      const processedAudioTrack =
+        await noiseSuppressionProcessor.startProcessing(
+          mediaStreamAudioTrack as MediaStreamAudioTrack
+        );
+     // }
+      //  else{
+       //   console.log("//SHAH:NS not initialized")
+       // }
+      console.log('//SHAHrnnoise processing started');
+      console.log('noiseSuppressionProcessor: ', noiseSuppressionProcessor);
+      // Wrap the processed MediaStreamAudioTrack back into a LocalAudioTrack
+      if (processedAudioTrack) {
+        const newLocalAudioTrack = new LocalAudioTrack(processedAudioTrack);
+        console.log('processedTrack:', newLocalAudioTrack);
+        newLocalAudioTrack.source = Track.Source.Microphone;
+
+        return newLocalAudioTrack;
+      } else {
+        throw new Error(`processed audio track is undefined`);
+      }
+    } catch (err) {
+      console.error('error in noise suppression');
+      throw err;
+    }
   }
 }

@@ -22,9 +22,9 @@ export const publishDefaults: TrackPublishDefaults = {
 } as const;
 
 export const audioDefaults: AudioCaptureOptions = {
-  autoGainControl: true,
+  autoGainControl: false,
   echoCancellation: true,
-  noiseSuppression: true,
+  noiseSuppression: false,
 };
 
 export const videoDefaults: VideoCaptureOptions = {

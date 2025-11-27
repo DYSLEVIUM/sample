@@ -39,7 +39,9 @@
   "author": "",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "rollup --config --bundleConfigAsCjs && rollup --config rollup.config.worker.js --bundleConfigAsCjs",
+    "generate-wasm": "./scripts/build-rnnoise.sh",
+    "copy-wasm": "cp ./wasm_dist/rnnoise.wasm ./dist/rnnoise.wasm && rm -rf ./wasm_dist",
+    "build": "npm run generate-wasm && rollup --config --bundleConfigAsCjs && rollup --config rollup.config.worker.js --bundleConfigAsCjs && npm run copy-wasm",
     "build:watch": "rollup --watch --config --bundleConfigAsCjs",
     "build:worker:watch": "rollup --watch --config rollup.config.worker.js --bundleConfigAsCjs",
     "build-docs": "typedoc",
@@ -57,12 +59,14 @@
     "size-limit": "size-limit"
   },
   "dependencies": {
+    "emscripten": "^0.0.2-beta",
     "events": "^3.3.0",
     "loglevel": "^1.8.0",
     "sdp-transform": "^2.14.1",
     "ts-debounce": "^4.0.0",
     "tslib": "2.6.2",
     "typed-emitter": "^2.1.0",
+    "wasm-feature-detect": "^1.8.0",
     "webrtc-adapter": "^8.1.1"
   },
   "devDependencies": {
@@ -79,6 +83,8 @@
     "@size-limit/file": "^8.2.4",
     "@size-limit/webpack": "^8.2.4",
     "@trivago/prettier-plugin-sort-imports": "^4.1.1",
+    "@types/dom-mediacapture-transform": "^0.1.10",
+    "@types/emscripten": "^1.39.6",
     "@types/events": "^3.0.0",
     "@types/sdp-transform": "2.4.9",
     "@types/ua-parser-js": "0.7.39",
@@ -93,7 +99,7 @@
     "gh-pages": "6.1.1",
     "jsdom": "^24.0.0",
     "prettier": "^3.0.0",
-    "rollup": "4.17.2",
+    "rollup": "^4.24.0",
     "rollup-plugin-delete": "^2.0.0",
     "rollup-plugin-re": "1.0.7",
     "rollup-plugin-typescript2": "0.36.0",
@@ -101,7 +107,7 @@
     "typedoc": "0.25.13",
     "typedoc-plugin-no-inherit": "1.4.0",
     "typescript": "5.4.5",
-    "vite": "5.2.10",
+    "vite": "^5.4.9",
     "vitest": "^1.0.0"
   }
 }

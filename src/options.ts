@@ -7,6 +7,7 @@ import type {
   VideoCaptureOptions,
 } from './room/track/options';
 import type { AdaptiveStreamSettings } from './room/track/types';
+import { NoiseSuppressionProcessor } from './utils/NoiseSuppressionProcessor';
 
 export interface WebAudioSettings {
   audioContext: AudioContext;
@@ -98,7 +99,7 @@ export interface InternalRoomOptions {
 /**
  * Options for when creating a new room
  */
-export interface RoomOptions extends Partial<InternalRoomOptions> {}
+export interface RoomOptions extends Partial<InternalRoomOptions> { }
 
 /**
  * @internal
@@ -125,4 +126,16 @@ export interface InternalRoomConnectOptions {
 /**
  * Options for Room.connect()
  */
-export interface RoomConnectOptions extends Partial<InternalRoomConnectOptions> {}
+export interface RoomConnectOptions
+  extends Partial<InternalRoomConnectOptions> { }
+
+export class RuntimeLoader {
+  static NoiseSuppressionProcessor: NoiseSuppressionProcessor;
+
+  static async load() {
+    console.log('@PUSHPA RuntimeLoader.load()');
+    const assetsPath = '/';
+    this.NoiseSuppressionProcessor = await
+      NoiseSuppressionProcessor.build(assetsPath);
+  }
+}

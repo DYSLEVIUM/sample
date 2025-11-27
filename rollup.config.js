@@ -11,7 +11,7 @@ import packageJson from './package.json';
 
 export function kebabCaseToPascalCase(string = '') {
   return string.replace(/(^\w|-\w)/g, (replaceString) =>
-    replaceString.replace(/-/, '').toUpperCase(),
+    replaceString.replace(/-/, '').toUpperCase()
   );
 }
 

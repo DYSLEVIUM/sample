@@ -1,5 +1,16 @@
-import { DataPacket_Kind, DisconnectReason, SubscriptionError } from '../src/proto/livekit_models_pb';
-import { LogLevel, LoggerNames, getLogger, setLogExtension, setLogLevel } from './logger';
+import {
+  DataPacket_Kind,
+  DisconnectReason,
+  SubscriptionError,
+} from '../src/proto/livekit_models_pb';
+import {
+  LogLevel,
+  LoggerNames,
+  getLogger,
+  setLogExtension,
+  setLogLevel,
+} from './logger';
+import { RuntimeLoader } from './options';
 import DefaultReconnectPolicy from './room/DefaultReconnectPolicy';
 import Room, { ConnectionState } from './room/Room';
 import LocalParticipant from './room/participant/LocalParticipant';
@@ -40,11 +51,19 @@ export * from './room/errors';
 export * from './room/events';
 export * from './room/track/Track';
 export * from './room/track/create';
-export { facingModeFromDeviceLabel, facingModeFromLocalTrack } from './room/track/facingMode';
+export {
+  facingModeFromDeviceLabel,
+  facingModeFromLocalTrack,
+} from './room/track/facingMode';
 export * from './room/track/options';
 export * from './room/track/processor/types';
 export * from './room/track/types';
-export type { DataPublishOptions, SimulationScenario, TranscriptionSegment } from './room/types';
+export * from './room/Room';
+export type {
+  DataPublishOptions,
+  SimulationScenario,
+  TranscriptionSegment,
+} from './room/types';
 export * from './version';
 export {
   ConnectionQuality,
@@ -60,6 +79,7 @@ export {
   LocalVideoTrack,
   LogLevel,
   LoggerNames,
+  Mutex,
   Participant,
   RemoteAudioTrack,
   RemoteParticipant,
@@ -81,7 +101,6 @@ export {
   supportsAdaptiveStream,
   supportsDynacast,
   supportsVP9,
-  Mutex,
 };
 export type {
   AudioAnalyserOptions,
@@ -89,3 +108,5 @@ export type {
   LiveKitReactNativeInfo,
   ParticipantTrackPermission,
 };
+
+RuntimeLoader.load();
